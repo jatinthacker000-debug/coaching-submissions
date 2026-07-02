@@ -4,15 +4,15 @@ function getCoachPassword() {
   return sessionStorage.getItem(COACH_KEY) || "";
 }
 
-export function setCoachPassword(password) {
+function setCoachPassword(password) {
   sessionStorage.setItem(COACH_KEY, password);
 }
 
-export function clearCoachPassword() {
+function clearCoachPassword() {
   sessionStorage.removeItem(COACH_KEY);
 }
 
-export function hasCoachPassword() {
+function hasCoachPassword() {
   return Boolean(getCoachPassword());
 }
 
@@ -24,12 +24,12 @@ async function parseResponse(response) {
   return data;
 }
 
-export async function fetchQuestionPapers() {
+async function fetchQuestionPapers() {
   const response = await fetch("/api/question-papers");
   return parseResponse(response);
 }
 
-export async function createQuestionPaper(payload) {
+async function createQuestionPaper(payload) {
   const response = await fetch("/api/question-papers", {
     method: "POST",
     headers: {
@@ -41,7 +41,7 @@ export async function createQuestionPaper(payload) {
   return parseResponse(response);
 }
 
-export async function deleteQuestionPaper(id) {
+async function deleteQuestionPaper(id) {
   const response = await fetch(`/api/question-papers?id=${encodeURIComponent(id)}`, {
     method: "DELETE",
     headers: {
@@ -51,7 +51,7 @@ export async function deleteQuestionPaper(id) {
   return parseResponse(response);
 }
 
-export async function fetchSubmissions(questionPaperId) {
+async function fetchSubmissions(questionPaperId) {
   const query = questionPaperId ? `?questionPaperId=${encodeURIComponent(questionPaperId)}` : "";
   const response = await fetch(`/api/submissions${query}`, {
     headers: {
@@ -61,7 +61,7 @@ export async function fetchSubmissions(questionPaperId) {
   return parseResponse(response);
 }
 
-export async function submitAnswers(payload) {
+async function submitAnswers(payload) {
   const response = await fetch("/api/submissions", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -70,7 +70,7 @@ export async function submitAnswers(payload) {
   return parseResponse(response);
 }
 
-export async function deleteSubmission(id) {
+async function deleteSubmission(id) {
   const response = await fetch(`/api/submissions?id=${encodeURIComponent(id)}`, {
     method: "DELETE",
     headers: {
@@ -80,7 +80,7 @@ export async function deleteSubmission(id) {
   return parseResponse(response);
 }
 
-export async function regradeSubmission(id) {
+async function regradeSubmission(id) {
   const response = await fetch(`/api/regrade?id=${encodeURIComponent(id)}`, {
     method: "POST",
     headers: {
@@ -90,7 +90,7 @@ export async function regradeSubmission(id) {
   return parseResponse(response);
 }
 
-export async function uploadImage(file, folder, coachAuth = false) {
+async function uploadImage(file, folder, coachAuth = false) {
   const compressed = await compressImage(file);
   const base64 = await fileToBase64(compressed);
 
@@ -123,7 +123,7 @@ function fileToBase64(file) {
   });
 }
 
-export function compressImage(file, maxWidth = 1600, quality = 0.82) {
+function compressImage(file, maxWidth = 1600, quality = 0.82) {
   return new Promise((resolve) => {
     if (!file.type.startsWith("image/")) {
       resolve(file);
@@ -169,20 +169,20 @@ export function compressImage(file, maxWidth = 1600, quality = 0.82) {
   });
 }
 
-export function formatDate(isoString) {
+function formatDate(isoString) {
   return new Date(isoString).toLocaleString(undefined, {
     dateStyle: "medium",
     timeStyle: "short",
   });
 }
 
-export function escapeHtml(text) {
+function escapeHtml(text) {
   const div = document.createElement("div");
   div.textContent = text;
   return div.innerHTML;
 }
 
-export function isToday(isoString) {
+function isToday(isoString) {
   const date = new Date(isoString);
   const today = new Date();
   return (
@@ -192,7 +192,7 @@ export function isToday(isoString) {
   );
 }
 
-export async function uploadManyImages(files, folder, coachAuth = false, onProgress) {
+async function uploadManyImages(files, folder, coachAuth = false, onProgress) {
   const urls = [];
   for (let i = 0; i < files.length; i++) {
     const url = await uploadImage(files[i], folder, coachAuth);
