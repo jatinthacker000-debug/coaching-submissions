@@ -90,9 +90,9 @@ loginForm.addEventListener("submit", async (e) => {
     await fetchSubmissions();
     showDashboard();
     await refreshAll();
-  } catch {
+  } catch (err) {
     clearCoachPassword();
-    loginError.textContent = "Wrong password. Please try again.";
+    loginError.textContent = err.message || "Wrong password. Please try again.";
     loginError.classList.remove("hidden");
   }
 });
