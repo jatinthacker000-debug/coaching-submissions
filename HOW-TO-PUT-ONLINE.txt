@@ -1,0 +1,85 @@
+HOW TO PUT YOUR COACHING APP ONLINE
+===================================
+
+Follow these steps in order. You only need to do this once.
+
+
+STEP 1 — Create a free Supabase account (stores photos and data)
+---------------------------------------------------------------
+1. Go to https://supabase.com and sign up (free).
+2. Click "New project".
+3. Pick any name, password, and region close to you. Wait until it is ready.
+4. In the left menu, open "SQL Editor".
+5. Click "New query".
+6. Open the file "supabase-schema.sql" from this folder in Notepad.
+7. Copy ALL the text and paste it into Supabase SQL Editor.
+8. Click "Run".
+9. In the left menu, open "Project Settings" → "API".
+10. Copy and save these two values somewhere safe:
+    - Project URL
+    - service_role key (secret — do not share with students)
+
+
+STEP 2 — Get a Google Gemini API key (AI checks answers)
+--------------------------------------------------------
+1. Go to https://aistudio.google.com/apikey
+2. Sign in with Google.
+3. Click "Create API key".
+4. Copy and save the key.
+
+
+STEP 3 — Put the app online with Vercel (free hosting)
+------------------------------------------------------
+1. Go to https://vercel.com and sign up (you can use your Google account).
+2. You need this project on GitHub first:
+   - Go to https://github.com and create a free account if needed.
+   - Click "+" → "New repository".
+   - Name it "coaching-submissions".
+   - Create the repository.
+   - Upload ALL files from this folder to GitHub (there is an "upload files" button on GitHub).
+3. Back in Vercel, click "Add New" → "Project".
+4. Import your GitHub repository "coaching-submissions".
+5. Before clicking Deploy, open "Environment Variables" and add:
+
+   Name: SUPABASE_URL
+   Value: (paste your Supabase Project URL)
+
+   Name: SUPABASE_SERVICE_ROLE_KEY
+   Value: (paste your Supabase service_role key)
+
+   Name: GEMINI_API_KEY
+   Value: (paste your Google Gemini API key)
+
+   Name: COACH_PASSWORD
+   Value: (choose a password only YOU know — students never need this)
+
+6. Click Deploy and wait until it finishes.
+7. Vercel will give you a website link like:
+   https://coaching-submissions-xxxx.vercel.app
+
+
+STEP 4 — How to use it every day
+--------------------------------
+STUDENTS:
+- Share your Vercel link (the index page).
+- They pick the test, enter name, upload up to 10 photos, and submit.
+- AI checks their answers automatically.
+
+YOU (COACH):
+- Open: your-link/dashboard.html
+- Enter the COACH_PASSWORD you set in Step 3.
+- Tab 1 "Question Papers": create tests, upload question paper photos, type or upload model answers.
+- Tab 2 "Student Submissions": see all students, AI score, Pass/Fail verdict, and detailed feedback.
+
+
+IMPORTANT NOTES
+---------------
+- Keep your coach password private.
+- Keep the Supabase service_role key and Gemini API key secret.
+- Google Gemini free tier has usage limits; for many students you may need a paid plan later.
+- AI checking is helpful but not perfect — always review important results yourself.
+
+
+NEED HELP?
+----------
+If you get stuck on any step, tell me which step number and what you see on screen.

@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Coach Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <div class="brand">
+        <span class="brand-icon">📚</span>
+        <span class="brand-text">Coach Dashboard</span>
+      </div>
+      <a href="index.html" class="nav-link">← Student Submit</a>
+    </div>
+  </header>
+
+  <div id="login-screen" class="login-screen">
+    <div class="login-card">
+      <h1>Coach Login</h1>
+      <p class="subtitle">Enter your coach password to manage question papers and view submissions.</p>
+      <form id="login-form">
+        <div class="form-group">
+          <label for="coach-password">Password</label>
+          <input type="password" id="coach-password" placeholder="Your coach password" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Enter Dashboard</button>
+      </form>
+      <p id="login-error" class="error-text hidden"></p>
+    </div>
+  </div>
+
+  <main id="dashboard-main" class="container main-content hidden">
+    <div class="tabs">
+      <button class="tab active" data-tab="papers">Question Papers</button>
+      <button class="tab" data-tab="submissions">Student Submissions</button>
+    </div>
+
+    <section id="tab-papers" class="tab-panel">
+      <div class="panel-header">
+        <div>
+          <h1>Question Papers</h1>
+          <p class="subtitle">Create a test, upload the question paper, and add the model answer key for AI checking.</p>
+        </div>
+      </div>
+
+      <form id="paper-form" class="submit-card wide-card">
+        <div class="form-group">
+          <label for="paper-title">Test Name</label>
+          <input type="text" id="paper-title" placeholder="e.g. Maths Unit Test - Chapter 5" required>
+        </div>
+
+        <div class="form-group">
+          <label for="answer-key-text">Model Answer Key (text)</label>
+          <textarea id="answer-key-text" rows="5" placeholder="Type the correct answers here. Example:&#10;Q1. 42&#10;Q2. Photosynthesis&#10;Q3. x = 5"></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="question-images">Question Paper Photos</label>
+            <input type="file" id="question-images" accept="image/*" multiple>
+            <p class="upload-hint">Upload photos or scans of the question paper.</p>
+            <div id="qp-preview" class="preview-grid small"></div>
+          </div>
+
+          <div class="form-group">
+            <label for="answer-key-images">Answer Key Photos (optional)</label>
+            <input type="file" id="answer-key-images" accept="image/*" multiple>
+            <p class="upload-hint">Upload handwritten or printed model answer sheets.</p>
+            <div id="ak-preview" class="preview-grid small"></div>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary" id="paper-submit-btn">Save Question Paper</button>
+        <p id="paper-progress" class="progress-text hidden"></p>
+      </form>
+
+      <div class="section-divider"></div>
+      <h2 class="section-title">Saved Question Papers</h2>
+      <div id="papers-list" class="papers-list"></div>
+    </section>
+
+    <section id="tab-submissions" class="tab-panel hidden">
+      <div class="dashboard-header">
+        <div>
+          <h1>Student Submissions</h1>
+          <p class="subtitle">View AI-checked answer sheets and final verdicts.</p>
+        </div>
+        <div class="dashboard-stats">
+          <div class="stat-card">
+            <span class="stat-number" id="total-count">0</span>
+            <span class="stat-label">Total</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-number" id="today-count">0</span>
+            <span class="stat-label">Today</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group filter-bar">
+        <label for="filter-paper">Filter by Question Paper</label>
+        <select id="filter-paper">
+          <option value="">All question papers</option>
+        </select>
+      </div>
+
+      <div id="empty-state" class="empty-state hidden">
+        <span class="empty-icon">📋</span>
+        <h2>No submissions yet</h2>
+        <p>When students submit answer sheets, they will appear here with AI scores.</p>
+      </div>
+
+      <div id="submissions-grid" class="submissions-grid"></div>
+    </section>
+  </main>
+
+  <div id="lightbox" class="lightbox hidden" role="dialog" aria-modal="true" aria-label="View submission">
+    <button class="lightbox-close" id="lightbox-close" aria-label="Close">&times;</button>
+    <div class="lightbox-content wide-lightbox">
+      <div id="lightbox-gallery" class="lightbox-gallery"></div>
+      <div class="lightbox-meta vertical-meta">
+        <div>
+          <h2 id="lightbox-name"></h2>
+          <p id="lightbox-paper"></p>
+          <p id="lightbox-date"></p>
+        </div>
+        <div id="lightbox-ai" class="ai-result"></div>
+        <div class="lightbox-actions">
+          <button class="btn btn-secondary" id="lightbox-regrade">Re-check with AI</button>
+          <button class="btn btn-danger" id="lightbox-delete">Delete</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="api-client.js"></script>
+  <script src="dashboard.js"></script>
+</body>
+</html>
