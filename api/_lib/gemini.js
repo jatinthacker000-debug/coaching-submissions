@@ -55,14 +55,14 @@ Be fair to handwriting quality. If something is unclear, mention it in feedback 
   }
 
   if (questionPaper.question_image_urls?.length) {
-    parts.push({ text: "\nQuestion paper images:\n" });
+    parts.push({ text: "\nQuestion paper files:\n" });
     for (const url of questionPaper.question_image_urls) {
       parts.push(await fetchImageAsBase64(url));
     }
   }
 
   if (questionPaper.answer_key_image_urls?.length) {
-    parts.push({ text: "\nModel answer key images:\n" });
+    parts.push({ text: "\nModel answer key files:\n" });
     for (const url of questionPaper.answer_key_image_urls) {
       parts.push(await fetchImageAsBase64(url));
     }
