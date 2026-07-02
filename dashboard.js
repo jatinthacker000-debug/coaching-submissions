@@ -60,10 +60,17 @@ function renderFilePreview(input, container) {
   container.innerHTML = "";
   [...input.files].forEach((file) => {
     const url = URL.createObjectURL(file);
-    const img = document.createElement("img");
-    img.src = url;
-    img.alt = file.name;
-    container.appendChild(img);
+    if (file.type === "application/pdf") {
+      const div = document.createElement("div");
+      div.className = "pdf-preview-block";
+      div.innerHTML = `<span class="pdf-icon">📄</span> <span class="pdf-name">${escapeHtml(file.name)}</span>`;
+      container.appendChild(div);
+    } else {
+      const img = document.createElement("img");
+      img.src = url;
+      img.alt = file.name;
+      container.appendChild(img);
+    }
   });
 }
 
@@ -130,7 +137,7 @@ async function renderPapersList() {
     card.innerHTML = `
       <div>
         <h3>${escapeHtml(paper.title)}</h3>
-        <p class="muted-text">${paper.question_image_urls.length} question photo(s) · ${paper.answer_key_image_urls.length} answer key photo(s)</p>
+        <p class="muted-text">${paper.question_image_urls.length} question file(s) · ${paper.answer_key_image_urls.length} answer key file(s)</p>
         <p class="muted-text">Created ${formatDate(paper.created_at)}</p>
       </div>
       <button class="btn btn-danger small-btn" data-id="${paper.id}">Delete</button>
