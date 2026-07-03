@@ -13,12 +13,14 @@ const tabPanels = {
 const noteForm = document.getElementById("note-form");
 const noteTitle = document.getElementById("note-title");
 const noteGrade = document.getElementById("note-grade");
+const noteSubject = document.getElementById("note-subject");
 const noteLink = document.getElementById("note-link");
 const noteSubmitBtn = document.getElementById("note-submit-btn");
 const notesList = document.getElementById("notes-list");
 
 const paperForm = document.getElementById("paper-form");
 const paperTitle = document.getElementById("paper-title");
+const paperSubject = document.getElementById("paper-subject");
 const answerKeyText = document.getElementById("answer-key-text");
 const questionImagesInput = document.getElementById("question-images");
 const answerKeyImagesInput = document.getElementById("answer-key-images");
@@ -26,6 +28,34 @@ const qpPreview = document.getElementById("qp-preview");
 const akPreview = document.getElementById("ak-preview");
 const paperSubmitBtn = document.getElementById("paper-submit-btn");
 const paperProgress = document.getElementById("paper-progress");
+
+const noteGradeSubjects = {
+  X: ["History", "Economics", "Geography", "Civics"],
+  XII: ["Physics", "Chemistry", "Mathematics", "Biology", "English", "Macro Economics", "Indian Economics Development", "History", "Geography"]
+};
+
+function updateNoteSubjectOptions() {
+  const grade = noteGrade.value;
+  noteSubject.innerHTML = "";
+
+  if (!grade) {
+    noteSubject.innerHTML = '<option value="">Select Grade First...</option>';
+    return;
+  }
+
+  noteSubject.innerHTML = '<option value="">Select Subject...</option>';
+  const subjects = noteGradeSubjects[grade] || [];
+  subjects.forEach((subj) => {
+    const option = document.createElement("option");
+    option.value = subj;
+    option.textContent = subj;
+    noteSubject.appendChild(option);
+  });
+}
+
+if (noteGrade) {
+  noteGrade.addEventListener("change", updateNoteSubjectOptions);
+}
 const papersList = document.getElementById("papers-list");
 
 const filterPaper = document.getElementById("filter-paper");
@@ -148,7 +178,7 @@ async function renderPapersList() {
     card.className = "paper-card";
     card.innerHTML = `
       <div>
-        <h3>${escapeHtml(paper.title)}</h3>
+        <h3>${escapeHtml(paper.title)} <span class="score-pill" style="font-size: 0.75rem; margin-left: 0.5rem; background: var(--primary-light); color: var(--primary); font-weight: 600;">${escapeHtml(paper.subject || "General")}</span></h3>
         <p class="muted-text">${paper.question_image_urls.length} question file(s) · ${paper.answer_key_image_urls.length} answer key file(s)</p>
         <p class="muted-text">Created ${formatDate(paper.created_at)}</p>
       </div>
@@ -202,6 +232,7 @@ paperForm.addEventListener("submit", async (e) => {
     await createQuestionPaper({
       id: paperId,
       title: paperTitle.value,
+      subject: paperSubject.value,
       answerKeyText: answerKeyText.value,
       questionImageUrls,
       answerKeyImageUrls,
@@ -551,7 +582,7 @@ async function renderNotes() {
       card.className = "paper-card";
       card.innerHTML = `
         <div>
-          <h3>${escapeHtml(note.title)}</h3>
+          <h3>${escapeHtml(note.title)} <span class="score-pill" style="font-size: 0.75rem; margin-left: 0.5rem; background: var(--primary-light); color: var(--primary); font-weight: 600;">${escapeHtml(note.subject || "General")}</span></h3>
           <p class="muted-text">Grade ${escapeHtml(note.grade)} · Link: <a href="${escapeHtml(note.link)}" target="_blank" rel="noopener noreferrer">${escapeHtml(note.link)}</a></p>
         </div>
         <button class="btn btn-danger small-btn" data-id="${note.id}">Delete</button>
@@ -582,6 +613,7 @@ if (noteForm) {
       await createNote({
         title: noteTitle.value,
         grade: noteGrade.value,
+        subject: noteSubject.value,
         link: noteLink.value,
       });
 

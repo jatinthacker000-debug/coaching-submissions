@@ -34,6 +34,13 @@
       <div class="portal-left">
         <form id="submit-form" class="submit-card">
           <div class="form-group">
+            <label for="filter-subject">Select Subject</label>
+            <select id="filter-subject">
+              <option value="">All Subjects</option>
+            </select>
+          </div>
+
+          <div class="form-group">
             <label for="question-paper">Question Paper / Test</label>
             <select id="question-paper" required>
               <option value="">Loading tests…</option>
@@ -96,16 +103,33 @@
           
           <div class="grade-section">
             <h3>Grade X (10th)</h3>
-            <ul id="notes-grade-x" class="notes-list">
-              <li class="loading-notes">Loading notes...</li>
-            </ul>
+            <div id="notes-x-container" class="subjects-container">
+              <div class="subject-group" id="group-x-history" style="display: none;">
+                <h4>History</h4>
+                <ul id="notes-x-history" class="notes-list"></ul>
+              </div>
+              <div class="subject-group" id="group-x-geography" style="display: none;">
+                <h4>Geography</h4>
+                <ul id="notes-x-geography" class="notes-list"></ul>
+              </div>
+              <div class="subject-group" id="group-x-civics" style="display: none;">
+                <h4>Civics</h4>
+                <ul id="notes-x-civics" class="notes-list"></ul>
+              </div>
+              <div class="subject-group" id="group-x-economics" style="display: none;">
+                <h4>Economics</h4>
+                <ul id="notes-x-economics" class="notes-list"></ul>
+              </div>
+            </div>
+            <p id="no-notes-x" class="muted-text">No notes uploaded yet.</p>
           </div>
 
           <div class="grade-section">
             <h3>Grade XII (12th)</h3>
-            <ul id="notes-grade-xii" class="notes-list">
-              <li class="loading-notes">Loading notes...</li>
-            </ul>
+            <div id="notes-xii-container" class="subjects-container">
+              <!-- Dynamically populated subject groups (Physics, Chemistry, Macro Economics, Indian Economics Development) -->
+            </div>
+            <p id="no-notes-xii" class="muted-text">No notes uploaded yet.</p>
           </div>
         </div>
       </div>
