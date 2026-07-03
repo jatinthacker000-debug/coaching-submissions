@@ -7,7 +7,7 @@ export default async function handler(req, res) {
   if (req.method === "GET") {
     const { data, error } = await supabase
       .from("question_papers")
-      .select("id, title, answer_key_text, question_image_urls, answer_key_image_urls, created_at")
+      .select("id, title, subject, answer_key_text, question_image_urls, answer_key_image_urls, created_at")
       .order("created_at", { ascending: false });
 
     if (error) return sendError(res, error.message, 500);
@@ -27,6 +27,7 @@ export default async function handler(req, res) {
       .insert({
         id: body.id || randomId(),
         title: body.title.trim(),
+        subject: body.subject?.trim() || "General",
         answer_key_text: body.answerKeyText?.trim() || "",
         question_image_urls: body.questionImageUrls || [],
         answer_key_image_urls: body.answerKeyImageUrls || [],

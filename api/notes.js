@@ -7,7 +7,7 @@ export default async function handler(req, res) {
   if (req.method === "GET") {
     const { data, error } = await supabase
       .from("notes")
-      .select("id, title, grade, link, created_at")
+      .select("id, title, grade, subject, link, created_at")
       .order("created_at", { ascending: false });
 
     if (error) return sendError(res, error.message, 500);
@@ -18,8 +18,8 @@ export default async function handler(req, res) {
     if (!isCoachAuthorized(req)) return coachUnauthorized(res);
 
     const body = req.body || {};
-    if (!body.title?.trim() || !body.grade?.trim() || !body.link?.trim()) {
-      return sendError(res, "Title, grade, and link are required.");
+    if (!body.title?.trim() || !body.grade?.trim() || !body.subject?.trim() || !body.link?.trim()) {
+      return sendError(res, "Title, grade, subject, and link are required.");
     }
 
     const { data, error } = await supabase
@@ -28,6 +28,7 @@ export default async function handler(req, res) {
         id: body.id || randomId(),
         title: body.title.trim(),
         grade: body.grade.trim(),
+        subject: body.subject.trim(),
         link: body.link.trim(),
       })
       .select()
