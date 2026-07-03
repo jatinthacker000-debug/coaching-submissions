@@ -43,6 +43,7 @@ const lightboxAi = document.getElementById("lightbox-ai");
 const lightboxClose = document.getElementById("lightbox-close");
 const lightboxDelete = document.getElementById("lightbox-delete");
 const lightboxRegrade = document.getElementById("lightbox-regrade");
+const lightboxPrint = document.getElementById("lightbox-print");
 
 let activeSubmission = null;
 let questionPapers = [];
@@ -344,6 +345,193 @@ lightboxRegrade.addEventListener("click", async () => {
     lightboxRegrade.textContent = "Re-check with AI";
   }
 });
+
+lightboxPrint.addEventListener("click", () => {
+  if (!activeSubmission) return;
+  generatePrintReport(activeSubmission);
+});
+
+function generatePrintReport(submission) {
+  const printWindow = window.open("", "_blank");
+  if (!printWindow) {
+    alert("Please allow popups to print reports.");
+    return;
+  }
+
+  const paperTitle = submission.question_papers?.title || "Unknown Test";
+  const dateStr = formatDate(submission.submitted_at);
+  const scoreStr = submission.ai_score != null ? `${submission.ai_score}/100` : "N/A";
+  const verdict = submission.ai_verdict || "Needs Review";
+
+  const details = submission.ai_details?.question_wise || [];
+  const rows = details.map((item) => {
+    return `
+      <div class="report-row">
+        <div class="row-header">
+          <strong>${escapeHtml(item.question || "Question")}</strong>
+          <span class="badge ${verdictClass(item.status)}">${escapeHtml(item.status || "review")}</span>
+        </div>
+        <p class="feedback-text">${escapeHtml(item.feedback || "")}</p>
+      </div>
+    `;
+  }).join("");
+
+  printWindow.document.write(\`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Report - \${escapeHtml(submission.student_name)}</title>
+      <style>
+        body {
+          font-family: 'DM Sans', -apple-system, sans-serif;
+          color: #1e293b;
+          margin: 0;
+          padding: 40px;
+          background: white;
+        }
+        .header {
+          border-bottom: 2px solid #e2e8f0;
+          padding-bottom: 20px;
+          margin-bottom: 30px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+        .logo {
+          font-size: 24px;
+          font-weight: 700;
+          color: #6366f1;
+        }
+        .meta-grid {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 15px;
+          margin-bottom: 30px;
+          background: #f8fafc;
+          padding: 20px;
+          border-radius: 12px;
+          border: 1px solid #e2e8f0;
+        }
+        .meta-item {
+          font-size: 15px;
+        }
+        .meta-item strong {
+          color: #475569;
+        }
+        .score-box {
+          text-align: right;
+        }
+        .score-value {
+          font-size: 32px;
+          font-weight: 800;
+          color: #6366f1;
+        }
+        .section-title {
+          font-size: 18px;
+          font-weight: 700;
+          margin-top: 30px;
+          margin-bottom: 15px;
+          color: #334155;
+          border-bottom: 1px solid #e2e8f0;
+          padding-bottom: 5px;
+        }
+        .overall-feedback {
+          font-size: 16px;
+          line-height: 1.6;
+          background: #f1f5f9;
+          padding: 20px;
+          border-radius: 12px;
+          margin-bottom: 30px;
+        }
+        .report-row {
+          background: white;
+          border: 1px solid #e2e8f0;
+          border-radius: 12px;
+          padding: 15px;
+          margin-bottom: 15px;
+          page-break-inside: avoid;
+        }
+        .row-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 10px;
+          font-size: 15px;
+        }
+        .feedback-text {
+          font-size: 14px;
+          line-height: 1.5;
+          color: #475569;
+          margin: 0;
+        }
+        .badge {
+          display: inline-block;
+          padding: 4px 10px;
+          border-radius: 999px;
+          font-size: 12px;
+          font-weight: 700;
+          text-transform: uppercase;
+        }
+        .badge-pass, .badge-correct {
+          background: #d1fae5;
+          color: #065f46;
+        }
+        .badge-fail, .badge-incorrect {
+          background: #fee2e2;
+          color: #991b1b;
+        }
+        .badge-review, .badge-partial, .badge-neutral {
+          background: #fef3c7;
+          color: #92400e;
+        }
+        @media print {
+          body {
+            padding: 0;
+          }
+          .no-print {
+            display: none;
+          }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <div class="logo">📚 Nerd Tutors</div>
+        <div class="score-box">
+          <div class="score-value">\${scoreStr}</div>
+          <div style="font-size: 12px; color: #64748b; text-transform: uppercase; font-weight: 700;">Score Received</div>
+        </div>
+      </div>
+
+      <div class="meta-grid">
+        <div class="meta-item"><strong>Student Name:</strong> \${escapeHtml(submission.student_name)}</div>
+        <div class="meta-item"><strong>Test Name:</strong> \${escapeHtml(paperTitle)}</div>
+        <div class="meta-item"><strong>Evaluation Date:</strong> \${escapeHtml(dateStr)}</div>
+        <div class="meta-item"><strong>Status:</strong> <span class="badge \${verdictClass(verdict)}">\${escapeHtml(verdict)}</span></div>
+      </div>
+
+      <div class="section-title">Overall Performance Feedback</div>
+      <div class="overall-feedback">
+        \${escapeHtml(submission.ai_feedback || "No overall feedback provided.")}
+      </div>
+
+      <div class="section-title">Question-wise Correction Report</div>
+      <div class="report-details">
+        \${rows || '<p style="color: #64748b; font-style: italic;">No question-wise breakdown available.</p>'}
+      </div>
+
+      <script>
+        window.onload = function() {
+          setTimeout(function() {
+            window.print();
+          }, 300);
+        };
+      </script>
+    </body>
+    </html>
+  \`);
+  printWindow.document.close();
+}
 
 async function renderNotes() {
   if (!notesList) return;
