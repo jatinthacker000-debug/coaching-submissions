@@ -39,6 +39,7 @@
     <div class="tabs">
       <button class="tab active" data-tab="papers">Question Papers</button>
       <button class="tab" data-tab="submissions">Student Submissions</button>
+      <button class="tab" data-tab="notes">PDF Notes Manager</button>
     </div>
 
     <section id="tab-papers" class="tab-panel">
@@ -117,6 +118,49 @@
       </div>
 
       <div id="submissions-grid" class="submissions-grid"></div>
+    </section>
+
+    <section id="tab-notes" class="tab-panel hidden">
+      <div class="panel-header">
+        <div>
+          <h1>PDF Notes Manager</h1>
+          <p class="subtitle">Upload study material and PDF notes to Google Drive, then paste the link here for students to download.</p>
+        </div>
+      </div>
+
+      <form id="note-form" class="submit-card wide-card">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="note-title">Note Title</label>
+            <input type="text" id="note-title" placeholder="e.g. Maths Chapter 1: Real Numbers" required>
+          </div>
+
+          <div class="form-group">
+            <label for="note-grade">Target Grade</label>
+            <select id="note-grade" required>
+              <option value="">Select Grade...</option>
+              <option value="X">Grade X (10th)</option>
+              <option value="XII">Grade XII (12th)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="note-link">Google Drive Share Link</label>
+          <input type="url" id="note-link" placeholder="https://drive.google.com/file/d/.../view?usp=sharing" required>
+          <p class="upload-hint">Make sure the file sharing in Google Drive is set to "Anyone with the link can view".</p>
+        </div>
+
+        <button type="submit" class="btn btn-primary" id="note-submit-btn" style="width: auto; min-width: 150px;">
+          Add Note
+        </button>
+      </form>
+
+      <div class="section-divider"></div>
+      <h2 class="section-title">Active PDF Notes</h2>
+      <div class="papers-list" id="notes-list">
+        <p class="muted-text">Loading notes...</p>
+      </div>
     </section>
   </main>
 

@@ -201,3 +201,30 @@ async function uploadManyImages(files, folder, coachAuth = false, onProgress) {
   }
   return urls;
 }
+
+async function fetchNotes() {
+  const response = await fetch("/api/notes");
+  return parseResponse(response);
+}
+
+async function createNote(payload) {
+  const response = await fetch("/api/notes", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${getCoachPassword()}`,
+    },
+    body: JSON.stringify(payload),
+  });
+  return parseResponse(response);
+}
+
+async function deleteNote(id) {
+  const response = await fetch(`/api/notes?id=${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${getCoachPassword()}`,
+    },
+  });
+  return parseResponse(response);
+}

@@ -30,59 +30,84 @@
       This page must be opened from your online website link (not as a local file) after setup is complete.
     </div>
 
-    <form id="submit-form" class="submit-card">
-      <div class="form-group">
-        <label for="question-paper">Question Paper / Test</label>
-        <select id="question-paper" required>
-          <option value="">Loading tests…</option>
-        </select>
-      </div>
+    <div class="portal-grid">
+      <div class="portal-left">
+        <form id="submit-form" class="submit-card">
+          <div class="form-group">
+            <label for="question-paper">Question Paper / Test</label>
+            <select id="question-paper" required>
+              <option value="">Loading tests…</option>
+            </select>
+          </div>
 
-      <div class="form-group">
-        <label for="student-name">Your Name</label>
-        <input
-          type="text"
-          id="student-name"
-          name="studentName"
-          placeholder="e.g. Rahul Sharma"
-          required
-          autocomplete="name"
-        >
-      </div>
+          <div class="form-group">
+            <label for="student-name">Your Name</label>
+            <input
+              type="text"
+              id="student-name"
+              name="studentName"
+              placeholder="e.g. Rahul Sharma"
+              required
+              autocomplete="name"
+            >
+          </div>
 
-      <div class="form-group">
-        <label for="answer-sheet">Answer Sheet Photos <span class="label-hint">(up to 10)</span></label>
-        <div class="upload-zone" id="upload-zone">
-          <input
-            type="file"
-            id="answer-sheet"
-            name="answerSheet"
-            accept="image/*"
-            capture="environment"
-            multiple
-            required
-          >
-          <div class="upload-placeholder" id="upload-placeholder">
-            <span class="upload-icon">📷</span>
-            <p><strong>Tap to add photos</strong> — take pictures or choose from gallery</p>
-            <p class="upload-hint">Add up to 10 images · JPG or PNG</p>
+          <div class="form-group">
+            <label for="answer-sheet">Answer Sheet Photos <span class="label-hint">(up to 10)</span></label>
+            <div class="upload-zone" id="upload-zone">
+              <input
+                type="file"
+                id="answer-sheet"
+                name="answerSheet"
+                accept="image/*"
+                capture="environment"
+                multiple
+                required
+              >
+              <div class="upload-placeholder" id="upload-placeholder">
+                <span class="upload-icon">📷</span>
+                <p><strong>Tap to add photos</strong> — take pictures or choose from gallery</p>
+                <p class="upload-hint">Add up to 10 images · JPG or PNG</p>
+              </div>
+            </div>
+            <div id="preview-grid" class="preview-grid hidden"></div>
+            <p id="photo-count" class="photo-count hidden"></p>
+          </div>
+
+          <button type="submit" class="btn btn-primary" id="submit-btn">
+            Submit Answer Sheet
+          </button>
+          <p id="upload-progress" class="progress-text hidden"></p>
+        </form>
+
+        <div id="success-message" class="success-banner hidden" role="status">
+          <span class="success-icon">✓</span>
+          <div>
+            <strong>Submitted successfully!</strong>
+            <p id="success-detail">Your answer sheet has been saved and sent for AI checking.</p>
           </div>
         </div>
-        <div id="preview-grid" class="preview-grid hidden"></div>
-        <p id="photo-count" class="photo-count hidden"></p>
       </div>
 
-      <button type="submit" class="btn btn-primary" id="submit-btn">
-        Submit Answer Sheet
-      </button>
-      <p id="upload-progress" class="progress-text hidden"></p>
-    </form>
+      <div class="portal-right">
+        <div class="notes-panel">
+          <h2>📚 Download PDF Notes</h2>
+          <p class="notes-panel-desc">Get the latest study materials and revision notes from Nerd Tutors.</p>
+          
+          <div class="grade-section">
+            <h3>Grade X (10th)</h3>
+            <ul id="notes-grade-x" class="notes-list">
+              <li class="loading-notes">Loading notes...</li>
+            </ul>
+          </div>
 
-    <div id="success-message" class="success-banner hidden" role="status">
-      <span class="success-icon">✓</span>
-      <div>
-        <strong>Submitted successfully!</strong>
-        <p id="success-detail">Your answer sheet has been saved and sent for AI checking.</p>
+          <div class="grade-section">
+            <h3>Grade XII (12th)</h3>
+            <ul id="notes-grade-xii" class="notes-list">
+              <li class="loading-notes">Loading notes...</li>
+            </ul>
+          </div>
+        </div>
       </div>
     </div>
   </main>

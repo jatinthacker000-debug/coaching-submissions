@@ -6,7 +6,16 @@ const tabs = document.querySelectorAll(".tab");
 const tabPanels = {
   papers: document.getElementById("tab-papers"),
   submissions: document.getElementById("tab-submissions"),
+  notes: document.getElementById("tab-notes"),
 };
+
+// Notes DOM Elements
+const noteForm = document.getElementById("note-form");
+const noteTitle = document.getElementById("note-title");
+const noteGrade = document.getElementById("note-grade");
+const noteLink = document.getElementById("note-link");
+const noteSubmitBtn = document.getElementById("note-submit-btn");
+const notesList = document.getElementById("notes-list");
 
 const paperForm = document.getElementById("paper-form");
 const paperTitle = document.getElementById("paper-title");
@@ -84,6 +93,7 @@ tabs.forEach((tab) => {
     Object.values(tabPanels).forEach((panel) => panel.classList.add("hidden"));
     tabPanels[tab.dataset.tab].classList.remove("hidden");
     if (tab.dataset.tab === "submissions") renderSubmissions();
+    if (tab.dataset.tab === "notes") renderNotes();
   });
 });
 
@@ -108,6 +118,7 @@ async function refreshAll() {
   await loadQuestionPapers();
   await renderPapersList();
   await renderSubmissions();
+  await renderNotes();
 }
 
 async function loadQuestionPapers() {
@@ -333,6 +344,70 @@ lightboxRegrade.addEventListener("click", async () => {
     lightboxRegrade.textContent = "Re-check with AI";
   }
 });
+
+async function renderNotes() {
+  if (!notesList) return;
+  notesList.innerHTML = '<p class="muted-text">Loading notes...</p>';
+
+  try {
+    const { notes } = await fetchNotes();
+    notesList.innerHTML = "";
+
+    if (!notes || !notes.length) {
+      notesList.innerHTML = '<p class="muted-text">No notes yet. Add one above.</p>';
+      return;
+    }
+
+    notes.forEach((note) => {
+      const card = document.createElement("article");
+      card.className = "paper-card";
+      card.innerHTML = `
+        <div>
+          <h3>${escapeHtml(note.title)}</h3>
+          <p class="muted-text">Grade ${escapeHtml(note.grade)} · Link: <a href="${escapeHtml(note.link)}" target="_blank" rel="noopener noreferrer">${escapeHtml(note.link)}</a></p>
+        </div>
+        <button class="btn btn-danger small-btn" data-id="${note.id}">Delete</button>
+      `;
+      card.querySelector("button").addEventListener("click", async () => {
+        if (!confirm(`Delete note "${note.title}"?`)) return;
+        try {
+          await deleteNote(note.id);
+          await renderNotes();
+        } catch (err) {
+          alert(err.message || "Could not delete note.");
+        }
+      });
+      notesList.appendChild(card);
+    });
+  } catch (err) {
+    notesList.innerHTML = `<p class="error-text">Could not load notes: ${escapeHtml(err.message)}</p>`;
+  }
+}
+
+if (noteForm) {
+  noteForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    noteSubmitBtn.disabled = true;
+    noteSubmitBtn.textContent = "Adding...";
+
+    try {
+      await createNote({
+        title: noteTitle.value,
+        grade: noteGrade.value,
+        link: noteLink.value,
+      });
+
+      noteForm.reset();
+      await renderNotes();
+      alert("Note added successfully.");
+    } catch (err) {
+      alert(err.message || "Could not add note.");
+    } finally {
+      noteSubmitBtn.disabled = false;
+      noteSubmitBtn.textContent = "Add Note";
+    }
+  });
+}
 
 if (hasCoachPassword()) {
   fetchSubmissions()

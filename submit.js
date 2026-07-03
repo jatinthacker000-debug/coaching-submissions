@@ -189,8 +189,47 @@ form.addEventListener("submit", async (e) => {
   }
 });
 
+async function loadPDFNotes() {
+  const notesXList = document.getElementById("notes-grade-x");
+  const notesXIIList = document.getElementById("notes-grade-xii");
+  if (!notesXList || !notesXIIList) return;
+
+  try {
+    const { notes } = await fetchNotes();
+    notesXList.innerHTML = "";
+    notesXIIList.innerHTML = "";
+
+    const gradeXNotes = notes.filter((n) => n.grade === "X");
+    const gradeXIINotes = notes.filter((n) => n.grade === "XII");
+
+    if (!gradeXNotes.length) {
+      notesXList.innerHTML = '<li class="empty-notes">No notes available yet.</li>';
+    } else {
+      gradeXNotes.forEach((note) => {
+        const li = document.createElement("li");
+        li.innerHTML = `<a href="${escapeHtml(note.link)}" target="_blank" rel="noopener noreferrer" class="note-link">📄 ${escapeHtml(note.title)}</a>`;
+        notesXList.appendChild(li);
+      });
+    }
+
+    if (!gradeXIINotes.length) {
+      notesXIIList.innerHTML = '<li class="empty-notes">No notes available yet.</li>';
+    } else {
+      gradeXIINotes.forEach((note) => {
+        const li = document.createElement("li");
+        li.innerHTML = `<a href="${escapeHtml(note.link)}" target="_blank" rel="noopener noreferrer" class="note-link">📄 ${escapeHtml(note.title)}</a>`;
+        notesXIIList.appendChild(li);
+      });
+    }
+  } catch (err) {
+    notesXList.innerHTML = '<li class="error-notes">Failed to load notes.</li>';
+    notesXIIList.innerHTML = '<li class="error-notes">Failed to load notes.</li>';
+  }
+}
+
 if (isOfflineFileMode()) {
   offlineNotice.classList.remove("hidden");
 }
 
 loadQuestionPapers();
+loadPDFNotes();
