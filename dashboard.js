@@ -376,11 +376,11 @@ function generatePrintReport(submission) {
     `;
   }).join("");
 
-  printWindow.document.write(\`
+  printWindow.document.write(`
     <!DOCTYPE html>
     <html>
     <head>
-      <title>Report - \${escapeHtml(submission.student_name)}</title>
+      <title>Report - ${escapeHtml(submission.student_name)}</title>
       <style>
         body {
           font-family: 'DM Sans', -apple-system, sans-serif;
@@ -498,26 +498,26 @@ function generatePrintReport(submission) {
       <div class="header">
         <div class="logo">📚 Nerd Tutors</div>
         <div class="score-box">
-          <div class="score-value">\${scoreStr}</div>
+          <div class="score-value">${scoreStr}</div>
           <div style="font-size: 12px; color: #64748b; text-transform: uppercase; font-weight: 700;">Score Received</div>
         </div>
       </div>
 
       <div class="meta-grid">
-        <div class="meta-item"><strong>Student Name:</strong> \${escapeHtml(submission.student_name)}</div>
-        <div class="meta-item"><strong>Test Name:</strong> \${escapeHtml(paperTitle)}</div>
-        <div class="meta-item"><strong>Evaluation Date:</strong> \${escapeHtml(dateStr)}</div>
-        <div class="meta-item"><strong>Status:</strong> <span class="badge \${verdictClass(verdict)}">\${escapeHtml(verdict)}</span></div>
+        <div class="meta-item"><strong>Student Name:</strong> ${escapeHtml(submission.student_name)}</div>
+        <div class="meta-item"><strong>Test Name:</strong> ${escapeHtml(paperTitle)}</div>
+        <div class="meta-item"><strong>Evaluation Date:</strong> ${dateStr}</div>
+        <div class="meta-item"><strong>Status:</strong> <span class="badge ${verdictClass(verdict)}">${escapeHtml(verdict)}</span></div>
       </div>
 
       <div class="section-title">Overall Performance Feedback</div>
       <div class="overall-feedback">
-        \${escapeHtml(submission.ai_feedback || "No overall feedback provided.")}
+        ${escapeHtml(submission.ai_feedback || "No overall feedback provided.")}
       </div>
 
       <div class="section-title">Question-wise Correction Report</div>
       <div class="report-details">
-        \${rows || '<p style="color: #64748b; font-style: italic;">No question-wise breakdown available.</p>'}
+        ${rows || '<p style="color: #64748b; font-style: italic;">No question-wise breakdown available.</p>'}
       </div>
 
       <script>
@@ -529,7 +529,7 @@ function generatePrintReport(submission) {
       </script>
     </body>
     </html>
-  \`);
+  `);
   printWindow.document.close();
 }
 
