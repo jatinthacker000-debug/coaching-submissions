@@ -30,108 +30,118 @@
       This page must be opened from your online website link (not as a local file) after setup is complete.
     </div>
 
-    <div class="portal-grid">
-      <div class="portal-left">
-        <form id="submit-form" class="submit-card">
-          <div class="form-group">
-            <label for="filter-subject">Select Subject</label>
-            <select id="filter-subject">
-              <option value="">All Subjects</option>
-            </select>
-          </div>
+    <div class="form-container-centered">
+      <form id="submit-form" class="submit-card">
+        <div class="form-group">
+          <label for="filter-subject">Select Subject</label>
+          <select id="filter-subject">
+            <option value="">All Subjects</option>
+          </select>
+        </div>
 
-          <div class="form-group">
-            <label for="question-paper">Question Paper / Test</label>
-            <select id="question-paper" required>
-              <option value="">Loading tests…</option>
-            </select>
-          </div>
+        <div class="form-group">
+          <label for="question-paper">Question Paper / Test</label>
+          <select id="question-paper" required>
+            <option value="">Loading tests…</option>
+          </select>
+        </div>
 
-          <div class="form-group">
-            <label for="student-name">Your Name</label>
+        <div class="form-group">
+          <label for="student-name">Your Name</label>
+          <input
+            type="text"
+            id="student-name"
+            name="studentName"
+            placeholder="e.g. Rahul Sharma"
+            required
+            autocomplete="name"
+          >
+        </div>
+
+        <div class="form-group">
+          <label for="answer-sheet">Answer Sheet Photos <span class="label-hint">(up to 10)</span></label>
+          <div class="upload-zone" id="upload-zone">
             <input
-              type="text"
-              id="student-name"
-              name="studentName"
-              placeholder="e.g. Rahul Sharma"
+              type="file"
+              id="answer-sheet"
+              name="answerSheet"
+              accept="image/*"
+              capture="environment"
+              multiple
               required
-              autocomplete="name"
             >
-          </div>
-
-          <div class="form-group">
-            <label for="answer-sheet">Answer Sheet Photos <span class="label-hint">(up to 10)</span></label>
-            <div class="upload-zone" id="upload-zone">
-              <input
-                type="file"
-                id="answer-sheet"
-                name="answerSheet"
-                accept="image/*"
-                capture="environment"
-                multiple
-                required
-              >
-              <div class="upload-placeholder" id="upload-placeholder">
-                <span class="upload-icon">📷</span>
-                <p><strong>Tap to add photos</strong> — take pictures or choose from gallery</p>
-                <p class="upload-hint">Add up to 10 images · JPG or PNG</p>
-              </div>
+            <div class="upload-placeholder" id="upload-placeholder">
+              <span class="upload-icon">📷</span>
+              <p><strong>Tap to add photos</strong> — take pictures or choose from gallery</p>
+              <p class="upload-hint">Add up to 10 images · JPG or PNG</p>
             </div>
-            <div id="preview-grid" class="preview-grid hidden"></div>
-            <p id="photo-count" class="photo-count hidden"></p>
           </div>
+          <div id="preview-grid" class="preview-grid hidden"></div>
+          <p id="photo-count" class="photo-count hidden"></p>
+        </div>
 
-          <button type="submit" class="btn btn-primary" id="submit-btn">
-            Submit Answer Sheet
-          </button>
-          <p id="upload-progress" class="progress-text hidden"></p>
-        </form>
+        <button type="submit" class="btn btn-primary" id="submit-btn">
+          Submit Answer Sheet
+        </button>
+        <p id="upload-progress" class="progress-text hidden"></p>
+      </form>
 
-        <div id="success-message" class="success-banner hidden" role="status">
-          <span class="success-icon">✓</span>
-          <div>
-            <strong>Submitted successfully!</strong>
-            <p id="success-detail">Your answer sheet has been saved and sent for AI checking.</p>
-          </div>
+      <div id="success-message" class="success-banner hidden" role="status">
+        <span class="success-icon">✓</span>
+        <div>
+          <strong>Submitted successfully!</strong>
+          <p id="success-detail">Your answer sheet has been saved and sent for AI checking.</p>
         </div>
       </div>
+    </div>
 
-      <div class="portal-right">
-        <div class="notes-panel">
-          <h2>📚 Download PDF Notes</h2>
-          <p class="notes-panel-desc">Get the latest study materials and revision notes from Nerd Tutors.</p>
-          
-          <div class="grade-section">
-            <h3>Grade X (10th)</h3>
-            <div id="notes-x-container" class="subjects-container">
-              <div class="subject-group" id="group-x-history" style="display: none;">
-                <h4>History</h4>
-                <ul id="notes-x-history" class="notes-list"></ul>
-              </div>
-              <div class="subject-group" id="group-x-geography" style="display: none;">
-                <h4>Geography</h4>
-                <ul id="notes-x-geography" class="notes-list"></ul>
-              </div>
-              <div class="subject-group" id="group-x-civics" style="display: none;">
-                <h4>Civics</h4>
-                <ul id="notes-x-civics" class="notes-list"></ul>
-              </div>
-              <div class="subject-group" id="group-x-economics" style="display: none;">
-                <h4>Economics</h4>
-                <ul id="notes-x-economics" class="notes-list"></ul>
-              </div>
+    <div class="notes-panel-wide">
+      <div class="notes-header">
+        <h2>📚 Download PDF Notes</h2>
+        <p>Get the latest study materials, revisions, and chapter-wise PDF notes from Nerd Tutors.</p>
+      </div>
+
+      <div class="grade-section-wide">
+        <h3>Grade X (10th)</h3>
+        <div id="notes-x-container" class="notes-grid-subjects">
+          <div class="subject-card" id="group-x-history" style="display: none;">
+            <div class="card-header">
+              <span class="subject-icon">📜</span>
+              <h4>History</h4>
             </div>
-            <p id="no-notes-x" class="muted-text">No notes uploaded yet.</p>
+            <ul id="notes-x-history" class="notes-list"></ul>
           </div>
-
-          <div class="grade-section">
-            <h3>Grade XII (12th)</h3>
-            <div id="notes-xii-container" class="subjects-container">
-              <!-- Dynamically populated subject groups (Physics, Chemistry, Macro Economics, Indian Economics Development) -->
+          <div class="subject-card" id="group-x-geography" style="display: none;">
+            <div class="card-header">
+              <span class="subject-icon">🌍</span>
+              <h4>Geography</h4>
             </div>
-            <p id="no-notes-xii" class="muted-text">No notes uploaded yet.</p>
+            <ul id="notes-x-geography" class="notes-list"></ul>
+          </div>
+          <div class="subject-card" id="group-x-civics" style="display: none;">
+            <div class="card-header">
+              <span class="subject-icon">⚖️</span>
+              <h4>Civics</h4>
+            </div>
+            <ul id="notes-x-civics" class="notes-list"></ul>
+          </div>
+          <div class="subject-card" id="group-x-economics" style="display: none;">
+            <div class="card-header">
+              <span class="subject-icon">📈</span>
+              <h4>Economics</h4>
+            </div>
+            <ul id="notes-x-economics" class="notes-list"></ul>
           </div>
         </div>
+        <p id="no-notes-x" class="muted-text text-center">No notes uploaded yet.</p>
+      </div>
+
+      <div class="grade-section-wide">
+        <h3>Grade XII (12th)</h3>
+        <div id="notes-xii-container" class="notes-grid-subjects">
+          <!-- Dynamically populated subject-cards for Physics, Chemistry, Macro Economics, Indian Economics Development, etc. -->
+        </div>
+        <p id="no-notes-xii" class="muted-text text-center">No notes uploaded yet.</p>
       </div>
     </div>
   </main>

@@ -305,15 +305,25 @@ async function loadPDFNotes() {
         xiiGroups[subj].push(note);
       });
 
-      // Render each subject group
+      // Render each subject card
       Object.keys(xiiGroups).sort().forEach(subj => {
         const subjectNotes = xiiGroups[subj];
         const groupDiv = document.createElement("div");
-        groupDiv.className = "subject-group";
+        groupDiv.className = "subject-card";
+
+        const cardHeader = document.createElement("div");
+        cardHeader.className = "card-header";
+
+        const iconSpan = document.createElement("span");
+        iconSpan.className = "subject-icon";
+        iconSpan.textContent = getSubjectIcon(subj);
+        cardHeader.appendChild(iconSpan);
 
         const h4 = document.createElement("h4");
         h4.textContent = subj;
-        groupDiv.appendChild(h4);
+        cardHeader.appendChild(h4);
+
+        groupDiv.appendChild(cardHeader);
 
         const ul = document.createElement("ul");
         ul.className = "notes-list";
@@ -332,6 +342,21 @@ async function loadPDFNotes() {
     if (noNotesX) noNotesX.textContent = "Failed to load notes.";
     if (noNotesXII) noNotesXII.textContent = "Failed to load notes.";
   }
+}
+
+function getSubjectIcon(subj) {
+  const lower = subj.toLowerCase();
+  if (lower.includes("history")) return "📜";
+  if (lower.includes("geography")) return "🌍";
+  if (lower.includes("civics") || lower.includes("political")) return "⚖️";
+  if (lower.includes("economics") || lower.includes("macro") || lower.includes("indian")) return "📈";
+  if (lower.includes("math")) return "📐";
+  if (lower.includes("physics")) return "⚡";
+  if (lower.includes("chemistry")) return "🧪";
+  if (lower.includes("biology")) return "🧬";
+  if (lower.includes("english")) return "✍️";
+  if (lower.includes("science")) return "🔬";
+  return "📚";
 }
 
 if (isOfflineFileMode()) {
