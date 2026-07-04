@@ -74,8 +74,13 @@ Be fair to handwriting quality. If something is unclear, mention it in feedback 
     parts.push(await fetchImageAsBase64(url));
   }
 
-  // Models to try in order of preference (prefer 2.0-flash, fallback to stable 1.5-flash)
-  const modelsToTry = ["gemini-2.0-flash", "gemini-1.5-flash"];
+  // Models to try in order of preference
+  const modelsToTry = [
+    "gemini-2.0-flash",
+    "gemini-1.5-flash-latest",
+    "gemini-1.5-flash-002",
+    "gemini-1.5-flash"
+  ];
   let lastError;
 
   // Shuffle keys to distribute traffic load
@@ -109,24 +114,16 @@ Be fair to handwriting quality. If something is unclear, mention it in feedback 
         console.warn(`${modelName} evaluation attempt ${attempt + 1} failed:`, err.message);
         lastError = err;
 
-        const isRateLimit = err.message?.includes("429") || 
-                            err.message?.includes("quota") || 
-                            err.message?.includes("Quota") ||
-                            err.message?.includes("Too Many Requests");
-
-        if (isRateLimit) {
-          if (attempt < maxAttempts - 1) {
-            console.log("Rate limit or quota block encountered. Trying next API key...");
-            continue; // Try next key
-          }
-          console.log(`All keys rate-limited or unprovisioned for model ${modelName}.`);
-        } else {
-          throw err; // Fail immediately on other errors (like invalid key, invalid prompt)
+        // Try the next key in the pool for this model if available
+        if (attempt < maxAttempts - 1) {
+          console.log("Error encountered. Trying next API key in pool...");
+          continue;
         }
       }
     }
+    console.log(`All keys failed or were rate-limited for model ${modelName}.`);
   }
 
-  // If we reach here, both models failed across all keys
+  // If we reach here, all models and keys failed. Throw the last error.
   throw lastError;
 }
