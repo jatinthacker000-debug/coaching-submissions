@@ -74,12 +74,13 @@ Be fair to handwriting quality. If something is unclear, mention it in feedback 
     parts.push(await fetchImageAsBase64(url));
   }
 
-  // Models to try in order of preference
+  // Models to try with their required API versions
+  // gemini-2.0 is currently v1beta only. gemini-1.5 stable is best used on v1 to avoid 404 errors.
   const modelsToTry = [
-    "gemini-2.0-flash",
-    "gemini-1.5-flash-latest",
-    "gemini-1.5-flash-002",
-    "gemini-1.5-flash"
+    { name: "gemini-2.0-flash", options: { apiVersion: "v1beta" } },
+    { name: "gemini-1.5-flash-latest", options: { apiVersion: "v1" } },
+    { name: "gemini-1.5-flash-002", options: { apiVersion: "v1" } },
+    { name: "gemini-1.5-flash", options: { apiVersion: "v1" } }
   ];
   let lastError;
 
@@ -87,20 +88,21 @@ Be fair to handwriting quality. If something is unclear, mention it in feedback 
   const shuffledKeys = [...keys].sort(() => Math.random() - 0.5);
   const maxAttempts = Math.min(shuffledKeys.length, 3); // Try up to 3 keys
 
-  for (const modelName of modelsToTry) {
-    console.log(`Starting evaluation attempts using model: ${modelName}`);
+  for (const modelSpec of modelsToTry) {
+    console.log(`Starting evaluation attempts using model: ${modelSpec.name} (${modelSpec.options.apiVersion})`);
     
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       try {
         const activeKey = shuffledKeys[attempt];
         const genAI = new GoogleGenerativeAI(activeKey);
-        const model = genAI.getGenerativeModel({ model: modelName });
+        // Force the SDK to call the correct stable (v1) or preview (v1beta) API version
+        const model = genAI.getGenerativeModel({ model: modelSpec.name }, modelSpec.options);
 
         const result = await model.generateContent(parts);
         const text = result.response.text();
         const parsed = parseJsonResponse(text);
 
-        console.log(`Evaluation successfully completed using model: ${modelName}`);
+        console.log(`Evaluation successfully completed using model: ${modelSpec.name}`);
         return {
           score: Number(parsed.score) || 0,
           verdict: parsed.verdict || "Needs Review",
@@ -111,7 +113,7 @@ Be fair to handwriting quality. If something is unclear, mention it in feedback 
           },
         };
       } catch (err) {
-        console.warn(`${modelName} evaluation attempt ${attempt + 1} failed:`, err.message);
+        console.warn(`${modelSpec.name} evaluation attempt ${attempt + 1} failed:`, err.message);
         lastError = err;
 
         // Try the next key in the pool for this model if available
@@ -121,7 +123,7 @@ Be fair to handwriting quality. If something is unclear, mention it in feedback 
         }
       }
     }
-    console.log(`All keys failed or were rate-limited for model ${modelName}.`);
+    console.log(`All keys failed or were rate-limited for model ${modelSpec.name}.`);
   }
 
   // If we reach here, all models and keys failed. Throw the last error.
