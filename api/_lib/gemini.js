@@ -1,15 +1,6 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { fetchImageAsBase64 } from "./supabase.js";
 
-function getModel() {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    throw new Error("Missing GEMINI_API_KEY environment variable.");
-  }
-  const genAI = new GoogleGenerativeAI(apiKey);
-  return genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-}
-
 function parseJsonResponse(text) {
   const cleaned = text.replace(/```json\s*/gi, "").replace(/```/g, "").trim();
   try {
@@ -22,7 +13,17 @@ function parseJsonResponse(text) {
 }
 
 export async function gradeSubmission(questionPaper, imageUrls) {
-  const model = getModel();
+  const apiKeySetting = process.env.GEMINI_API_KEY;
+  if (!apiKeySetting) {
+    throw new Error("Missing GEMINI_API_KEY environment variable.");
+  }
+
+  // Support comma-separated pool of keys for rotation/retries
+  const keys = apiKeySetting.split(",").map(k => k.trim()).filter(Boolean);
+  if (keys.length === 0) {
+    throw new Error("No valid Gemini API keys found in GEMINI_API_KEY.");
+  }
+
   const parts = [
     {
       text: `You are an expert teacher grading handwritten exam answers for a coaching center.
@@ -73,17 +74,46 @@ Be fair to handwriting quality. If something is unclear, mention it in feedback 
     parts.push(await fetchImageAsBase64(url));
   }
 
-  const result = await model.generateContent(parts);
-  const text = result.response.text();
-  const parsed = parseJsonResponse(text);
+  // Shuffle the keys to distribute the traffic load evenly
+  const shuffledKeys = [...keys].sort(() => Math.random() - 0.5);
+  let lastError;
+  const maxAttempts = Math.min(shuffledKeys.length, 3); // retry up to 3 keys if available
 
-  return {
-    score: Number(parsed.score) || 0,
-    verdict: parsed.verdict || "Needs Review",
-    feedback: parsed.summary || "No summary provided.",
-    details: {
-      question_wise: parsed.question_wise || [],
-      raw: text,
-    },
-  };
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      const activeKey = shuffledKeys[attempt];
+      const genAI = new GoogleGenerativeAI(activeKey);
+      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+
+      const result = await model.generateContent(parts);
+      const text = result.response.text();
+      const parsed = parseJsonResponse(text);
+
+      return {
+        score: Number(parsed.score) || 0,
+        verdict: parsed.verdict || "Needs Review",
+        feedback: parsed.summary || "No summary provided.",
+        details: {
+          question_wise: parsed.question_wise || [],
+          raw: text,
+        },
+      };
+    } catch (err) {
+      console.warn(`Gemini evaluation attempt ${attempt + 1} failed:`, err.message);
+      lastError = err;
+      
+      const isRateLimit = err.message?.includes("429") || 
+                          err.message?.includes("quota") || 
+                          err.message?.includes("Quota") ||
+                          err.message?.includes("Too Many Requests");
+                          
+      if (isRateLimit && attempt < maxAttempts - 1) {
+        console.log("Rate limit hit. Retrying evaluation with the next API key in pool...");
+        continue; // Try the next key
+      }
+      throw err; // Fail immediately on other errors (like invalid key, invalid prompt, etc.)
+    }
+  }
+
+  throw lastError;
 }
