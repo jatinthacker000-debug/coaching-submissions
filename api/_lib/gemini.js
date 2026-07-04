@@ -74,46 +74,59 @@ Be fair to handwriting quality. If something is unclear, mention it in feedback 
     parts.push(await fetchImageAsBase64(url));
   }
 
-  // Shuffle the keys to distribute the traffic load evenly
-  const shuffledKeys = [...keys].sort(() => Math.random() - 0.5);
+  // Models to try in order of preference (prefer 2.0-flash, fallback to stable 1.5-flash)
+  const modelsToTry = ["gemini-2.0-flash", "gemini-1.5-flash"];
   let lastError;
-  const maxAttempts = Math.min(shuffledKeys.length, 3); // retry up to 3 keys if available
 
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    try {
-      const activeKey = shuffledKeys[attempt];
-      const genAI = new GoogleGenerativeAI(activeKey);
-      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+  // Shuffle keys to distribute traffic load
+  const shuffledKeys = [...keys].sort(() => Math.random() - 0.5);
+  const maxAttempts = Math.min(shuffledKeys.length, 3); // Try up to 3 keys
 
-      const result = await model.generateContent(parts);
-      const text = result.response.text();
-      const parsed = parseJsonResponse(text);
+  for (const modelName of modelsToTry) {
+    console.log(`Starting evaluation attempts using model: ${modelName}`);
+    
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      try {
+        const activeKey = shuffledKeys[attempt];
+        const genAI = new GoogleGenerativeAI(activeKey);
+        const model = genAI.getGenerativeModel({ model: modelName });
 
-      return {
-        score: Number(parsed.score) || 0,
-        verdict: parsed.verdict || "Needs Review",
-        feedback: parsed.summary || "No summary provided.",
-        details: {
-          question_wise: parsed.question_wise || [],
-          raw: text,
-        },
-      };
-    } catch (err) {
-      console.warn(`Gemini evaluation attempt ${attempt + 1} failed:`, err.message);
-      lastError = err;
-      
-      const isRateLimit = err.message?.includes("429") || 
-                          err.message?.includes("quota") || 
-                          err.message?.includes("Quota") ||
-                          err.message?.includes("Too Many Requests");
-                          
-      if (isRateLimit && attempt < maxAttempts - 1) {
-        console.log("Rate limit hit. Retrying evaluation with the next API key in pool...");
-        continue; // Try the next key
+        const result = await model.generateContent(parts);
+        const text = result.response.text();
+        const parsed = parseJsonResponse(text);
+
+        console.log(`Evaluation successfully completed using model: ${modelName}`);
+        return {
+          score: Number(parsed.score) || 0,
+          verdict: parsed.verdict || "Needs Review",
+          feedback: parsed.summary || "No summary provided.",
+          details: {
+            question_wise: parsed.question_wise || [],
+            raw: text,
+          },
+        };
+      } catch (err) {
+        console.warn(`${modelName} evaluation attempt ${attempt + 1} failed:`, err.message);
+        lastError = err;
+
+        const isRateLimit = err.message?.includes("429") || 
+                            err.message?.includes("quota") || 
+                            err.message?.includes("Quota") ||
+                            err.message?.includes("Too Many Requests");
+
+        if (isRateLimit) {
+          if (attempt < maxAttempts - 1) {
+            console.log("Rate limit or quota block encountered. Trying next API key...");
+            continue; // Try next key
+          }
+          console.log(`All keys rate-limited or unprovisioned for model ${modelName}.`);
+        } else {
+          throw err; // Fail immediately on other errors (like invalid key, invalid prompt)
+        }
       }
-      throw err; // Fail immediately on other errors (like invalid key, invalid prompt, etc.)
     }
   }
 
+  // If we reach here, both models failed across all keys
   throw lastError;
 }
