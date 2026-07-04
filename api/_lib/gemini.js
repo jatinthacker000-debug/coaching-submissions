@@ -1,4 +1,3 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { fetchImageAsBase64 } from "./supabase.js";
 
 function parseJsonResponse(text) {
@@ -74,13 +73,13 @@ Be fair to handwriting quality. If something is unclear, mention it in feedback 
     parts.push(await fetchImageAsBase64(url));
   }
 
-  // Models to try with their required API versions
-  // gemini-2.0 is currently v1beta only. gemini-1.5 stable is best used on v1 to avoid 404 errors.
+  // Models to try with their required API version endpoints
+  // gemini-2.0 is v1beta only. gemini-1.5 models are stable on v1.
   const modelsToTry = [
-    { name: "gemini-2.0-flash", options: { apiVersion: "v1beta" } },
-    { name: "gemini-1.5-flash-latest", options: { apiVersion: "v1" } },
-    { name: "gemini-1.5-flash-002", options: { apiVersion: "v1" } },
-    { name: "gemini-1.5-flash", options: { apiVersion: "v1" } }
+    { name: "gemini-2.0-flash", apiVersion: "v1beta" },
+    { name: "gemini-1.5-flash-latest", apiVersion: "v1" },
+    { name: "gemini-1.5-flash-002", apiVersion: "v1" },
+    { name: "gemini-1.5-flash", apiVersion: "v1" }
   ];
   let lastError;
 
@@ -89,17 +88,53 @@ Be fair to handwriting quality. If something is unclear, mention it in feedback 
   const maxAttempts = Math.min(shuffledKeys.length, 3); // Try up to 3 keys
 
   for (const modelSpec of modelsToTry) {
-    console.log(`Starting evaluation attempts using model: ${modelSpec.name} (${modelSpec.options.apiVersion})`);
+    console.log(`Starting REST API evaluation attempts using model: ${modelSpec.name} on ${modelSpec.apiVersion}`);
     
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       try {
         const activeKey = shuffledKeys[attempt];
-        const genAI = new GoogleGenerativeAI(activeKey);
-        // Force the SDK to call the correct stable (v1) or preview (v1beta) API version
-        const model = genAI.getGenerativeModel({ model: modelSpec.name }, modelSpec.options);
+        
+        // Build raw JSON payload for the Gemini REST API
+        const payload = {
+          contents: [
+            {
+              parts: parts.map(p => {
+                if (p.inlineData) {
+                  return {
+                    inlineData: {
+                      mimeType: p.inlineData.mimeType,
+                      data: p.inlineData.data
+                    }
+                  };
+                }
+                return { text: p.text };
+              })
+            }
+          ]
+        };
 
-        const result = await model.generateContent(parts);
-        const text = result.response.text();
+        const url = `https://generativelanguage.googleapis.com/${modelSpec.apiVersion}/models/${modelSpec.name}:generateContent?key=${activeKey}`;
+        
+        const response = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(payload)
+        });
+
+        const resData = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+          const errMsg = resData.error?.message || `HTTP ${response.status} Error`;
+          throw new Error(`[Gemini API Error]: ${errMsg}`);
+        }
+
+        const text = resData.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!text) {
+          throw new Error("Gemini returned an empty response candidate.");
+        }
+
         const parsed = parseJsonResponse(text);
 
         console.log(`Evaluation successfully completed using model: ${modelSpec.name}`);
@@ -113,7 +148,7 @@ Be fair to handwriting quality. If something is unclear, mention it in feedback 
           },
         };
       } catch (err) {
-        console.warn(`${modelSpec.name} evaluation attempt ${attempt + 1} failed:`, err.message);
+        console.warn(`REST ${modelSpec.name} attempt ${attempt + 1} failed:`, err.message);
         lastError = err;
 
         // Try the next key in the pool for this model if available
