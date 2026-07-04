@@ -123,7 +123,7 @@ function fileToBase64(file) {
   });
 }
 
-function compressImage(file, maxWidth = 1600, quality = 0.82) {
+function compressImage(file, maxWidth = 1200, quality = 0.82) {
   return new Promise((resolve) => {
     if (!file.type.startsWith("image/")) {
       resolve(file);
