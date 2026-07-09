@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Coach Dashboard</title>
+  <title>Coach Dashboard | Nerd Tutors</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -14,16 +14,16 @@
     <div class="container header-inner">
       <div class="brand">
         <span class="brand-icon">📚</span>
-        <span class="brand-text">Nerd Tutors</span>
+        <span class="brand-text">Nerd Tutors Coach Portal</span>
       </div>
-      <a href="index.html" class="nav-link">← Student Submit</a>
+      <a href="index.html" class="nav-link">← Go to Student Page</a>
     </div>
   </header>
 
   <div id="login-screen" class="login-screen">
     <div class="login-card">
       <h1>Coach Login</h1>
-      <p class="subtitle">Enter your coach password to manage question papers and view submissions.</p>
+      <p class="subtitle">Enter your coach password to manage Grade 10 PDF notes & worksheets.</p>
       <form id="login-form">
         <div class="form-group">
           <label for="coach-password">Password</label>
@@ -36,139 +36,37 @@
   </div>
 
   <main id="dashboard-main" class="container main-content hidden">
-    <div class="tabs">
-      <button class="tab active" data-tab="papers">Question Papers</button>
-      <button class="tab" data-tab="submissions">Student Submissions</button>
-      <button class="tab" data-tab="notes">PDF Notes Manager</button>
-    </div>
-
-    <section id="tab-papers" class="tab-panel">
+    <section id="tab-notes" class="tab-panel">
       <div class="panel-header">
         <div>
-          <h1>Question Papers</h1>
-          <p class="subtitle">Create a test, upload the question paper, and add the model answer key for AI checking.</p>
-        </div>
-      </div>
-
-      <form id="paper-form" class="submit-card wide-card">
-        <div class="form-row">
-          <div class="form-group">
-            <label for="paper-title">Test Name</label>
-            <input type="text" id="paper-title" placeholder="e.g. Maths Unit Test - Chapter 5" required>
-          </div>
-          <div class="form-group">
-            <label for="paper-subject">Subject</label>
-            <select id="paper-subject" required>
-              <option value="">Select Subject...</option>
-              <option value="Social Science">Social Science</option>
-              <option value="Economics">Economics</option>
-              <option value="Macro Economics">Macro Economics</option>
-              <option value="Indian Economics Development">Indian Economics Development</option>
-              <option value="History">History</option>
-              <option value="Geography">Geography</option>
-              <option value="Civics">Civics</option>
-              <option value="Science">Science</option>
-              <option value="Mathematics">Mathematics</option>
-              <option value="Physics">Physics</option>
-              <option value="Chemistry">Chemistry</option>
-              <option value="Biology">Biology</option>
-              <option value="English">English</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label for="answer-key-text">Model Answer Key (text)</label>
-          <textarea id="answer-key-text" rows="5" placeholder="Type the correct answers here. Example:&#10;Q1. 42&#10;Q2. Photosynthesis&#10;Q3. x = 5"></textarea>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label for="question-images">Question Paper (Images or PDF)</label>
-            <input type="file" id="question-images" accept="image/*,application/pdf" multiple>
-            <p class="upload-hint">Upload photos, scans, or a PDF of the question paper.</p>
-            <div id="qp-preview" class="preview-grid small"></div>
-          </div>
-
-          <div class="form-group">
-            <label for="answer-key-images">Answer Key (Images or PDF, optional)</label>
-            <input type="file" id="answer-key-images" accept="image/*,application/pdf" multiple>
-            <p class="upload-hint">Upload photos, scans, or a PDF of the model answer sheet.</p>
-            <div id="ak-preview" class="preview-grid small"></div>
-          </div>
-        </div>
-
-        <button type="submit" class="btn btn-primary" id="paper-submit-btn">Save Question Paper</button>
-        <p id="paper-progress" class="progress-text hidden"></p>
-      </form>
-
-      <div class="section-divider"></div>
-      <h2 class="section-title">Saved Question Papers</h2>
-      <div id="papers-list" class="papers-list"></div>
-    </section>
-
-    <section id="tab-submissions" class="tab-panel hidden">
-      <div class="dashboard-header">
-        <div>
-          <h1>Student Submissions</h1>
-          <p class="subtitle">View AI-checked answer sheets and final verdicts.</p>
-        </div>
-        <div class="dashboard-stats">
-          <div class="stat-card">
-            <span class="stat-number" id="total-count">0</span>
-            <span class="stat-label">Total</span>
-          </div>
-          <div class="stat-card">
-            <span class="stat-number" id="today-count">0</span>
-            <span class="stat-label">Today</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="form-group filter-bar">
-        <label for="filter-paper">Filter by Question Paper</label>
-        <select id="filter-paper">
-          <option value="">All question papers</option>
-        </select>
-      </div>
-
-      <div id="empty-state" class="empty-state hidden">
-        <span class="empty-icon">📋</span>
-        <h2>No submissions yet</h2>
-        <p>When students submit answer sheets, they will appear here with AI scores.</p>
-      </div>
-
-      <div id="submissions-grid" class="submissions-grid"></div>
-    </section>
-
-    <section id="tab-notes" class="tab-panel hidden">
-      <div class="panel-header">
-        <div>
-          <h1>PDF Notes Manager</h1>
-          <p class="subtitle">Upload study material and PDF notes to Google Drive, then paste the link here for students to download.</p>
+          <h1>Grade 10 Resources Manager</h1>
+          <p class="subtitle">Add new chapter-wise study materials, revision files, or practice worksheets for Grade 10 students.</p>
         </div>
       </div>
 
       <form id="note-form" class="submit-card wide-card">
         <div class="form-row">
           <div class="form-group">
-            <label for="note-title">Note Title</label>
-            <input type="text" id="note-title" placeholder="e.g. Maths Chapter 1: Real Numbers" required>
-          </div>
-
-          <div class="form-group">
-            <label for="note-grade">Target Grade</label>
-            <select id="note-grade" required>
-              <option value="">Select Grade...</option>
-              <option value="X">Grade X (10th)</option>
-              <option value="XII">Grade XII (12th)</option>
-            </select>
+            <label for="note-title">Resource Title / Chapter Name</label>
+            <input type="text" id="note-title" placeholder="e.g. Chapter 1: Nationalism in India" required>
           </div>
 
           <div class="form-group">
             <label for="note-subject">Subject</label>
             <select id="note-subject" required>
-              <option value="">Select Grade First...</option>
+              <option value="">Select Subject...</option>
+              <option value="History">History</option>
+              <option value="Economics">Economics</option>
+              <option value="Geography">Geography</option>
+              <option value="Civics">Civics</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="note-type">Resource Type</label>
+            <select id="note-type" required>
+              <option value="X">Study Notes</option>
+              <option value="X-Worksheet">Practice Worksheet</option>
             </select>
           </div>
         </div>
@@ -176,41 +74,21 @@
         <div class="form-group">
           <label for="note-link">Google Drive Share Link</label>
           <input type="url" id="note-link" placeholder="https://drive.google.com/file/d/.../view?usp=sharing" required>
-          <p class="upload-hint">Make sure the file sharing in Google Drive is set to "Anyone with the link can view".</p>
+          <p class="upload-hint">Make sure the file sharing settings in Google Drive are set to "Anyone with the link can view".</p>
         </div>
 
-        <button type="submit" class="btn btn-primary" id="note-submit-btn" style="width: auto; min-width: 150px;">
-          Add Note
+        <button type="submit" class="btn btn-primary" id="note-submit-btn" style="width: auto; min-width: 180px;">
+          Add Grade 10 Resource
         </button>
       </form>
 
       <div class="section-divider"></div>
-      <h2 class="section-title">Active PDF Notes</h2>
+      <h2 class="section-title">Active Grade 10 Resources</h2>
       <div class="papers-list" id="notes-list">
         <p class="muted-text">Loading notes...</p>
       </div>
     </section>
   </main>
-
-  <div id="lightbox" class="lightbox hidden" role="dialog" aria-modal="true" aria-label="View submission">
-    <button class="lightbox-close" id="lightbox-close" aria-label="Close">&times;</button>
-    <div class="lightbox-content wide-lightbox">
-      <div id="lightbox-gallery" class="lightbox-gallery"></div>
-      <div class="lightbox-meta vertical-meta">
-        <div>
-          <h2 id="lightbox-name"></h2>
-          <p id="lightbox-paper"></p>
-          <p id="lightbox-date"></p>
-        </div>
-        <div id="lightbox-ai" class="ai-result"></div>
-        <div class="lightbox-actions">
-          <button class="btn btn-secondary" id="lightbox-print">Print / Save PDF</button>
-          <button class="btn btn-secondary" id="lightbox-regrade">Re-check with AI</button>
-          <button class="btn btn-danger" id="lightbox-delete">Delete</button>
-        </div>
-      </div>
-    </div>
-  </div>
 
   <script src="api-client.js"></script>
   <script src="dashboard.js"></script>

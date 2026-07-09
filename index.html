@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Submit Answer Sheet</title>
+  <title>Grade 10 PDF Notes & Worksheets | Nerd Tutors</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -22,127 +22,81 @@
 
   <main class="container main-content">
     <section class="hero">
-      <h1>Submit Your Answer Sheet</h1>
-      <p class="subtitle">Choose the test, enter your name, and upload up to 10 photos of your handwritten answers.</p>
+      <h1>Grade 10 Study Material & Worksheets</h1>
+      <p class="subtitle">Get the latest chapter-wise study notes, revision guides, and practice worksheets from Nerd Tutors.</p>
     </section>
 
     <div id="offline-notice" class="notice-banner hidden">
       This page must be opened from your online website link (not as a local file) after setup is complete.
     </div>
 
-    <div class="form-container-centered">
-      <form id="submit-form" class="submit-card">
-        <div class="form-group">
-          <label for="filter-subject">Select Subject</label>
-          <select id="filter-subject">
-            <option value="">All Subjects</option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label for="question-paper">Question Paper / Test</label>
-          <select id="question-paper" required>
-            <option value="">Loading tests…</option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label for="student-name">Your Name</label>
-          <input
-            type="text"
-            id="student-name"
-            name="studentName"
-            placeholder="e.g. Rahul Sharma"
-            required
-            autocomplete="name"
-          >
-        </div>
-
-        <div class="form-group">
-          <label for="answer-sheet">Answer Sheet Photos <span class="label-hint">(up to 10)</span></label>
-          <div class="upload-zone" id="upload-zone">
-            <input
-              type="file"
-              id="answer-sheet"
-              name="answerSheet"
-              accept="image/*"
-              capture="environment"
-              multiple
-              required
-            >
-            <div class="upload-placeholder" id="upload-placeholder">
-              <span class="upload-icon">📷</span>
-              <p><strong>Tap to add photos</strong> — take pictures or choose from gallery</p>
-              <p class="upload-hint">Add up to 10 images · JPG or PNG</p>
-            </div>
-          </div>
-          <div id="preview-grid" class="preview-grid hidden"></div>
-          <p id="photo-count" class="photo-count hidden"></p>
-        </div>
-
-        <button type="submit" class="btn btn-primary" id="submit-btn">
-          Submit Answer Sheet
-        </button>
-        <p id="upload-progress" class="progress-text hidden"></p>
-      </form>
-
-      <div id="success-message" class="success-banner hidden" role="status">
-        <span class="success-icon">✓</span>
-        <div>
-          <strong>Submitted successfully!</strong>
-          <p id="success-detail">Your answer sheet has been saved and sent for AI checking.</p>
-        </div>
-      </div>
-    </div>
-
     <div class="notes-panel-wide">
-      <div class="notes-header">
-        <h2>📚 Download PDF Notes</h2>
-        <p>Get the latest study materials, revisions, and chapter-wise PDF notes from Nerd Tutors.</p>
-      </div>
-
-      <div class="grade-section-wide">
-        <h3>Grade X (10th)</h3>
-        <div id="notes-x-container" class="notes-grid-subjects">
-          <div class="subject-card" id="group-x-history" style="display: none;">
-            <div class="card-header">
-              <span class="subject-icon">📜</span>
-              <h4>History</h4>
-            </div>
+      <div id="notes-x-container" class="notes-grid-subjects">
+        <!-- History Subject Card -->
+        <div class="subject-card" id="group-x-history" style="display: none;">
+          <div class="card-header">
+            <span class="subject-icon">📜</span>
+            <h4>History</h4>
+          </div>
+          <div class="notes-section" id="section-x-history-notes" style="display: none;">
+            <h5 class="resource-group-title">📚 Study Notes</h5>
             <ul id="notes-x-history" class="notes-list"></ul>
           </div>
-          <div class="subject-card" id="group-x-geography" style="display: none;">
-            <div class="card-header">
-              <span class="subject-icon">🌍</span>
-              <h4>Geography</h4>
-            </div>
+          <div class="notes-section" id="section-x-history-worksheets" style="display: none;">
+            <h5 class="resource-group-title">📝 Worksheets</h5>
+            <ul id="worksheets-x-history" class="notes-list"></ul>
+          </div>
+        </div>
+
+        <!-- Geography Subject Card -->
+        <div class="subject-card" id="group-x-geography" style="display: none;">
+          <div class="card-header">
+            <span class="subject-icon">🌍</span>
+            <h4>Geography</h4>
+          </div>
+          <div class="notes-section" id="section-x-geography-notes" style="display: none;">
+            <h5 class="resource-group-title">📚 Study Notes</h5>
             <ul id="notes-x-geography" class="notes-list"></ul>
           </div>
-          <div class="subject-card" id="group-x-civics" style="display: none;">
-            <div class="card-header">
-              <span class="subject-icon">⚖️</span>
-              <h4>Civics</h4>
-            </div>
+          <div class="notes-section" id="section-x-geography-worksheets" style="display: none;">
+            <h5 class="resource-group-title">📝 Worksheets</h5>
+            <ul id="worksheets-x-geography" class="notes-list"></ul>
+          </div>
+        </div>
+
+        <!-- Civics Subject Card -->
+        <div class="subject-card" id="group-x-civics" style="display: none;">
+          <div class="card-header">
+            <span class="subject-icon">⚖️</span>
+            <h4>Civics</h4>
+          </div>
+          <div class="notes-section" id="section-x-civics-notes" style="display: none;">
+            <h5 class="resource-group-title">📚 Study Notes</h5>
             <ul id="notes-x-civics" class="notes-list"></ul>
           </div>
-          <div class="subject-card" id="group-x-economics" style="display: none;">
-            <div class="card-header">
-              <span class="subject-icon">📈</span>
-              <h4>Economics</h4>
-            </div>
-            <ul id="notes-x-economics" class="notes-list"></ul>
+          <div class="notes-section" id="section-x-civics-worksheets" style="display: none;">
+            <h5 class="resource-group-title">📝 Worksheets</h5>
+            <ul id="worksheets-x-civics" class="notes-list"></ul>
           </div>
         </div>
-        <p id="no-notes-x" class="muted-text text-center">No notes uploaded yet.</p>
-      </div>
 
-      <div class="grade-section-wide">
-        <h3>Grade XII (12th)</h3>
-        <div id="notes-xii-container" class="notes-grid-subjects">
-          <!-- Dynamically populated subject-cards for Physics, Chemistry, Macro Economics, Indian Economics Development, etc. -->
+        <!-- Economics Subject Card -->
+        <div class="subject-card" id="group-x-economics" style="display: none;">
+          <div class="card-header">
+            <span class="subject-icon">📈</span>
+            <h4>Economics</h4>
+          </div>
+          <div class="notes-section" id="section-x-economics-notes" style="display: none;">
+            <h5 class="resource-group-title">📚 Study Notes</h5>
+            <ul id="notes-x-economics" class="notes-list"></ul>
+          </div>
+          <div class="notes-section" id="section-x-economics-worksheets" style="display: none;">
+            <h5 class="resource-group-title">📝 Worksheets</h5>
+            <ul id="worksheets-x-economics" class="notes-list"></ul>
+          </div>
         </div>
-        <p id="no-notes-xii" class="muted-text text-center">No notes uploaded yet.</p>
       </div>
+      <p id="no-notes-x" class="muted-text text-center">No resources uploaded yet.</p>
     </div>
   </main>
 
