@@ -268,8 +268,8 @@ input:focus, select:focus, textarea:focus {
 
 .notes-grid-subjects {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 1.75rem;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.25rem;
   width: 100%;
 }
 
@@ -529,6 +529,10 @@ input:focus, select:focus, textarea:focus {
 
 /* Responsiveness */
 @media (max-width: 1024px) {
+  .notes-grid-subjects {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
   .dashboard-grid-form {
     grid-template-columns: 1fr;
     align-items: stretch;
