@@ -45,10 +45,10 @@
       </div>
 
       <form id="note-form" class="submit-card wide-card">
-        <div class="form-row">
-          <div class="form-group" style="flex: 0 0 110px;">
+        <div class="dashboard-grid-form">
+          <div class="form-group">
             <label for="note-chapter">Ch. Number</label>
-            <input type="text" id="note-chapter" placeholder="e.g. 1, 2" required style="text-align: center;">
+            <input type="text" id="note-chapter" placeholder="e.g. 1" required style="text-align: center;">
           </div>
 
           <div class="form-group">
@@ -74,17 +74,17 @@
               <option value="X-Worksheet">Practice Worksheet</option>
             </select>
           </div>
-        </div>
 
-        <div class="form-group">
-          <label for="note-link">Google Drive Share Link</label>
-          <input type="url" id="note-link" placeholder="https://drive.google.com/file/d/.../view?usp=sharing" required>
-          <p class="upload-hint">Make sure the file sharing settings in Google Drive are set to "Anyone with the link can view".</p>
-        </div>
+          <div class="form-group">
+            <label for="note-link">Google Drive Share Link</label>
+            <input type="url" id="note-link" placeholder="https://drive.google.com/file/d/.../view?usp=sharing" required>
+          </div>
 
-        <button type="submit" class="btn btn-primary" id="note-submit-btn" style="width: auto; min-width: 180px;">
-          Add Grade 10 Resource
-        </button>
+          <button type="submit" class="btn btn-primary" id="note-submit-btn">
+            Add Resource
+          </button>
+        </div>
+        <p class="upload-hint" style="margin-top: 0.75rem;">Make sure the file sharing settings in Google Drive are set to "Anyone with the link can view".</p>
       </form>
 
       <div class="section-divider"></div>

@@ -519,7 +519,28 @@ input:focus, select:focus, textarea:focus {
   color: var(--text-muted);
 }
 
+.dashboard-grid-form {
+  display: grid;
+  grid-template-columns: 90px 1.5fr 150px 180px 2fr 160px;
+  gap: 1.25rem;
+  align-items: end;
+  width: 100%;
+}
+
 /* Responsiveness */
+@media (max-width: 1024px) {
+  .dashboard-grid-form {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+  .dashboard-grid-form .form-group {
+    flex: unset !important;
+  }
+  .dashboard-grid-form button {
+    margin-top: 0.5rem;
+  }
+}
+
 @media (max-width: 768px) {
   .notes-grid-subjects {
     grid-template-columns: 1fr;
