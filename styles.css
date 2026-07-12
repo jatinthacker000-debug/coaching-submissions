@@ -38,7 +38,7 @@ body {
 }
 
 .container {
-  width: min(1000px, 100% - 2rem);
+  width: min(1500px, 95%);
   margin-inline: auto;
 }
 
@@ -358,7 +358,8 @@ input:focus, select:focus, textarea:focus {
   font-weight: 500;
   font-size: 0.95rem;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  word-break: break-word;
+  word-break: normal;
+  overflow-wrap: break-word;
   line-height: 1.4;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
