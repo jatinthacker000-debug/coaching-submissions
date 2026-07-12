@@ -4,6 +4,31 @@ function isOfflineFileMode() {
   return window.location.protocol === "file:";
 }
 
+// Parses "[Ch X] Chapter Title" format
+function parseResourceTitle(rawTitle) {
+  const match = (rawTitle || "").match(/^\[Ch\s+([^\]]+)\]\s*(.*)$/i);
+  if (match) {
+    return {
+      chapter: match[1].trim(),
+      cleanTitle: match[2].trim()
+    };
+  }
+  return {
+    chapter: null,
+    cleanTitle: rawTitle
+  };
+}
+
+// Converts chapter to sortable float value
+function getChapterSortValue(resource) {
+  const parsed = parseResourceTitle(resource.title || "");
+  if (parsed.chapter) {
+    const num = parseFloat(parsed.chapter);
+    return isNaN(num) ? 999999 : num;
+  }
+  return 999999;
+}
+
 async function loadPDFNotes() {
   const notesXContainer = document.getElementById("notes-x-container");
   const noNotesX = document.getElementById("no-notes-x");
@@ -78,6 +103,17 @@ async function loadPDFNotes() {
     // Filter resources for Grade 10 (Notes: X, Worksheets: X-Worksheet)
     const gradeXResources = (notes || []).filter((n) => n.grade === "X" || n.grade === "X-Worksheet");
 
+    // Sort resources chronologically by chapter number, then by title
+    gradeXResources.sort((a, b) => {
+      const sortA = getChapterSortValue(a);
+      const sortB = getChapterSortValue(b);
+      if (sortA !== sortB) return sortA - sortB;
+      
+      const titleA = parseResourceTitle(a.title).cleanTitle;
+      const titleB = parseResourceTitle(b.title).cleanTitle;
+      return titleA.localeCompare(titleB, undefined, { numeric: true, sensitivity: 'base' });
+    });
+
     if (!gradeXResources.length) {
       if (noNotesX) noNotesX.style.display = "block";
     } else {
@@ -94,10 +130,12 @@ async function loadPDFNotes() {
         const target = groups[subj];
         if (target) {
           const li = document.createElement("li");
+          const parsed = parseResourceTitle(resource.title);
+          const chapterBadge = parsed.chapter ? `<span class="note-chapter-tag">Ch ${escapeHtml(parsed.chapter)}</span> ` : "";
           
           if (resource.grade === "X-Worksheet") {
             // It's a worksheet
-            li.innerHTML = `<a href="${escapeHtml(resource.link)}" target="_blank" rel="noopener noreferrer" class="note-link">📝 ${escapeHtml(resource.title)}</a>`;
+            li.innerHTML = `<a href="${escapeHtml(resource.link)}" target="_blank" rel="noopener noreferrer" class="note-link">📝 ${chapterBadge}${escapeHtml(parsed.cleanTitle)}</a>`;
             target.worksheetsList.appendChild(li);
             if (target.worksheetsSection) target.worksheetsSection.style.display = "block";
           } else {
@@ -106,7 +144,7 @@ async function loadPDFNotes() {
             if (resource.subject === "Macro Economics") prefix = `<span class="note-sub-tag">Macro</span> `;
             if (resource.subject === "Indian Economics Development") prefix = `<span class="note-sub-tag">IED</span> `;
 
-            li.innerHTML = `<a href="${escapeHtml(resource.link)}" target="_blank" rel="noopener noreferrer" class="note-link">📄 ${prefix}${escapeHtml(resource.title)}</a>`;
+            li.innerHTML = `<a href="${escapeHtml(resource.link)}" target="_blank" rel="noopener noreferrer" class="note-link">📄 ${prefix}${chapterBadge}${escapeHtml(parsed.cleanTitle)}</a>`;
             target.notesList.appendChild(li);
             if (target.notesSection) target.notesSection.style.display = "block";
           }
