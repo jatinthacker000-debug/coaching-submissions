@@ -197,54 +197,74 @@ if (isOfflineFileMode() && offlineNotice) {
 loadPDFNotes();
 
 const searchInput = document.getElementById("search-input");
-if (searchInput) {
-  searchInput.addEventListener("input", function (e) {
-    const term = e.target.value.toLowerCase();
-    const allItems = document.querySelectorAll(".notes-list li");
-    
-    allItems.forEach(li => {
-      const text = li.textContent.toLowerCase();
-      if (text.includes(term)) {
-        li.style.display = "";
-      } else {
-        li.style.display = "none";
-      }
-    });
+const typeFilter = document.getElementById("type-filter");
 
-    const subjectCards = document.querySelectorAll(".subject-card");
-    subjectCards.forEach(card => {
-      let hasVisibleItems = false;
-      const sections = card.querySelectorAll(".notes-section");
+function filterResources() {
+  if (!searchInput) return;
+  const term = searchInput.value.toLowerCase();
+  const filterValue = typeFilter ? typeFilter.value : "all";
+  
+  const subjectCards = document.querySelectorAll(".subject-card");
+  let totalVisible = 0;
+  
+  subjectCards.forEach(card => {
+    let hasVisibleItems = false;
+    const sections = card.querySelectorAll(".notes-section");
+    
+    sections.forEach(section => {
+      const isWorksheets = section.id.includes("-worksheets");
+      const isNotes = section.id.includes("-notes");
       
-      sections.forEach(section => {
-        const listItems = section.querySelectorAll("li");
-        const hasVisibleInSection = Array.from(listItems).some(item => item.style.display !== "none");
+      let hasVisibleInSection = false;
+      const listItems = section.querySelectorAll("li");
+      
+      listItems.forEach(li => {
+        const text = li.textContent.toLowerCase();
+        const matchesSearch = text.includes(term);
         
-        if (hasVisibleInSection) {
-          section.style.display = "block";
-          hasVisibleItems = true;
+        let matchesType = true;
+        if (filterValue === "notes" && !isNotes) matchesType = false;
+        if (filterValue === "worksheets" && !isWorksheets) matchesType = false;
+        
+        if (matchesSearch && matchesType) {
+          li.style.display = "";
+          hasVisibleInSection = true;
+          totalVisible++;
         } else {
-          section.style.display = "none";
+          li.style.display = "none";
         }
       });
       
-      if (hasVisibleItems) {
-        card.style.display = "flex";
+      if (hasVisibleInSection) {
+        section.style.display = "block";
+        hasVisibleItems = true;
       } else {
-        card.style.display = "none";
+        section.style.display = "none";
       }
     });
     
-    const noNotesX = document.getElementById("no-notes-x");
-    if (noNotesX && allItems.length > 0) {
-      const anyVisibleCard = Array.from(subjectCards).some(card => card.style.display !== "none");
-      if (!anyVisibleCard) {
-        noNotesX.style.display = "block";
-        noNotesX.textContent = "No matching chapters found.";
-      } else {
-        noNotesX.style.display = "none";
-      }
+    if (hasVisibleItems) {
+      card.style.display = "flex";
+    } else {
+      card.style.display = "none";
     }
   });
+  
+  const noNotesX = document.getElementById("no-notes-x");
+  const allItems = document.querySelectorAll(".notes-list li");
+  if (noNotesX && allItems.length > 0) {
+    if (totalVisible === 0) {
+      noNotesX.style.display = "block";
+      noNotesX.textContent = "No matching chapters found.";
+    } else {
+      noNotesX.style.display = "none";
+    }
+  }
 }
 
+if (searchInput) {
+  searchInput.addEventListener("input", filterResources);
+}
+if (typeFilter) {
+  typeFilter.addEventListener("change", filterResources);
+}

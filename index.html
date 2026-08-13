@@ -30,7 +30,12 @@
       This page must be opened from your online website link (not as a local file) after setup is complete.
     </div>
 
-    <div style="margin-bottom: 2rem; text-align: center;">
+    <div style="margin-bottom: 2rem; display: flex; justify-content: center; gap: 15px; align-items: center; flex-wrap: wrap;">
+      <select id="type-filter" style="max-width: 200px; display: inline-block; cursor: pointer;">
+        <option value="all">All Resources</option>
+        <option value="notes">Study Notes</option>
+        <option value="worksheets">Worksheets</option>
+      </select>
       <input type="text" id="search-input" placeholder="Search for a chapter..." style="max-width: 400px; display: inline-block;">
     </div>
 
