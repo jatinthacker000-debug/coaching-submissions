@@ -32,25 +32,21 @@ function getChapterSortValue(resource) {
 async function loadPDFNotes() {
   const notesXContainer = document.getElementById("notes-x-container");
   const noNotesX = document.getElementById("no-notes-x");
+  const loadingIndicator = document.getElementById("loading-indicator");
 
   if (!notesXContainer) return;
 
-  try {
-    const { notes } = await fetchNotes();
-
-    // Notes DOM lists
+  function renderNotesToDOM(notesList) {
     const notesXHistory = document.getElementById("notes-x-history");
     const notesXGeography = document.getElementById("notes-x-geography");
     const notesXCivics = document.getElementById("notes-x-civics");
     const notesXEconomics = document.getElementById("notes-x-economics");
 
-    // Worksheets DOM lists
     const worksheetsXHistory = document.getElementById("worksheets-x-history");
     const worksheetsXGeography = document.getElementById("worksheets-x-geography");
     const worksheetsXCivics = document.getElementById("worksheets-x-civics");
     const worksheetsXEconomics = document.getElementById("worksheets-x-economics");
 
-    // Reset lists
     notesXHistory.innerHTML = "";
     notesXGeography.innerHTML = "";
     notesXCivics.innerHTML = "";
@@ -61,7 +57,6 @@ async function loadPDFNotes() {
     worksheetsXCivics.innerHTML = "";
     worksheetsXEconomics.innerHTML = "";
 
-    // Set up group references
     const groups = {
       History: { 
         card: document.getElementById("group-x-history"),
@@ -93,17 +88,14 @@ async function loadPDFNotes() {
       },
     };
 
-    // Hide all cards and sections initially
     Object.values(groups).forEach(g => {
       if (g.card) g.card.style.display = "none";
       if (g.notesSection) g.notesSection.style.display = "none";
       if (g.worksheetsSection) g.worksheetsSection.style.display = "none";
     });
 
-    // Filter resources for Grade 10 (Notes: X, Worksheets: X-Worksheet)
-    const gradeXResources = (notes || []).filter((n) => n.grade === "X" || n.grade === "X-Worksheet");
+    const gradeXResources = (notesList || []).filter((n) => n.grade === "X" || n.grade === "X-Worksheet");
 
-    // Sort resources chronologically by chapter number, then by title
     gradeXResources.sort((a, b) => {
       const sortA = getChapterSortValue(a);
       const sortB = getChapterSortValue(b);
@@ -134,12 +126,10 @@ async function loadPDFNotes() {
           const chapterBadge = parsed.chapter ? `<span class="note-chapter-tag">Ch ${escapeHtml(parsed.chapter)}</span> ` : "";
           
           if (resource.grade === "X-Worksheet") {
-            // It's a worksheet
             li.innerHTML = `<a href="${escapeHtml(resource.link)}" target="_blank" rel="noopener noreferrer" class="note-link">📝 ${chapterBadge}${escapeHtml(parsed.cleanTitle)}</a>`;
             target.worksheetsList.appendChild(li);
             if (target.worksheetsSection) target.worksheetsSection.style.display = "block";
           } else {
-            // It's a study note
             let prefix = "";
             if (resource.subject === "Macro Economics") prefix = `<span class="note-sub-tag">Macro</span> `;
             if (resource.subject === "Indian Economics Development") prefix = `<span class="note-sub-tag">IED</span> `;
@@ -158,8 +148,45 @@ async function loadPDFNotes() {
         noNotesX.style.display = "block";
       }
     }
+    
+    const searchInput = document.getElementById("search-input");
+    if (searchInput && searchInput.value) {
+      searchInput.dispatchEvent(new Event("input"));
+    }
+  }
+
+  try {
+    let hasCache = false;
+    let cachedNotesStr = localStorage.getItem("padhrahi_notes_cache");
+    if (cachedNotesStr) {
+      try {
+        renderNotesToDOM(JSON.parse(cachedNotesStr));
+        hasCache = true;
+      } catch (e) {}
+    }
+
+    if (!hasCache && loadingIndicator) {
+      loadingIndicator.style.display = "block";
+    }
+
+    const { notes } = await fetchNotes();
+    
+    if (loadingIndicator) {
+      loadingIndicator.style.display = "none";
+    }
+    
+    if (JSON.stringify(notes) !== cachedNotesStr) {
+      localStorage.setItem("padhrahi_notes_cache", JSON.stringify(notes));
+      renderNotesToDOM(notes);
+    }
   } catch (err) {
-    if (noNotesX) noNotesX.textContent = "Failed to load resources.";
+    if (loadingIndicator) {
+      loadingIndicator.style.display = "none";
+    }
+    if (noNotesX && !localStorage.getItem("padhrahi_notes_cache")) {
+      noNotesX.textContent = "Failed to load resources.";
+      noNotesX.style.display = "block";
+    }
   }
 }
 
@@ -168,3 +195,56 @@ if (isOfflineFileMode() && offlineNotice) {
 }
 
 loadPDFNotes();
+
+const searchInput = document.getElementById("search-input");
+if (searchInput) {
+  searchInput.addEventListener("input", function (e) {
+    const term = e.target.value.toLowerCase();
+    const allItems = document.querySelectorAll(".notes-list li");
+    
+    allItems.forEach(li => {
+      const text = li.textContent.toLowerCase();
+      if (text.includes(term)) {
+        li.style.display = "";
+      } else {
+        li.style.display = "none";
+      }
+    });
+
+    const subjectCards = document.querySelectorAll(".subject-card");
+    subjectCards.forEach(card => {
+      let hasVisibleItems = false;
+      const sections = card.querySelectorAll(".notes-section");
+      
+      sections.forEach(section => {
+        const listItems = section.querySelectorAll("li");
+        const hasVisibleInSection = Array.from(listItems).some(item => item.style.display !== "none");
+        
+        if (hasVisibleInSection) {
+          section.style.display = "block";
+          hasVisibleItems = true;
+        } else {
+          section.style.display = "none";
+        }
+      });
+      
+      if (hasVisibleItems) {
+        card.style.display = "flex";
+      } else {
+        card.style.display = "none";
+      }
+    });
+    
+    const noNotesX = document.getElementById("no-notes-x");
+    if (noNotesX && allItems.length > 0) {
+      const anyVisibleCard = Array.from(subjectCards).some(card => card.style.display !== "none");
+      if (!anyVisibleCard) {
+        noNotesX.style.display = "block";
+        noNotesX.textContent = "No matching chapters found.";
+      } else {
+        noNotesX.style.display = "none";
+      }
+    }
+  });
+}
+
