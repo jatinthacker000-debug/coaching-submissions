@@ -124,9 +124,51 @@ async function renderNotes() {
       });
       notesList.appendChild(card);
     });
+    
+    const dashboardSearchInput = document.getElementById("dashboard-search-input");
+    if (dashboardSearchInput && dashboardSearchInput.value) {
+      dashboardSearchInput.dispatchEvent(new Event("input"));
+    }
   } catch (err) {
     notesList.innerHTML = `<p class="error-text">Could not load resources: ${escapeHtml(err.message)}</p>`;
   }
+}
+
+const dashboardSearchInput = document.getElementById("dashboard-search-input");
+if (dashboardSearchInput) {
+  dashboardSearchInput.addEventListener("input", (e) => {
+    const term = e.target.value.toLowerCase();
+    const articles = document.querySelectorAll("#notes-list .paper-card");
+    let visibleCount = 0;
+    
+    articles.forEach(article => {
+      const text = article.textContent.toLowerCase();
+      if (text.includes(term)) {
+        article.style.display = "flex";
+        visibleCount++;
+      } else {
+        article.style.display = "none";
+      }
+    });
+    
+    let emptyMsg = document.getElementById("dashboard-empty-msg");
+    if (!emptyMsg && articles.length > 0) {
+      emptyMsg = document.createElement("p");
+      emptyMsg.id = "dashboard-empty-msg";
+      emptyMsg.className = "muted-text text-center";
+      emptyMsg.style.marginTop = "2rem";
+      document.getElementById("notes-list").appendChild(emptyMsg);
+    }
+    
+    if (emptyMsg) {
+      if (visibleCount === 0 && articles.length > 0) {
+        emptyMsg.textContent = "No matching resources found.";
+        emptyMsg.style.display = "block";
+      } else {
+        emptyMsg.style.display = "none";
+      }
+    }
+  });
 }
 
 if (noteForm) {

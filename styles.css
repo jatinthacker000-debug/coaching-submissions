@@ -285,6 +285,23 @@ input:focus, select:focus, textarea:focus {
   gap: 1.25rem;
   position: relative;
   overflow: hidden;
+  animation: fadeInUp 0.5s cubic-bezier(0.4, 0, 0.2, 1) backwards;
+}
+
+#group-x-history { animation-delay: 0.1s; }
+#group-x-geography { animation-delay: 0.2s; }
+#group-x-civics { animation-delay: 0.3s; }
+#group-x-economics { animation-delay: 0.4s; }
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .subject-card::before {
@@ -520,30 +537,12 @@ input:focus, select:focus, textarea:focus {
   color: var(--text-muted);
 }
 
-.dashboard-grid-form {
-  display: grid;
-  grid-template-columns: 90px 1.5fr 150px 180px 2fr 160px;
-  gap: 1.25rem;
-  align-items: end;
-  width: 100%;
-}
 
 /* Responsiveness */
 @media (max-width: 1024px) {
   .notes-grid-subjects {
     grid-template-columns: repeat(2, 1fr);
     gap: 1rem;
-  }
-  .dashboard-grid-form {
-    grid-template-columns: 1fr;
-    align-items: stretch;
-  }
-  .dashboard-grid-form .form-group {
-    flex: unset !important;
-  }
-  .dashboard-grid-form button {
-    margin-top: 0.5rem;
-  }
 }
 
 @media (max-width: 768px) {

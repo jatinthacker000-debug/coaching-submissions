@@ -184,7 +184,10 @@ async function loadPDFNotes() {
       loadingIndicator.style.display = "none";
     }
     if (noNotesX && !localStorage.getItem("padhrahi_notes_cache")) {
-      noNotesX.textContent = "Failed to load resources.";
+      const textEl = document.getElementById("no-notes-text");
+      const iconEl = document.getElementById("no-notes-icon");
+      if (textEl) textEl.textContent = "Failed to load resources.";
+      if (iconEl) iconEl.textContent = "⚠️";
       noNotesX.style.display = "block";
     }
   }
@@ -255,15 +258,24 @@ function filterResources() {
   if (noNotesX && allItems.length > 0) {
     if (totalVisible === 0) {
       noNotesX.style.display = "block";
-      noNotesX.textContent = "No matching chapters found.";
+      const textEl = document.getElementById("no-notes-text");
+      const iconEl = document.getElementById("no-notes-icon");
+      if (textEl) textEl.textContent = "No matching chapters found.";
+      if (iconEl) iconEl.textContent = "🔍";
     } else {
       noNotesX.style.display = "none";
     }
   }
 }
 
+let debounceTimer;
+function debouncedFilterResources() {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(filterResources, 150);
+}
+
 if (searchInput) {
-  searchInput.addEventListener("input", filterResources);
+  searchInput.addEventListener("input", debouncedFilterResources);
 }
 if (typeFilter) {
   typeFilter.addEventListener("change", filterResources);

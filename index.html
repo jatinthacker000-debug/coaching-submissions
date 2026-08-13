@@ -30,13 +30,18 @@
       This page must be opened from your online website link (not as a local file) after setup is complete.
     </div>
 
-    <div style="margin-bottom: 2rem; display: flex; justify-content: center; gap: 15px; align-items: center; flex-wrap: wrap;">
-      <select id="type-filter" style="max-width: 200px; display: inline-block; cursor: pointer;">
-        <option value="all">All Resources</option>
-        <option value="notes">Study Notes</option>
-        <option value="worksheets">Worksheets</option>
-      </select>
-      <input type="text" id="search-input" placeholder="Search for a chapter..." style="max-width: 400px; display: inline-block;">
+    <div style="margin-bottom: 2.5rem; display: flex; justify-content: center; gap: 15px; align-items: center; flex-wrap: wrap;">
+      <div class="custom-select-wrapper">
+        <select id="type-filter" class="custom-select">
+          <option value="all">All Resources</option>
+          <option value="notes">Study Notes</option>
+          <option value="worksheets">Worksheets</option>
+        </select>
+      </div>
+      <div class="search-input-wrapper">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="search-input" placeholder="Search for a chapter..." class="search-input" autocomplete="off">
+      </div>
     </div>
 
     <div class="notes-panel-wide">
@@ -105,8 +110,14 @@
           </div>
         </div>
       </div>
-      <p id="loading-indicator" class="muted-text text-center" style="margin-top: 2rem; display: none;">Loading resources...</p>
-      <p id="no-notes-x" class="muted-text text-center" style="display: none;">No resources uploaded yet.</p>
+      <div id="loading-indicator" class="empty-state" style="display: none;">
+        <div class="empty-state-icon">⏳</div>
+        <p class="muted-text">Loading resources...</p>
+      </div>
+      <div id="no-notes-x" class="empty-state" style="display: none;">
+        <div class="empty-state-icon" id="no-notes-icon">📭</div>
+        <p class="muted-text text-center" id="no-notes-text">No resources uploaded yet.</p>
+      </div>
     </div>
   </main>
 
