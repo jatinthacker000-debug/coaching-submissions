@@ -7,6 +7,7 @@
 }
 
 :root {
+  /* Colors */
   --bg: #0b0f19; /* Deep charcoal/midnight black */
   --bg-gradient: radial-gradient(circle at top, #111827 0%, #030712 100%);
   --surface: #111827; /* Rich dark grey surface */
@@ -24,12 +25,19 @@
   --success-bg: rgba(16, 185, 129, 0.12);
   --danger: #f43f5e; /* Rose red */
   --danger-hover: #e11d48;
-  --shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.6); 
+  
+  /* Typography */
+  --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+  
+  /* Layout */
+  --container-width: 1200px;
   --radius: 16px;
+  --shadow: 0 4px 24px -1px rgba(0, 0, 0, 0.4);
 }
 
 body {
-  font-family: "DM Sans", system-ui, -apple-system, sans-serif;
+  font-family: var(--font-body);
+  letter-spacing: -0.01em;
   background: var(--bg);
   background-image: var(--bg-gradient);
   color: var(--text);

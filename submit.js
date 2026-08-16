@@ -47,6 +47,9 @@ async function loadPDFNotes() {
     const worksheetsXCivics = document.getElementById("worksheets-x-civics");
     const worksheetsXEconomics = document.getElementById("worksheets-x-economics");
 
+    const otherXHistory = document.getElementById("other-x-history");
+    const otherXGeography = document.getElementById("other-x-geography");
+
     notesXHistory.innerHTML = "";
     notesXGeography.innerHTML = "";
     notesXCivics.innerHTML = "";
@@ -57,20 +60,27 @@ async function loadPDFNotes() {
     worksheetsXCivics.innerHTML = "";
     worksheetsXEconomics.innerHTML = "";
 
+    if (otherXHistory) otherXHistory.innerHTML = "";
+    if (otherXGeography) otherXGeography.innerHTML = "";
+
     const groups = {
       History: { 
         card: document.getElementById("group-x-history"),
         notesList: notesXHistory,
         notesSection: document.getElementById("section-x-history-notes"),
         worksheetsList: worksheetsXHistory,
-        worksheetsSection: document.getElementById("section-x-history-worksheets")
+        worksheetsSection: document.getElementById("section-x-history-worksheets"),
+        otherList: otherXHistory,
+        otherSection: document.getElementById("section-x-history-other")
       },
       Geography: { 
         card: document.getElementById("group-x-geography"),
         notesList: notesXGeography,
         notesSection: document.getElementById("section-x-geography-notes"),
         worksheetsList: worksheetsXGeography,
-        worksheetsSection: document.getElementById("section-x-geography-worksheets")
+        worksheetsSection: document.getElementById("section-x-geography-worksheets"),
+        otherList: otherXGeography,
+        otherSection: document.getElementById("section-x-geography-other")
       },
       Civics: { 
         card: document.getElementById("group-x-civics"),
@@ -92,9 +102,10 @@ async function loadPDFNotes() {
       if (g.card) g.card.style.display = "none";
       if (g.notesSection) g.notesSection.style.display = "none";
       if (g.worksheetsSection) g.worksheetsSection.style.display = "none";
+      if (g.otherSection) g.otherSection.style.display = "none";
     });
 
-    const gradeXResources = (notesList || []).filter((n) => n.grade === "X" || n.grade === "X-Worksheet");
+    const gradeXResources = (notesList || []).filter((n) => n.grade === "X" || n.grade === "X-Worksheet" || n.grade === "X-Other");
 
     gradeXResources.sort((a, b) => {
       const sortA = getChapterSortValue(a);
@@ -125,7 +136,13 @@ async function loadPDFNotes() {
           const parsed = parseResourceTitle(resource.title);
           const chapterBadge = parsed.chapter ? `<span class="note-chapter-tag">Ch ${escapeHtml(parsed.chapter)}</span> ` : "";
           
-          if (resource.grade === "X-Worksheet") {
+          if (resource.grade === "X-Other") {
+            if (target.otherList) {
+              li.innerHTML = `<a href="${escapeHtml(resource.link)}" target="_blank" rel="noopener noreferrer" class="note-link">🗂️ ${chapterBadge}${escapeHtml(parsed.cleanTitle)}</a>`;
+              target.otherList.appendChild(li);
+              if (target.otherSection) target.otherSection.style.display = "block";
+            }
+          } else if (resource.grade === "X-Worksheet") {
             li.innerHTML = `<a href="${escapeHtml(resource.link)}" target="_blank" rel="noopener noreferrer" class="note-link">📝 ${chapterBadge}${escapeHtml(parsed.cleanTitle)}</a>`;
             target.worksheetsList.appendChild(li);
             if (target.worksheetsSection) target.worksheetsSection.style.display = "block";
@@ -217,6 +234,7 @@ function filterResources() {
     sections.forEach(section => {
       const isWorksheets = section.id.includes("-worksheets");
       const isNotes = section.id.includes("-notes");
+      const isOther = section.id.includes("-other");
       
       let hasVisibleInSection = false;
       const listItems = section.querySelectorAll("li");
@@ -228,6 +246,7 @@ function filterResources() {
         let matchesType = true;
         if (filterValue === "notes" && !isNotes) matchesType = false;
         if (filterValue === "worksheets" && !isWorksheets) matchesType = false;
+        if (filterValue === "other" && !isOther) matchesType = false;
         
         if (matchesSearch && matchesType) {
           li.style.display = "";
