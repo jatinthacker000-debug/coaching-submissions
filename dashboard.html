@@ -37,6 +37,38 @@
 
   <main id="dashboard-main" class="container main-content hidden">
     <section id="tab-notes" class="tab-panel">
+      <!-- Notification Manager -->
+      <div class="panel-header">
+        <div>
+          <h1>Notification Manager</h1>
+          <p class="subtitle">Broadcast announcements to students.</p>
+        </div>
+      </div>
+      <form id="notif-form" class="submit-card wide-card" style="margin-bottom: 3rem;">
+        <div class="form-row">
+          <div class="form-group" style="flex: 1;">
+            <label for="notif-institute">Institute Name</label>
+            <select id="notif-institute" required>
+              <option value="">Select Institute...</option>
+              <option value="IGNITE coaching class">IGNITE coaching class</option>
+              <option value="Velocity Career insitute">Velocity Career insitute</option>
+              <option value="Epsilon Classes">Epsilon Classes</option>
+            </select>
+          </div>
+          <div class="form-group" style="flex: 2;">
+            <label for="notif-message">Notification Message</label>
+            <input type="text" id="notif-message" placeholder="e.g. New test series starting tomorrow!" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="notif-link">Link (Optional)</label>
+          <input type="url" id="notif-link" placeholder="https://..." >
+        </div>
+        <button type="submit" class="btn btn-primary" id="notif-submit-btn" style="width: auto; min-width: 180px;">
+          Send Notification
+        </button>
+      </form>
+
       <div class="panel-header">
         <div>
           <h1>Grade 10 Resources Manager</h1>

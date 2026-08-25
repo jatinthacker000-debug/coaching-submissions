@@ -177,7 +177,9 @@ async function loadPDFNotes() {
     let cachedNotesStr = localStorage.getItem("padhrahi_notes_cache");
     if (cachedNotesStr) {
       try {
-        renderNotesToDOM(JSON.parse(cachedNotesStr));
+        const cachedNotes = JSON.parse(cachedNotesStr);
+        renderNotesToDOM(cachedNotes);
+        renderNotifications(cachedNotes);
         hasCache = true;
       } catch (e) {}
     }
@@ -195,6 +197,9 @@ async function loadPDFNotes() {
     if (JSON.stringify(notes) !== cachedNotesStr) {
       localStorage.setItem("padhrahi_notes_cache", JSON.stringify(notes));
       renderNotesToDOM(notes);
+      renderNotifications(notes);
+    } else {
+      renderNotifications(notes);
     }
   } catch (err) {
     if (loadingIndicator) {
@@ -299,3 +304,75 @@ if (searchInput) {
 if (typeFilter) {
   typeFilter.addEventListener("change", filterResources);
 }
+
+// Notifications Logic
+let allNotifications = [];
+function renderNotifications(notesList) {
+  allNotifications = (notesList || []).filter(n => n.grade === "NOTIFICATION");
+  const badge = document.getElementById("notif-badge");
+  if (badge) {
+    if (allNotifications.length > 0) {
+      badge.textContent = allNotifications.length;
+      badge.style.display = "inline-block";
+    } else {
+      badge.style.display = "none";
+    }
+  }
+  updateNotificationList("all");
+}
+
+function updateNotificationList(filterInst) {
+  const notifList = document.getElementById("notif-list");
+  if (!notifList) return;
+  notifList.innerHTML = "";
+  
+  const filtered = allNotifications.filter(n => filterInst === "all" || n.subject === filterInst);
+  
+  if (filtered.length === 0) {
+    notifList.innerHTML = `<p class="muted-text text-center" style="margin-top: 1rem;">No new notifications.</p>`;
+    return;
+  }
+  
+  filtered.sort((a,b) => new Date(b.created_at) - new Date(a.created_at)).forEach(notif => {
+    const li = document.createElement("li");
+    li.className = "notif-item";
+    
+    let content = `
+      <div class="notif-item-inst">${escapeHtml(notif.subject)}</div>
+      <div class="notif-item-title">${escapeHtml(notif.title)}</div>
+      <div class="notif-item-date">${formatDate(notif.created_at)}</div>
+    `;
+    
+    if (notif.link && notif.link !== "#") {
+      li.innerHTML = `<a href="${escapeHtml(notif.link)}" target="_blank" rel="noopener noreferrer" style="text-decoration: none; color: inherit;">${content}</a>`;
+    } else {
+      li.innerHTML = content;
+    }
+    
+    notifList.appendChild(li);
+  });
+}
+
+const notifBellBtn = document.getElementById("notif-bell-btn");
+const notifModal = document.getElementById("notif-modal");
+const notifCloseBtn = document.getElementById("notif-close-btn");
+const notifTabs = document.querySelectorAll(".notif-tab");
+
+if (notifBellBtn && notifModal) {
+  notifBellBtn.addEventListener("click", () => {
+    notifModal.classList.remove("hidden");
+  });
+}
+if (notifCloseBtn && notifModal) {
+  notifCloseBtn.addEventListener("click", () => {
+    notifModal.classList.add("hidden");
+  });
+}
+notifTabs.forEach(tab => {
+  tab.addEventListener("click", (e) => {
+    notifTabs.forEach(t => t.classList.remove("active"));
+    e.target.classList.add("active");
+    updateNotificationList(e.target.dataset.inst);
+  });
+});
+

@@ -73,16 +73,20 @@ async function renderNotes() {
     const { notes } = await fetchNotes();
     notesList.innerHTML = "";
 
-    // Show only Grade 10 (X) notes and worksheets on the dashboard
-    const gradeXNotes = (notes || []).filter(note => note.grade === "X" || note.grade === "X-Worksheet");
+    // Show Grade 10 (X) notes, worksheets, other materials, and notifications on the dashboard
+    const gradeXNotes = (notes || []).filter(note => note.grade === "X" || note.grade === "X-Worksheet" || note.grade === "X-Other" || note.grade === "NOTIFICATION");
 
     if (!gradeXNotes.length) {
       notesList.innerHTML = '<p class="muted-text">No resources yet. Add one above.</p>';
       return;
     }
 
-    // Sort chronologically by chapter number
+    // Sort chronologically by chapter number (Notifications go to top if we consider them chapterless, or we can just let them sort by title)
     gradeXNotes.sort((a, b) => {
+      // Prioritize notifications to the top
+      if (a.grade === "NOTIFICATION" && b.grade !== "NOTIFICATION") return -1;
+      if (b.grade === "NOTIFICATION" && a.grade !== "NOTIFICATION") return 1;
+
       const sortA = getChapterSortValue(a);
       const sortB = getChapterSortValue(b);
       if (sortA !== sortB) return sortA - sortB;
@@ -93,9 +97,18 @@ async function renderNotes() {
     });
 
     gradeXNotes.forEach((note) => {
-      const isWorksheet = note.grade === "X-Worksheet";
-      const typeLabel = isWorksheet ? "Worksheet" : "Study Note";
-      const typeColor = isWorksheet ? "background: var(--accent-light); color: var(--accent);" : "background: var(--primary-light); color: var(--primary);";
+      let typeLabel = "Study Note";
+      let typeColor = "background: var(--primary-light); color: var(--primary);";
+      if (note.grade === "X-Worksheet") {
+        typeLabel = "Worksheet";
+        typeColor = "background: var(--accent-light); color: var(--accent);";
+      } else if (note.grade === "X-Other") {
+        typeLabel = "Other Material";
+        typeColor = "background: #fdf4ff; color: #d946ef;";
+      } else if (note.grade === "NOTIFICATION") {
+        typeLabel = "Notification";
+        typeColor = "background: var(--danger-hover); color: white;";
+      }
       
       const parsed = parseResourceTitle(note.title);
       const chapterBadge = parsed.chapter ? `<span class="note-chapter-tag">Ch ${escapeHtml(parsed.chapter)}</span> ` : "";
@@ -196,6 +209,34 @@ if (noteForm) {
     } finally {
       noteSubmitBtn.disabled = false;
       noteSubmitBtn.textContent = "Add Grade 10 Resource";
+    }
+  });
+}
+
+const notifForm = document.getElementById("notif-form");
+if (notifForm) {
+  notifForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById("notif-submit-btn");
+    btn.disabled = true;
+    btn.textContent = "Sending...";
+
+    try {
+      await createNote({
+        title: document.getElementById("notif-message").value.trim(),
+        grade: "NOTIFICATION",
+        subject: document.getElementById("notif-institute").value,
+        link: document.getElementById("notif-link").value.trim() || "#",
+      });
+
+      notifForm.reset();
+      await renderNotes();
+      alert("Notification sent successfully.");
+    } catch (err) {
+      alert(err.message || "Could not send notification.");
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Send Notification";
     }
   });
 }
