@@ -551,6 +551,7 @@ input:focus, select:focus, textarea:focus {
   .notes-grid-subjects {
     grid-template-columns: repeat(2, 1fr);
     gap: 1rem;
+  }
 }
 
 @media (max-width: 768px) {
