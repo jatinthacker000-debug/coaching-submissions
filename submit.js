@@ -311,8 +311,19 @@ function renderNotifications(notesList) {
   allNotifications = (notesList || []).filter(n => n.grade === "NOTIFICATION");
   const badge = document.getElementById("notif-badge");
   if (badge) {
-    if (allNotifications.length > 0) {
-      badge.textContent = allNotifications.length;
+    let unreadCount = 0;
+    const lastSeenStr = localStorage.getItem("padhrahi_last_notif_seen");
+    const lastSeenTime = lastSeenStr ? new Date(lastSeenStr).getTime() : 0;
+    
+    allNotifications.forEach(n => {
+      const notifTime = new Date(n.created_at).getTime();
+      if (notifTime > lastSeenTime) {
+        unreadCount++;
+      }
+    });
+
+    if (unreadCount > 0) {
+      badge.textContent = unreadCount;
       badge.style.display = "inline-block";
     } else {
       badge.style.display = "none";
@@ -361,6 +372,13 @@ const notifTabs = document.querySelectorAll(".notif-tab");
 if (notifBellBtn && notifModal) {
   notifBellBtn.addEventListener("click", () => {
     notifModal.classList.remove("hidden");
+    const badge = document.getElementById("notif-badge");
+    if (badge) badge.style.display = "none";
+    
+    if (allNotifications.length > 0) {
+      const latestTime = Math.max(...allNotifications.map(n => new Date(n.created_at).getTime()));
+      localStorage.setItem("padhrahi_last_notif_seen", new Date(latestTime).toISOString());
+    }
   });
 }
 if (notifCloseBtn && notifModal) {
