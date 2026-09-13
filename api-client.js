@@ -228,3 +228,68 @@ async function deleteNote(id) {
   });
   return parseResponse(response);
 }
+
+async function submitMarks(payload) {
+  const response = await fetch("/api/marks", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  return parseResponse(response);
+}
+
+
+// --- STUDENTS ---
+async function fetchStudents() {
+  const response = await fetch("/api/students");
+  return parseResponse(response);
+}
+
+async function createStudent(payload) {
+  const response = await fetch("/api/students", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  return parseResponse(response);
+}
+
+// --- EXAMS ---
+async function fetchExams() {
+  const response = await fetch("/api/exams");
+  return parseResponse(response);
+}
+
+async function createExam(payload) {
+  const response = await fetch("/api/exams", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${getCoachPassword()}`,
+    },
+    body: JSON.stringify(payload),
+  });
+  return parseResponse(response);
+}
+
+async function deleteExam(id) {
+  const response = await fetch(`/api/exams?id=${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${getCoachPassword()}`,
+    },
+  });
+  return parseResponse(response);
+}
+
+// --- MARKS ---
+async function fetchMarks() {
+  const response = await fetch("/api/marks", {
+    headers: {
+      Authorization: `Bearer ${getCoachPassword()}`,
+    },
+  });
+  return parseResponse(response);
+}
+
+

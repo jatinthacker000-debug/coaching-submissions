@@ -7,7 +7,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link rel="stylesheet" href="styles.css">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#8b5cf6">
 </head>
 <body>
   <header class="site-header">
@@ -36,6 +39,12 @@
   </div>
 
   <main id="dashboard-main" class="container main-content hidden">
+    <!-- Dashboard Tabs -->
+    <div class="dashboard-tabs" style="display: flex; gap: 1rem; margin-bottom: 2rem; border-bottom: 1px solid var(--border); padding-bottom: 1rem;">
+      <button class="btn btn-primary" id="nav-tab-resources" style="background: var(--primary); color: white;">Resources & Notifications</button>
+      <button class="btn" id="nav-tab-exams" style="background: var(--surface-card); color: var(--text);">Exams & Marks</button>
+    </div>
+
     <section id="tab-notes" class="tab-panel">
       <!-- Notification Manager -->
       <div class="panel-header">
@@ -120,6 +129,28 @@
         </button>
       </form>
 
+      <div class="panel-header" style="margin-top: 3rem;">
+        <div>
+          <h1>CBSE Resources Manager</h1>
+          <p class="subtitle">Add year-wise drive folders for CBSE resources.</p>
+        </div>
+      </div>
+      <form id="cbse-form" class="submit-card wide-card" style="margin-bottom: 3rem;">
+        <div class="form-row">
+          <div class="form-group" style="flex: 1;">
+            <label for="cbse-title">Title (e.g., 2023 Resources)</label>
+            <input type="text" id="cbse-title" placeholder="2023 Resources" required>
+          </div>
+          <div class="form-group" style="flex: 2;">
+            <label for="cbse-link">Google Drive Link</label>
+            <input type="url" id="cbse-link" placeholder="https://drive.google.com/..." required>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary" id="cbse-submit-btn" style="width: auto; min-width: 180px;">
+          Add CBSE Folder
+        </button>
+      </form>
+
       <div class="section-divider"></div>
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
         <h2 class="section-title" style="margin-bottom: 0;">Active Grade 10 Resources</h2>
@@ -132,9 +163,80 @@
         <p class="muted-text">Loading notes...</p>
       </div>
     </section>
+
+    <!-- NEW EXAMS TAB -->
+    <section id="tab-exams" class="tab-panel hidden">
+      <div class="panel-header">
+        <div>
+          <h1>Exam Management</h1>
+          <p class="subtitle">Create and manage Social Science exams for your students.</p>
+        </div>
+      </div>
+      
+      <form id="exam-form" class="submit-card wide-card" style="margin-bottom: 3rem;">
+        <div class="form-row">
+          <div class="form-group" style="flex: 2;">
+            <label for="exam-name">Exam Name</label>
+            <input type="text" id="exam-name" placeholder="e.g. Periodic Test 1" required>
+          </div>
+          <div class="form-group" style="flex: 1;">
+            <label for="exam-total">Total Marks</label>
+            <input type="number" id="exam-total" placeholder="e.g. 20" required min="1" step="0.5">
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary" id="exam-submit-btn" style="width: auto; min-width: 180px;">
+          Create Exam
+        </button>
+      </form>
+
+      <!-- Student Performance Overview -->
+      <div class="panel-header" style="margin-top: 3rem;">
+        <div>
+          <h1>Student Performance Overview</h1>
+          <p class="subtitle">View and analyze marks across all exams.</p>
+        </div>
+      </div>
+      
+      <div style="overflow-x: auto; background: var(--surface-card); border-radius: 12px; border: 1px solid var(--border); box-shadow: var(--shadow);">
+        <table id="performance-table" style="width: 100%; text-align: left; border-collapse: collapse; min-width: 600px;">
+          <thead style="background: var(--bg); border-bottom: 1px solid var(--border);">
+            <tr id="performance-table-head">
+              <th style="padding: 1rem; font-weight: 600; color: var(--text-muted);">Student</th>
+              <!-- Dynamic Exam Headers go here -->
+              <th style="padding: 1rem; font-weight: 600; color: var(--text-muted); text-align: right;">Total %</th>
+            </tr>
+          </thead>
+          <tbody id="performance-table-body">
+            <tr><td colspan="100%" class="text-center" style="padding: 2rem; color: var(--text-muted);">Loading data...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      
+      <!-- Chart Container -->
+      <div style="background: var(--surface-card); border-radius: 12px; border: 1px solid var(--border); padding: 1.5rem; margin-top: 2rem; box-shadow: var(--shadow);">
+        <h3 style="margin-bottom: 1rem; color: var(--text);">Class Average Performance</h3>
+        <canvas id="performance-chart" height="100"></canvas>
+      </div>
+
+      <!-- List of created exams below table -->
+      <div style="margin-top: 3rem;">
+        <h2 class="section-title">Active Exams</h2>
+        <ul id="exams-list" class="papers-list" style="list-style: none; padding: 0;"></ul>
+      </div>
+
+    </section>
   </main>
 
   <script src="api-client.js"></script>
   <script src="dashboard.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch(err => {
+          console.error('ServiceWorker registration failed: ', err);
+        });
+      });
+    }
+  </script>
 </body>
 </html>

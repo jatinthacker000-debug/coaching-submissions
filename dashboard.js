@@ -73,8 +73,12 @@ async function renderNotes() {
     const { notes } = await fetchNotes();
     notesList.innerHTML = "";
 
-    // Show Grade 10 (X) notes, worksheets, other materials, and notifications on the dashboard
-    const gradeXNotes = (notes || []).filter(note => note.grade === "X" || note.grade === "X-Worksheet" || note.grade === "X-Other" || note.grade === "NOTIFICATION");
+    // Show Grade 10 (X) notes, worksheets, other materials, notifications, and CBSE resources
+    const gradeXNotes = (notes || []).filter(note => 
+      note.grade === "X" || note.grade === "X-Worksheet" || 
+      note.grade === "X-Other" || note.grade === "NOTIFICATION" || 
+      note.grade === "CBSE"
+    );
 
     if (!gradeXNotes.length) {
       notesList.innerHTML = '<p class="muted-text">No resources yet. Add one above.</p>';
@@ -108,6 +112,9 @@ async function renderNotes() {
       } else if (note.grade === "NOTIFICATION") {
         typeLabel = "Notification";
         typeColor = "background: var(--danger-hover); color: white;";
+      } else if (note.grade === "CBSE") {
+        typeLabel = "CBSE Folder";
+        typeColor = "background: #fffbe3; color: #b45309;";
       }
       
       const parsed = parseResourceTitle(note.title);
@@ -213,6 +220,34 @@ if (noteForm) {
   });
 }
 
+const cbseForm = document.getElementById("cbse-form");
+if (cbseForm) {
+  cbseForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById("cbse-submit-btn");
+    btn.disabled = true;
+    btn.textContent = "Adding...";
+
+    try {
+      await createNote({
+        title: document.getElementById("cbse-title").value.trim(),
+        grade: "CBSE",
+        subject: "All",
+        link: document.getElementById("cbse-link").value.trim()
+      });
+
+      cbseForm.reset();
+      await renderNotes();
+      alert("CBSE Folder added successfully.");
+    } catch (err) {
+      alert(err.message || "Could not add CBSE folder.");
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Add CBSE Folder";
+    }
+  });
+}
+
 const notifForm = document.getElementById("notif-form");
 if (notifForm) {
   notifForm.addEventListener("submit", async (e) => {
@@ -252,3 +287,236 @@ if (hasCoachPassword()) {
 } else {
   showLogin();
 }
+
+// --- TABS LOGIC ---
+const tabNotes = document.getElementById("tab-notes");
+const tabExams = document.getElementById("tab-exams");
+const navTabResources = document.getElementById("nav-tab-resources");
+const navTabExams = document.getElementById("nav-tab-exams");
+
+if (navTabResources && navTabExams) {
+  navTabResources.addEventListener("click", () => {
+    tabNotes.classList.remove("hidden");
+    tabExams.classList.add("hidden");
+    navTabResources.style.background = "var(--primary)";
+    navTabResources.style.color = "white";
+    navTabExams.style.background = "var(--surface-card)";
+    navTabExams.style.color = "var(--text)";
+  });
+  
+  navTabExams.addEventListener("click", () => {
+    tabNotes.classList.add("hidden");
+    tabExams.classList.remove("hidden");
+    navTabExams.style.background = "var(--primary)";
+    navTabExams.style.color = "white";
+    navTabResources.style.background = "var(--surface-card)";
+    navTabResources.style.color = "var(--text)";
+    loadExamData();
+  });
+}
+
+// --- EXAM MANAGEMENT ---
+const examForm = document.getElementById("exam-form");
+const examNameInput = document.getElementById("exam-name");
+const examTotalInput = document.getElementById("exam-total");
+const examSubmitBtn = document.getElementById("exam-submit-btn");
+
+if (examForm) {
+  examForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    examSubmitBtn.disabled = true;
+    examSubmitBtn.textContent = "Creating...";
+    try {
+      await createExam({
+        name: examNameInput.value.trim(),
+        total_marks: examTotalInput.value
+      });
+      examForm.reset();
+      await loadExamData();
+    } catch (err) {
+      alert("Error creating exam: " + err.message);
+    } finally {
+      examSubmitBtn.disabled = false;
+      examSubmitBtn.textContent = "Create Exam";
+    }
+  });
+}
+
+async function loadExamData() {
+  try {
+    const [examsRes, marksRes, studentsRes] = await Promise.all([
+      fetchExams(),
+      fetchMarks(),
+      fetchStudents()
+    ]);
+    
+    renderExamsList(examsRes.exams);
+    renderPerformanceTable(examsRes.exams, marksRes.marks, studentsRes.students);
+  } catch (err) {
+    console.error("Error loading exam data:", err);
+  }
+}
+
+function renderExamsList(exams) {
+  const examsList = document.getElementById("exams-list");
+  if (!examsList) return;
+  examsList.innerHTML = "";
+  if (!exams || exams.length === 0) {
+    examsList.innerHTML = `<p class="muted-text">No exams created yet.</p>`;
+    return;
+  }
+  
+  exams.forEach(ex => {
+    const li = document.createElement("li");
+    li.className = "paper-card";
+    li.innerHTML = `
+      <div>
+        <h3>${escapeHtml(ex.name)} <span class="score-pill">Total: ${ex.total_marks}</span></h3>
+      </div>
+      <button class="btn btn-danger small-btn" data-id="${ex.id}">Delete</button>
+    `;
+    li.querySelector("button").addEventListener("click", async () => {
+      if (!confirm(`Delete exam "${ex.name}"? This will also delete all student marks for this exam!`)) return;
+      try {
+        await deleteExam(ex.id);
+        await loadExamData();
+      } catch (e) {
+        alert("Error deleting exam: " + e.message);
+      }
+    });
+    examsList.appendChild(li);
+  });
+}
+
+function renderPerformanceTable(exams, marks, students) {
+  const thead = document.getElementById("performance-table-head");
+  const tbody = document.getElementById("performance-table-body");
+  if (!thead || !tbody) return;
+  
+  // Build Header
+  let headerHtml = `<th style="padding: 1rem; font-weight: 600; color: var(--text-muted);">Student</th>`;
+  exams.forEach(ex => {
+    headerHtml += `<th style="padding: 1rem; font-weight: 600; color: var(--text-muted); text-align: center;">${escapeHtml(ex.name)}<br><small style="font-weight:400; opacity:0.8;">(${ex.total_marks})</small></th>`;
+  });
+  headerHtml += `<th style="padding: 1rem; font-weight: 600; color: var(--text-muted); text-align: right;">Total %</th>`;
+  thead.innerHTML = headerHtml;
+  
+  // Build Rows
+  tbody.innerHTML = "";
+  if (!students || students.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="100%" class="text-center" style="padding: 2rem; color: var(--text-muted);">No students yet.</td></tr>`;
+    return;
+  }
+  
+  // Group marks by student_id
+  const marksByStudent = {};
+  (marks || []).forEach(m => {
+    if (!marksByStudent[m.student_id]) marksByStudent[m.student_id] = {};
+    marksByStudent[m.student_id][m.exam_id] = m.marks_obtained;
+  });
+  
+  students.forEach(student => {
+    const studentMarks = marksByStudent[student.id] || {};
+    let rowHtml = `<td style="padding: 1rem; border-bottom: 1px solid var(--border);">${escapeHtml(student.name)}</td>`;
+    
+    let studentTotalObtained = 0;
+    let studentTotalMax = 0;
+    
+    exams.forEach(ex => {
+      const mark = studentMarks[ex.id];
+      if (mark !== undefined) {
+        rowHtml += `<td style="padding: 1rem; border-bottom: 1px solid var(--border); text-align: center; color: var(--primary); font-weight: 500;">${mark}</td>`;
+        studentTotalObtained += mark;
+        studentTotalMax += ex.total_marks;
+      } else {
+        rowHtml += `<td style="padding: 1rem; border-bottom: 1px solid var(--border); text-align: center; color: var(--text-muted);">&mdash;</td>`;
+      }
+    });
+    
+    let percentage = "&mdash;";
+    if (studentTotalMax > 0) {
+      percentage = ((studentTotalObtained / studentTotalMax) * 100).toFixed(1) + "%";
+    }
+    
+    rowHtml += `<td style="padding: 1rem; border-bottom: 1px solid var(--border); text-align: right; font-weight: 600;">${percentage}</td>`;
+    
+    const tr = document.createElement("tr");
+    tr.innerHTML = rowHtml;
+    tbody.appendChild(tr);
+  });
+  
+  // Render Chart
+  renderChart(exams, marksByStudent);
+}
+
+function renderChart(exams, marksByStudent) {
+  const ctx = document.getElementById('performance-chart');
+  if (!ctx) return;
+  
+  const labels = [];
+  const data = [];
+  
+  exams.forEach(ex => {
+    labels.push(ex.name);
+    let totalMarks = 0;
+    let studentCount = 0;
+    
+    Object.values(marksByStudent).forEach(studentMarks => {
+      if (studentMarks[ex.id] !== undefined) {
+        totalMarks += (studentMarks[ex.id] / ex.total_marks) * 100;
+        studentCount++;
+      }
+    });
+    
+    const avg = studentCount > 0 ? (totalMarks / studentCount) : 0;
+    data.push(avg.toFixed(1));
+  });
+
+  if (window.performanceChartInstance) {
+    window.performanceChartInstance.destroy();
+  }
+
+  window.performanceChartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Class Average (%)',
+        data: data,
+        backgroundColor: 'rgba(139, 92, 246, 0.6)',
+        borderColor: 'rgba(139, 92, 246, 1)',
+        borderWidth: 1,
+        borderRadius: 4
+      }]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        y: {
+          beginAtZero: true,
+          max: 100,
+          ticks: {
+            color: '#9ca3af'
+          },
+          grid: {
+            color: 'rgba(255,255,255,0.1)'
+          }
+        },
+        x: {
+          ticks: {
+            color: '#9ca3af'
+          },
+          grid: {
+            display: false
+          }
+        }
+      },
+      plugins: {
+        legend: {
+          labels: { color: '#f3f4f6' }
+        }
+      }
+    }
+  });
+}
+

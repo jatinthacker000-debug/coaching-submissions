@@ -31,3 +31,35 @@ create index if not exists submissions_submitted_at_idx on submissions(submitted
 insert into storage.buckets (id, name, public)
 values ('uploads', 'uploads', true)
 on conflict (id) do nothing;
+
+create table if not exists notes (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  grade text not null,
+  subject text not null,
+  link text not null,
+  created_at timestamptz not null default now()
+);
+
+-- NEW STUDENT MARKS MANAGEMENT TABLES
+create table if not exists students (
+  id uuid primary key default gen_random_uuid(),
+  name text not null unique,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists exams (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  total_marks numeric not null,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists marks (
+  id uuid primary key default gen_random_uuid(),
+  student_id uuid not null references students(id) on delete cascade,
+  exam_id uuid not null references exams(id) on delete cascade,
+  marks_obtained numeric not null,
+  created_at timestamptz not null default now(),
+  unique(student_id, exam_id)
+);

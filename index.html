@@ -8,6 +8,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#8b5cf6">
 </head>
 <body>
   <header class="site-header">
@@ -49,6 +51,16 @@
         <input type="text" id="search-input" placeholder="Search for a chapter..." class="search-input" autocomplete="off">
       </div>
     </div>
+    
+    <section class="cbse-resources-section" style="margin-bottom: 3rem;">
+      <div class="text-center" style="margin-bottom: 1.5rem;">
+        <h2>CBSE Resources (Year-wise)</h2>
+        <p class="muted-text">Access past year question papers, sample papers, and official resources.</p>
+      </div>
+      <div id="cbse-dynamic-container" class="cbse-dynamic-container">
+        <!-- Year-wise dynamic accordion injected here -->
+      </div>
+    </section>
 
     <div class="notes-panel-wide">
       <div id="notes-x-container" class="notes-grid-subjects">
@@ -133,6 +145,34 @@
         <p class="muted-text text-center" id="no-notes-text">No resources uploaded yet.</p>
       </div>
     </div>
+
+    <section class="marks-section" style="margin-top: 4rem; margin-bottom: 2rem;">
+      <div class="text-center" style="margin-bottom: 2rem;">
+        <h2>Submit Your Marks</h2>
+        <p class="muted-text">Keep track of your test performances. Your coach will review them.</p>
+      </div>
+      <form id="marks-form" style="background: var(--surface-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 2rem; max-width: 600px; margin: 0 auto; display: flex; flex-direction: column; gap: 1.5rem; box-shadow: var(--shadow);">
+        
+        <div class="form-group" style="display: flex; flex-direction: column; gap: 0.5rem;">
+          <label for="marks-name" style="font-size: 0.9rem; font-weight: 500;">Student Name</label>
+          <input type="text" id="marks-name" required placeholder="Type or select your name..." list="students-list" style="padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text);">
+          <datalist id="students-list"></datalist>
+        </div>
+
+        <div id="exams-container" style="display: none; flex-direction: column; gap: 1rem;">
+          <div style="border-top: 1px solid var(--border); padding-top: 1.5rem;">
+            <h3 style="font-size: 1rem; margin-bottom: 0.25rem;">Select Exams</h3>
+            <p class="muted-text" style="font-size: 0.85rem; margin-top: 0; margin-bottom: 1rem;">Select the exams you have taken and enter your marks.</p>
+            <div id="dynamic-exams-list" style="display: flex; flex-direction: column; gap: 1rem;">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary" id="marks-submit-btn" style="margin-top: 1rem;">Submit Marks</button>
+        </div>
+        
+        <div id="marks-success" class="text-center" style="color: #059669; background: #d1fae5; padding: 0.5rem; border-radius: 8px; display: none; margin-top: 0.5rem; font-weight: 500;">Marks saved successfully!</div>
+      </form>
+    </section>
   </main>
 
   <div id="notif-modal" class="modal-overlay hidden">
@@ -156,5 +196,14 @@
 
   <script src="api-client.js"></script>
   <script src="submit.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch(err => {
+          console.error('ServiceWorker registration failed: ', err);
+        });
+      });
+    }
+  </script>
 </body>
 </html>
