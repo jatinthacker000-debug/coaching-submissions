@@ -138,12 +138,12 @@ async function loadPDFNotes() {
           
           if (resource.grade === "X-Other") {
             if (target.otherList) {
-              li.innerHTML = `<a href="${escapeHtml(resource.link)}" target="_blank" rel="noopener noreferrer" class="note-link"><span style="font-size: 1.1rem; flex-shrink: 0;">🗂️</span> <span>${chapterBadge}${escapeHtml(parsed.cleanTitle)}</span></a>`;
+              li.innerHTML = `<a href="${escapeHtml(resource.link)}" target="_blank" rel="noopener noreferrer" class="note-link">🗂️ ${chapterBadge}${escapeHtml(parsed.cleanTitle)}</a>`;
               target.otherList.appendChild(li);
               if (target.otherSection) target.otherSection.style.display = "block";
             }
           } else if (resource.grade === "X-Worksheet") {
-            li.innerHTML = `<a href="${escapeHtml(resource.link)}" target="_blank" rel="noopener noreferrer" class="note-link"><span style="font-size: 1.1rem; flex-shrink: 0;">📝</span> <span>${chapterBadge}${escapeHtml(parsed.cleanTitle)}</span></a>`;
+            li.innerHTML = `<a href="${escapeHtml(resource.link)}" target="_blank" rel="noopener noreferrer" class="note-link">📝 ${chapterBadge}${escapeHtml(parsed.cleanTitle)}</a>`;
             target.worksheetsList.appendChild(li);
             if (target.worksheetsSection) target.worksheetsSection.style.display = "block";
           } else {
@@ -151,8 +151,7 @@ async function loadPDFNotes() {
             if (resource.subject === "Macro Economics") prefix = `<span class="note-sub-tag">Macro</span> `;
             if (resource.subject === "Indian Economics Development") prefix = `<span class="note-sub-tag">IED</span> `;
 
-            const docIcon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`;
-            li.innerHTML = `<a href="${escapeHtml(resource.link)}" target="_blank" rel="noopener noreferrer" class="note-link">${docIcon} <span>${prefix}${chapterBadge}${escapeHtml(parsed.cleanTitle)}</span></a>`;
+            li.innerHTML = `<a href="${escapeHtml(resource.link)}" target="_blank" rel="noopener noreferrer" class="note-link">📄 ${prefix}${chapterBadge}${escapeHtml(parsed.cleanTitle)}</a>`;
             target.notesList.appendChild(li);
             if (target.notesSection) target.notesSection.style.display = "block";
           }
