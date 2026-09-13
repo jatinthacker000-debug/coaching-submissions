@@ -205,94 +205,49 @@ async function loadPDFNotes() {
       } else {
         cbseGrid.innerHTML = "";
         
-        // Parse resources into { Year: { Subject: [resources] } }
-        const cbseTree = {};
+        const subjectsGrid = document.createElement("div");
+        subjectsGrid.className = "notes-grid-subjects";
         
-        cbseResources.forEach(res => {
-          // Attempt to extract year from title, e.g., "2026 Geography" or "[2026] Geography"
-          let year = "Other";
-          let subject = "General";
-          let cleanTitle = res.title;
-          
-          const yearMatch = res.title.match(/(202\d)/);
-          if (yearMatch) {
-            year = yearMatch[1];
+        const subjectCard = document.createElement("div");
+        subjectCard.className = "subject-card";
+        
+        const docIcon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`;
+        
+        subjectCard.innerHTML = `
+          <div class="card-header" style="cursor: pointer; display: flex; align-items: center;">
+            <span class="subject-icon">📁</span>
+            <h4>General Resources</h4>
+            <span class="accordion-icon" style="margin-left: auto; transition: transform 0.2s;">▼</span>
+          </div>
+          <div class="notes-section collapsed">
+            <ul class="notes-list">
+              ${cbseResources.map(res => `
+                <li>
+                  <a href="${escapeHtml(res.link)}" target="_blank" rel="noopener noreferrer" class="note-link">${docIcon} <span>${escapeHtml(res.title)}</span></a>
+                </li>
+              `).join('')}
+            </ul>
+          </div>
+        `;
+        
+        // Accordion logic for CBSE subject card
+        const header = subjectCard.querySelector('.card-header');
+        const section = subjectCard.querySelector('.notes-section');
+        const accIcon = subjectCard.querySelector('.accordion-icon');
+        
+        header.addEventListener('click', () => {
+          const isExpanded = accIcon.style.transform === 'rotate(180deg)';
+          if (isExpanded) {
+            accIcon.style.transform = 'rotate(0deg)';
+            section.classList.add('collapsed');
+          } else {
+            accIcon.style.transform = 'rotate(180deg)';
+            section.classList.remove('collapsed');
           }
-          
-          const titleLower = res.title.toLowerCase();
-          if (titleLower.includes("geography")) subject = "Geography";
-          else if (titleLower.includes("history")) subject = "History";
-          else if (titleLower.includes("economics")) subject = "Economics";
-          else if (titleLower.includes("civics")) subject = "Civics";
-          else if (titleLower.includes("science")) subject = "Science";
-          else if (titleLower.includes("math")) subject = "Mathematics";
-          
-          if (!cbseTree[year]) cbseTree[year] = {};
-          if (!cbseTree[year][subject]) cbseTree[year][subject] = [];
-          
-          cbseTree[year][subject].push(res);
         });
         
-        // Render the tree
-        Object.keys(cbseTree).sort().reverse().forEach(year => {
-          const yearSection = document.createElement("div");
-          yearSection.style.marginBottom = "2rem";
-          yearSection.innerHTML = `<h3 style="margin-bottom: 1rem; border-bottom: 2px solid var(--border); padding-bottom: 0.5rem;">${year}</h3>`;
-          
-          const subjectsGrid = document.createElement("div");
-          subjectsGrid.className = "notes-grid-subjects";
-          
-          Object.keys(cbseTree[year]).sort().forEach(subject => {
-            const subjectCard = document.createElement("div");
-            subjectCard.className = "subject-card";
-            
-            let icon = "📁";
-            if (subject === "Geography") icon = "🌍";
-            else if (subject === "History") icon = "📜";
-            else if (subject === "Economics") icon = "📈";
-            else if (subject === "Civics") icon = "⚖️";
-            
-            const docIcon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`;
-            
-            subjectCard.innerHTML = `
-              <div class="card-header" style="cursor: pointer; display: flex; align-items: center;">
-                <span class="subject-icon">${icon}</span>
-                <h4>${subject} Resources</h4>
-                <span class="accordion-icon" style="margin-left: auto; transition: transform 0.2s;">▼</span>
-              </div>
-              <div class="notes-section collapsed">
-                <ul class="notes-list">
-                  ${cbseTree[year][subject].map(res => `
-                    <li>
-                      <a href="${escapeHtml(res.link)}" target="_blank" rel="noopener noreferrer" class="note-link">${docIcon} <span>${escapeHtml(res.title)}</span></a>
-                    </li>
-                  `).join('')}
-                </ul>
-              </div>
-            `;
-            
-            // Accordion logic for CBSE subject card
-            const header = subjectCard.querySelector('.card-header');
-            const section = subjectCard.querySelector('.notes-section');
-            const accIcon = subjectCard.querySelector('.accordion-icon');
-            
-            header.addEventListener('click', () => {
-              const isExpanded = accIcon.style.transform === 'rotate(180deg)';
-              if (isExpanded) {
-                accIcon.style.transform = 'rotate(0deg)';
-                section.classList.add('collapsed');
-              } else {
-                accIcon.style.transform = 'rotate(180deg)';
-                section.classList.remove('collapsed');
-              }
-            });
-            
-            subjectsGrid.appendChild(subjectCard);
-          });
-          
-          yearSection.appendChild(subjectsGrid);
-          cbseGrid.appendChild(yearSection);
-        });
+        subjectsGrid.appendChild(subjectCard);
+        cbseGrid.appendChild(subjectsGrid);
       }
     }
 
