@@ -16,11 +16,11 @@
         <img src="logo.jpg" alt="Padh rahi public Logo" class="brand-logo">
         <span class="brand-text gradient-glow">Padh rahi public</span>
       </div>
-      <div style="display: flex; gap: 1rem; align-items: center;">
+      <div style="display: flex; gap: 1rem; align-items: center;" class="header-right-actions">
         <button id="notif-bell-btn" class="btn" style="background: var(--surface-card); border: 1px solid var(--border); color: var(--text); padding: 0.4rem 1rem; border-radius: 99px; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem;">
-          🔔 Notifications <span id="notif-badge" style="background: var(--danger); color: white; border-radius: 99px; padding: 0.1rem 0.5rem; font-size: 0.75rem; display: none; font-weight: bold;">0</span>
+          <span class="notif-icon">🔔</span> <span class="notif-text">Notifications</span> <span id="notif-badge" style="background: var(--danger); color: white; border-radius: 99px; padding: 0.1rem 0.5rem; font-size: 0.75rem; display: none; font-weight: bold;">0</span>
         </button>
-        <a href="dashboard.html" class="nav-link">Coach Dashboard →</a>
+        <a href="dashboard.html" class="nav-link header-dash-link">Coach Dashboard →</a>
       </div>
     </div>
   </header>
@@ -170,8 +170,12 @@
         
         <div id="marks-success" class="text-center" style="color: #059669; background: #d1fae5; padding: 0.5rem; border-radius: 8px; display: none; margin-top: 0.5rem; font-weight: 500;">Marks saved successfully!</div>
       </form>
-    </section>
-  </main>
+      </section>
+    
+      <div class="mobile-footer" style="margin-top: 3rem; margin-bottom: 2rem;">
+        <a href="dashboard.html" class="btn" style="width: 100%; display: flex; justify-content: center; align-items: center; gap: 0.5rem;">Coach Dashboard →</a>
+      </div>
+    </main>
 
   <div id="notif-modal" class="modal-overlay hidden">
     <div class="modal-content">

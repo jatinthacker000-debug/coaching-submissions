@@ -688,3 +688,21 @@ input:focus, select:focus, textarea:focus {
 
 .notes-section.collapsed { display: none !important; }
 
+
+/* Mobile Fixes */
+@media (max-width: 768px) {
+  .header-right-actions { gap: 0.5rem !important; }
+  .notif-text { display: none !important; }
+  .header-dash-link { display: none !important; }
+  .header-inner { justify-content: space-between; padding: 0.5rem 1rem; }
+  #notif-bell-btn { padding: 0.4rem 0.6rem !important; }
+  .mobile-footer { display: block !important; }
+  .search-input-wrapper { width: 100%; max-width: 100%; position: relative; }
+}
+@media (min-width: 769px) {
+  .mobile-footer { display: none !important; }
+}
+.search-input-wrapper { position: relative; display: flex; align-items: center; width: 100%; max-width: 400px; }
+.search-input-wrapper .search-icon { position: absolute; left: 12px; font-size: 1.1rem; }
+.search-input-wrapper .search-input { padding-left: 2.5rem; width: 100%; }
+
