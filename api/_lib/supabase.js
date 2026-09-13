@@ -4,8 +4,14 @@ let supabase;
 
 export function getSupabase() {
   if (!supabase) {
-    const url = process.env.SUPABASE_URL;
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    let url = (process.env.SUPABASE_URL || "").trim();
+    if (url.endsWith("/")) {
+      url = url.slice(0, -1);
+    }
+    if (url.endsWith("/rest/v1")) {
+      url = url.slice(0, -8);
+    }
+    const key = (process.env.SUPABASE_SERVICE_ROLE_KEY || "").trim();
     if (!url || !key) {
       throw new Error("Missing Supabase environment variables.");
     }
