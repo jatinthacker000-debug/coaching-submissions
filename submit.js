@@ -642,3 +642,29 @@ if (marksForm) {
 }
 
 
+
+// Exam Countdown Logic
+document.addEventListener("DOMContentLoaded", () => {
+  const totalEl = document.getElementById("cd-total");
+  const effectiveEl = document.getElementById("cd-effective");
+  
+  if (totalEl && effectiveEl) {
+    // Target date set to November 29, 2026 (75 days from Sept 15, 2026)
+    const targetDate = new Date("2026-11-29T00:00:00");
+    const today = new Date();
+    
+    // Calculate difference in milliseconds
+    const diffTime = targetDate - today;
+    
+    // Calculate days and round up to next full day
+    let diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    if (diffDays < 0) diffDays = 0;
+    
+    const holidayDays = 20;
+    let effectiveDays = diffDays - holidayDays;
+    if (effectiveDays < 0) effectiveDays = 0;
+    
+    totalEl.textContent = diffDays;
+    effectiveEl.textContent = effectiveDays;
+  }
+});
