@@ -422,7 +422,7 @@ function updateNotificationList(filterInst) {
   if (!notifList) return;
   notifList.innerHTML = "";
   
-  const filtered = allNotifications.filter(n => filterInst === "all" || n.subject === filterInst);
+  const filtered = allNotifications.filter(n => filterInst === "all" || n.subject === filterInst || n.subject === "All Institutes");
   
   if (filtered.length === 0) {
     notifList.innerHTML = `<p class="muted-text text-center" style="margin-top: 1rem;">No new notifications.</p>`;
