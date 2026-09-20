@@ -279,6 +279,7 @@ input:focus, select:focus, textarea:focus {
   grid-template-columns: repeat(4, 1fr);
   gap: 1.25rem;
   width: 100%;
+  align-items: start;
 }
 
 /* Subject Card */
