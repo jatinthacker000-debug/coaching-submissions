@@ -563,6 +563,7 @@ function renderChart(exams, marksByStudent, studentId = null) {
 }
 
 
+
 // --- ANALYTICS FEATURE ---
 function updateAnalyticsDropdowns() {
   const studentSelect = document.getElementById("analytics-student");
@@ -577,17 +578,17 @@ function updateAnalyticsDropdowns() {
   const currEx2 = exam2Select.value;
 
   // Populate students
-  let studentHtml = <option value="">-- Class Average --</option>;
+  let studentHtml = `<option value="">-- Class Average --</option>`;
   globalStudents.forEach(s => {
-    studentHtml += <option value=" + escapeHtml(s.id) + "> + escapeHtml(s.name) + </option>;
+    studentHtml += `<option value="${escapeHtml(s.id)}">${escapeHtml(s.name)}</option>`;
   });
   studentSelect.innerHTML = studentHtml;
   studentSelect.value = currStudent;
 
   // Populate exams
-  let examHtml = <option value="">Select Exam...</option>;
+  let examHtml = `<option value="">Select Exam...</option>`;
   globalExams.forEach(ex => {
-    examHtml += <option value=" + escapeHtml(ex.id) + "> + escapeHtml(ex.name) + </option>;
+    examHtml += `<option value="${escapeHtml(ex.id)}">${escapeHtml(ex.name)}</option>`;
   });
   exam1Select.innerHTML = examHtml;
   exam2Select.innerHTML = examHtml;
@@ -626,7 +627,7 @@ document.addEventListener("DOMContentLoaded", () => {
     
     if (marksEx1 === undefined || marksEx2 === undefined) {
       resultDiv.style.display = "block";
-      resultDiv.innerHTML = <p class="muted-text text-center">Student has not taken one or both of these exams.</p>;
+      resultDiv.innerHTML = `<p class="muted-text text-center">Student has not taken one or both of these exams.</p>`;
       return;
     }
     
@@ -636,24 +637,24 @@ document.addEventListener("DOMContentLoaded", () => {
     const diff = perc2 - perc1;
     let growthHtml = "";
     if (diff > 0) {
-      growthHtml = <strong style="color: #059669;">&#8593; Growth of + + diff.toFixed(1) + %</strong>;
+      growthHtml = `<strong style="color: #059669;">&#8593; Growth of +${diff.toFixed(1)}%</strong>`;
     } else if (diff < 0) {
-      growthHtml = <strong style="color: #dc2626;">&#8595; Downfall of  + diff.toFixed(1) + %</strong>;
+      growthHtml = `<strong style="color: #dc2626;">&#8595; Downfall of ${diff.toFixed(1)}%</strong>`;
     } else {
-      growthHtml = <strong>No change in performance</strong>;
+      growthHtml = `<strong>No change in performance</strong>`;
     }
     
     resultDiv.style.display = "block";
-    resultDiv.innerHTML = 
+    resultDiv.innerHTML = `
       <h4 style="margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
         <span>Performance Comparison</span>
-         + growthHtml + 
+        ${growthHtml}
       </h4>
       <div style="display: flex; gap: 2rem; color: var(--text-muted); font-size: 0.9rem;">
-        <div><strong> + escapeHtml(ex1.name) + :</strong>  + marksEx1 + / + ex1.total_marks +  ( + perc1.toFixed(1) + %)</div>
-        <div><strong> + escapeHtml(ex2.name) + :</strong>  + marksEx2 + / + ex2.total_marks +  ( + perc2.toFixed(1) + %)</div>
+        <div><strong>${escapeHtml(ex1.name)}:</strong> ${marksEx1}/${ex1.total_marks} (${perc1.toFixed(1)}%)</div>
+        <div><strong>${escapeHtml(ex2.name)}:</strong> ${marksEx2}/${ex2.total_marks} (${perc2.toFixed(1)}%)</div>
       </div>
-    ;
+    `;
   }
   
   if (studentSelect) {
@@ -687,16 +688,16 @@ function updateEditMarksDropdowns() {
   const currStudent = studentSelect.value;
   const currExam = examSelect.value;
 
-  let studentHtml = <option value="">Select Student...</option>;
+  let studentHtml = `<option value="">Select Student...</option>`;
   globalStudents.forEach(s => {
-    studentHtml += <option value=" + escapeHtml(s.id) + "> + escapeHtml(s.name) + </option>;
+    studentHtml += `<option value="${escapeHtml(s.id)}">${escapeHtml(s.name)}</option>`;
   });
   studentSelect.innerHTML = studentHtml;
   studentSelect.value = currStudent;
 
-  let examHtml = <option value="">Select Exam...</option>;
+  let examHtml = `<option value="">Select Exam...</option>`;
   globalExams.forEach(ex => {
-    examHtml += <option value=" + escapeHtml(ex.id) + "> + escapeHtml(ex.name) + </option>;
+    examHtml += `<option value="${escapeHtml(ex.id)}">${escapeHtml(ex.name)}</option>`;
   });
   examSelect.innerHTML = examHtml;
   examSelect.value = currExam;
@@ -780,7 +781,7 @@ document.addEventListener("DOMContentLoaded", () => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: Bearer  + getCoachPassword()
+            Authorization: `Bearer ${getCoachPassword()}`
           },
           body: JSON.stringify({
             student_id: sId,
@@ -811,10 +812,10 @@ document.addEventListener("DOMContentLoaded", () => {
       deleteBtn.textContent = "Deleting...";
       
       try {
-        const response = await fetch(/api/marks?id= + encodeURIComponent(currentMarkId), {
+        const response = await fetch(`/api/marks?id=${encodeURIComponent(currentMarkId)}`, {
           method: "DELETE",
           headers: {
-            Authorization: Bearer  + getCoachPassword()
+            Authorization: `Bearer ${getCoachPassword()}`
           }
         });
         
