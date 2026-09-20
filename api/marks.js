@@ -49,6 +49,21 @@ export default async function handler(req, res) {
     return sendJson(res, { success: true });
   }
 
+  if (req.method === "DELETE") {
+    if (!isCoachAuthorized(req)) return coachUnauthorized(res);
+    
+    const { id } = req.query;
+    if (!id) return sendError(res, "Missing mark ID.", 400);
+    
+    const { error } = await supabase
+      .from("marks")
+      .delete()
+      .eq("id", id);
+      
+    if (error) return sendError(res, error.message, 500);
+    return sendJson(res, { success: true });
+  }
+
   return sendError(res, "Method not allowed.", 405);
 }
 
