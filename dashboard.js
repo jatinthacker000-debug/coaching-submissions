@@ -342,6 +342,12 @@ if (examForm) {
   });
 }
 
+// Global state for analytics
+let globalExams = [];
+let globalMarks = [];
+let globalStudents = [];
+let globalMarksByStudent = {};
+
 async function loadExamData() {
   try {
     const [examsRes, marksRes, studentsRes] = await Promise.all([
@@ -350,8 +356,14 @@ async function loadExamData() {
       fetchStudents()
     ]);
     
-    renderExamsList(examsRes.exams);
-    renderPerformanceTable(examsRes.exams, marksRes.marks, studentsRes.students);
+    globalExams = examsRes.exams || [];
+    globalMarks = marksRes.marks || [];
+    globalStudents = studentsRes.students || [];
+    
+    renderExamsList(globalExams);
+    renderPerformanceTable(globalExams, globalMarks, globalStudents);
+    updateAnalyticsDropdowns();
+    if (typeof updateEditMarksDropdowns === 'function') updateEditMarksDropdowns();
   } catch (err) {
     console.error("Error loading exam data:", err);
   }
@@ -445,11 +457,14 @@ function renderPerformanceTable(exams, marks, students) {
     tbody.appendChild(tr);
   });
   
+  globalMarksByStudent = marksByStudent;
+  
   // Render Chart
-  renderChart(exams, marksByStudent);
+  const selectedStudentId = document.getElementById("analytics-student")?.value || null;
+  renderChart(exams, marksByStudent, selectedStudentId);
 }
 
-function renderChart(exams, marksByStudent) {
+function renderChart(exams, marksByStudent, studentId = null) {
   const ctx = document.getElementById('performance-chart');
   if (!ctx) return;
   
@@ -458,35 +473,62 @@ function renderChart(exams, marksByStudent) {
   
   exams.forEach(ex => {
     labels.push(ex.name);
-    let totalMarks = 0;
-    let studentCount = 0;
     
-    Object.values(marksByStudent).forEach(studentMarks => {
+    if (studentId) {
+      // Individual student
+      const studentMarks = marksByStudent[studentId] || {};
       if (studentMarks[ex.id] !== undefined) {
-        totalMarks += (studentMarks[ex.id] / ex.total_marks) * 100;
-        studentCount++;
+        const perc = (studentMarks[ex.id] / ex.total_marks) * 100;
+        data.push(perc.toFixed(1));
+      } else {
+        data.push(null); // No exam data
       }
-    });
-    
-    const avg = studentCount > 0 ? (totalMarks / studentCount) : 0;
-    data.push(avg.toFixed(1));
+    } else {
+      // Class average
+      let totalMarks = 0;
+      let studentCount = 0;
+      
+      Object.values(marksByStudent).forEach(studentMarks => {
+        if (studentMarks[ex.id] !== undefined) {
+          totalMarks += (studentMarks[ex.id] / ex.total_marks) * 100;
+          studentCount++;
+        }
+      });
+      
+      const avg = studentCount > 0 ? (totalMarks / studentCount) : 0;
+      data.push(avg.toFixed(1));
+    }
   });
+
+  const chartLabel = studentId ? 'Student Performance (%)' : 'Class Average (%)';
+  const chartTitle = document.getElementById("chart-title");
+  if (chartTitle) {
+    if (studentId) {
+      const studentObj = globalStudents.find(s => s.id === studentId);
+      chartTitle.textContent = studentObj ? `${studentObj.name}'s Performance` : chartLabel;
+    } else {
+      chartTitle.textContent = 'Class Average Performance';
+    }
+  }
 
   if (window.performanceChartInstance) {
     window.performanceChartInstance.destroy();
   }
 
   window.performanceChartInstance = new Chart(ctx, {
-    type: 'bar',
+    type: studentId ? 'line' : 'bar',
     data: {
       labels: labels,
       datasets: [{
-        label: 'Class Average (%)',
+        label: chartLabel,
         data: data,
-        backgroundColor: 'rgba(139, 92, 246, 0.6)',
-        borderColor: 'rgba(139, 92, 246, 1)',
-        borderWidth: 1,
-        borderRadius: 4
+        backgroundColor: studentId ? 'rgba(5, 150, 105, 0.2)' : 'rgba(139, 92, 246, 0.6)',
+        borderColor: studentId ? 'rgba(5, 150, 105, 1)' : 'rgba(139, 92, 246, 1)',
+        borderWidth: 2,
+        borderRadius: 4,
+        tension: 0.3,
+        fill: !!studentId,
+        pointBackgroundColor: studentId ? 'rgba(5, 150, 105, 1)' : 'transparent',
       }]
     },
     options: {
@@ -520,3 +562,273 @@ function renderChart(exams, marksByStudent) {
   });
 }
 
+
+// --- ANALYTICS FEATURE ---
+function updateAnalyticsDropdowns() {
+  const studentSelect = document.getElementById("analytics-student");
+  const exam1Select = document.getElementById("analytics-exam1");
+  const exam2Select = document.getElementById("analytics-exam2");
+  
+  if (!studentSelect || !exam1Select || !exam2Select) return;
+  
+  // Save current values to restore them
+  const currStudent = studentSelect.value;
+  const currEx1 = exam1Select.value;
+  const currEx2 = exam2Select.value;
+
+  // Populate students
+  let studentHtml = <option value="">-- Class Average --</option>;
+  globalStudents.forEach(s => {
+    studentHtml += <option value=" + escapeHtml(s.id) + "> + escapeHtml(s.name) + </option>;
+  });
+  studentSelect.innerHTML = studentHtml;
+  studentSelect.value = currStudent;
+
+  // Populate exams
+  let examHtml = <option value="">Select Exam...</option>;
+  globalExams.forEach(ex => {
+    examHtml += <option value=" + escapeHtml(ex.id) + "> + escapeHtml(ex.name) + </option>;
+  });
+  exam1Select.innerHTML = examHtml;
+  exam2Select.innerHTML = examHtml;
+  
+  exam1Select.value = currEx1;
+  exam2Select.value = currEx2;
+  
+  // Enable/Disable exam dropdowns based on student selection
+  const isStudentSelected = !!studentSelect.value;
+  exam1Select.disabled = !isStudentSelected;
+  exam2Select.disabled = !isStudentSelected;
+}
+
+// Add event listeners when DOM loads
+document.addEventListener("DOMContentLoaded", () => {
+  const studentSelect = document.getElementById("analytics-student");
+  const exam1Select = document.getElementById("analytics-exam1");
+  const exam2Select = document.getElementById("analytics-exam2");
+  const resultDiv = document.getElementById("comparison-result");
+  
+  function updateComparison() {
+    if (!studentSelect.value || !exam1Select.value || !exam2Select.value) {
+      resultDiv.style.display = "none";
+      return;
+    }
+    
+    const sId = studentSelect.value;
+    const e1Id = exam1Select.value;
+    const e2Id = exam2Select.value;
+    
+    const ex1 = globalExams.find(e => e.id === e1Id);
+    const ex2 = globalExams.find(e => e.id === e2Id);
+    
+    const marksEx1 = globalMarksByStudent[sId]?.[e1Id];
+    const marksEx2 = globalMarksByStudent[sId]?.[e2Id];
+    
+    if (marksEx1 === undefined || marksEx2 === undefined) {
+      resultDiv.style.display = "block";
+      resultDiv.innerHTML = <p class="muted-text text-center">Student has not taken one or both of these exams.</p>;
+      return;
+    }
+    
+    const perc1 = (marksEx1 / ex1.total_marks) * 100;
+    const perc2 = (marksEx2 / ex2.total_marks) * 100;
+    
+    const diff = perc2 - perc1;
+    let growthHtml = "";
+    if (diff > 0) {
+      growthHtml = <strong style="color: #059669;">&#8593; Growth of + + diff.toFixed(1) + %</strong>;
+    } else if (diff < 0) {
+      growthHtml = <strong style="color: #dc2626;">&#8595; Downfall of  + diff.toFixed(1) + %</strong>;
+    } else {
+      growthHtml = <strong>No change in performance</strong>;
+    }
+    
+    resultDiv.style.display = "block";
+    resultDiv.innerHTML = 
+      <h4 style="margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
+        <span>Performance Comparison</span>
+         + growthHtml + 
+      </h4>
+      <div style="display: flex; gap: 2rem; color: var(--text-muted); font-size: 0.9rem;">
+        <div><strong> + escapeHtml(ex1.name) + :</strong>  + marksEx1 + / + ex1.total_marks +  ( + perc1.toFixed(1) + %)</div>
+        <div><strong> + escapeHtml(ex2.name) + :</strong>  + marksEx2 + / + ex2.total_marks +  ( + perc2.toFixed(1) + %)</div>
+      </div>
+    ;
+  }
+  
+  if (studentSelect) {
+    studentSelect.addEventListener("change", () => {
+      exam1Select.disabled = !studentSelect.value;
+      exam2Select.disabled = !studentSelect.value;
+      
+      if (!studentSelect.value) {
+        exam1Select.value = "";
+        exam2Select.value = "";
+      }
+      
+      renderChart(globalExams, globalMarksByStudent, studentSelect.value);
+      updateComparison();
+    });
+  }
+  
+  if (exam1Select) exam1Select.addEventListener("change", updateComparison);
+  if (exam2Select) exam2Select.addEventListener("change", updateComparison);
+});
+
+// --- EDIT OR DELETE MARKS FEATURE ---
+let currentMarkId = null;
+
+function updateEditMarksDropdowns() {
+  const studentSelect = document.getElementById("edit-mark-student");
+  const examSelect = document.getElementById("edit-mark-exam");
+  
+  if (!studentSelect || !examSelect) return;
+  
+  const currStudent = studentSelect.value;
+  const currExam = examSelect.value;
+
+  let studentHtml = <option value="">Select Student...</option>;
+  globalStudents.forEach(s => {
+    studentHtml += <option value=" + escapeHtml(s.id) + "> + escapeHtml(s.name) + </option>;
+  });
+  studentSelect.innerHTML = studentHtml;
+  studentSelect.value = currStudent;
+
+  let examHtml = <option value="">Select Exam...</option>;
+  globalExams.forEach(ex => {
+    examHtml += <option value=" + escapeHtml(ex.id) + "> + escapeHtml(ex.name) + </option>;
+  });
+  examSelect.innerHTML = examHtml;
+  examSelect.value = currExam;
+  
+  refreshEditMarkState();
+}
+
+function refreshEditMarkState() {
+  const studentSelect = document.getElementById("edit-mark-student");
+  const examSelect = document.getElementById("edit-mark-exam");
+  const markInput = document.getElementById("edit-mark-value");
+  const updateBtn = document.getElementById("edit-mark-update-btn");
+  const deleteBtn = document.getElementById("edit-mark-delete-btn");
+  const statusMsg = document.getElementById("edit-mark-status");
+  
+  if (!studentSelect || !examSelect) return;
+  
+  const sId = studentSelect.value;
+  examSelect.disabled = !sId;
+  
+  if (!sId) {
+    examSelect.value = "";
+  }
+  
+  const eId = examSelect.value;
+  markInput.disabled = true;
+  updateBtn.disabled = true;
+  deleteBtn.disabled = true;
+  currentMarkId = null;
+  statusMsg.style.display = "none";
+  
+  if (sId && eId) {
+    // Find the mark
+    const markObj = globalMarks.find(m => m.student_id === sId && m.exam_id === eId);
+    if (markObj) {
+      markInput.value = markObj.marks_obtained;
+      currentMarkId = markObj.id;
+      markInput.disabled = false;
+      updateBtn.disabled = false;
+      deleteBtn.disabled = false;
+    } else {
+      markInput.value = "";
+      markInput.placeholder = "No mark found";
+    }
+  } else {
+    markInput.value = "";
+    markInput.placeholder = "";
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const studentSelect = document.getElementById("edit-mark-student");
+  const examSelect = document.getElementById("edit-mark-exam");
+  const updateBtn = document.getElementById("edit-mark-update-btn");
+  const deleteBtn = document.getElementById("edit-mark-delete-btn");
+  const markInput = document.getElementById("edit-mark-value");
+  const statusMsg = document.getElementById("edit-mark-status");
+  
+  if (studentSelect) studentSelect.addEventListener("change", refreshEditMarkState);
+  if (examSelect) examSelect.addEventListener("change", refreshEditMarkState);
+  
+  function setStatus(msg, isError = false) {
+    statusMsg.style.display = "block";
+    statusMsg.textContent = msg;
+    statusMsg.style.color = isError ? "var(--danger)" : "#059669";
+  }
+  
+  if (updateBtn) {
+    updateBtn.addEventListener("click", async () => {
+      const sId = studentSelect.value;
+      const eId = examSelect.value;
+      const marks_obtained = markInput.value;
+      
+      if (!sId || !eId || marks_obtained === "") return;
+      
+      updateBtn.disabled = true;
+      updateBtn.textContent = "Updating...";
+      
+      try {
+        const response = await fetch("/api/marks", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: Bearer  + getCoachPassword()
+          },
+          body: JSON.stringify({
+            student_id: sId,
+            submissions: [{ exam_id: eId, marks_obtained }]
+          })
+        });
+        
+        const data = await parseResponse(response);
+        if (data.success) {
+          setStatus("Mark updated successfully!");
+          await loadExamData(); // Refresh everything
+        }
+      } catch (err) {
+        setStatus(err.message || "Failed to update.", true);
+      } finally {
+        updateBtn.disabled = false;
+        updateBtn.textContent = "Update Mark";
+      }
+    });
+  }
+  
+  if (deleteBtn) {
+    deleteBtn.addEventListener("click", async () => {
+      if (!currentMarkId) return;
+      if (!confirm("Are you sure you want to delete this mark?")) return;
+      
+      deleteBtn.disabled = true;
+      deleteBtn.textContent = "Deleting...";
+      
+      try {
+        const response = await fetch(/api/marks?id= + encodeURIComponent(currentMarkId), {
+          method: "DELETE",
+          headers: {
+            Authorization: Bearer  + getCoachPassword()
+          }
+        });
+        
+        const data = await parseResponse(response);
+        if (data.success) {
+          setStatus("Mark deleted successfully!");
+          await loadExamData(); // Refresh everything
+        }
+      } catch (err) {
+        setStatus(err.message || "Failed to delete.", true);
+      } finally {
+        deleteBtn.disabled = false;
+        deleteBtn.textContent = "Delete Mark";
+      }
+    });
+  }
+});

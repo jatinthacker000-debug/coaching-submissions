@@ -216,9 +216,43 @@
         </table>
       </div>
       
+      <!-- Student Analytics & Growth Comparison -->
+      <div class="panel-header" style="margin-top: 3rem;">
+        <div>
+          <h1>Individual Student Analytics</h1>
+          <p class="subtitle">Select a student to view their specific performance and compare exams.</p>
+        </div>
+      </div>
+      
+      <div class="submit-card wide-card" style="margin-bottom: 2rem;">
+        <div class="form-row">
+          <div class="form-group" style="flex: 1.5;">
+            <label for="analytics-student">Select Student</label>
+            <select id="analytics-student">
+              <option value="">-- Class Average --</option>
+            </select>
+          </div>
+          <div class="form-group" style="flex: 1;">
+            <label for="analytics-exam1">Compare Exam 1</label>
+            <select id="analytics-exam1" disabled>
+              <option value="">Select Exam 1...</option>
+            </select>
+          </div>
+          <div class="form-group" style="flex: 1;">
+            <label for="analytics-exam2">Compare Exam 2</label>
+            <select id="analytics-exam2" disabled>
+              <option value="">Select Exam 2...</option>
+            </select>
+          </div>
+        </div>
+        
+        <div id="comparison-result" style="margin-top: 1.5rem; padding: 1rem; border-radius: 8px; background: var(--bg); border: 1px solid var(--border); display: none;">
+        </div>
+      </div>
+
       <!-- Chart Container -->
       <div style="background: var(--surface-card); border-radius: 12px; border: 1px solid var(--border); padding: 1.5rem; margin-top: 2rem; box-shadow: var(--shadow);">
-        <h3 style="margin-bottom: 1rem; color: var(--text);">Class Average Performance</h3>
+        <h3 id="chart-title" style="margin-bottom: 1rem; color: var(--text);">Class Average Performance</h3>
         <canvas id="performance-chart" height="100"></canvas>
       </div>
 
@@ -226,6 +260,40 @@
       <div style="margin-top: 3rem;">
         <h2 class="section-title">Active Exams</h2>
         <ul id="exams-list" class="papers-list" style="list-style: none; padding: 0;"></ul>
+      </div>
+
+      <!-- Edit or Delete Marks -->
+      <div class="panel-header" style="margin-top: 3rem;">
+        <div>
+          <h1>Edit or Delete Student Marks</h1>
+          <p class="subtitle">Modify an existing mark if there was a mistake, or delete it.</p>
+        </div>
+      </div>
+      <div class="submit-card wide-card" style="margin-bottom: 3rem;">
+        <div class="form-row">
+          <div class="form-group" style="flex: 1.5;">
+            <label for="edit-mark-student">Select Student</label>
+            <select id="edit-mark-student">
+              <option value="">Select Student...</option>
+            </select>
+          </div>
+          <div class="form-group" style="flex: 1;">
+            <label for="edit-mark-exam">Select Exam</label>
+            <select id="edit-mark-exam" disabled>
+              <option value="">Select Exam...</option>
+            </select>
+          </div>
+          <div class="form-group" style="flex: 1;">
+            <label for="edit-mark-value">Marks Obtained</label>
+            <input type="number" id="edit-mark-value" step="0.5" disabled placeholder="No mark found">
+          </div>
+        </div>
+        
+        <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+          <button class="btn btn-primary" id="edit-mark-update-btn" disabled>Update Mark</button>
+          <button class="btn btn-danger" id="edit-mark-delete-btn" disabled>Delete Mark</button>
+        </div>
+        <p id="edit-mark-status" style="margin-top: 1rem; font-size: 0.9rem; font-weight: 500; display: none;"></p>
       </div>
 
     </section>
