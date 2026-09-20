@@ -496,9 +496,6 @@ function renderPerformanceTable(exams, marks, students) {
   const selectedStudentId = document.getElementById("analytics-student")?.value || null;
   renderChart(exams, marksByStudent, selectedStudentId);
 }
-  const selectedStudentId = document.getElementById("analytics-student")?.value || null;
-  renderChart(exams, marksByStudent, selectedStudentId);
-}
 
 function renderChart(exams, marksByStudent, studentId = null) {
   const ctx = document.getElementById('performance-chart');
