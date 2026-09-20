@@ -1,5 +1,5 @@
 import { getSupabase } from "./_lib/supabase.js";
-import { sendJson, sendError } from "./_lib/utils.js";
+import { isCoachAuthorized, coachUnauthorized, sendJson, sendError } from "./_lib/utils.js";
 
 export default async function handler(req, res) {
   const supabase = getSupabase();
@@ -36,6 +36,21 @@ export default async function handler(req, res) {
 
     if (error) return sendError(res, error.message, 500);
     return sendJson(res, { student: data }, 201);
+  }
+
+  if (req.method === "DELETE") {
+    if (!isCoachAuthorized(req)) return coachUnauthorized(res);
+
+    const { id } = req.query;
+    if (!id) return sendError(res, "Missing student ID.", 400);
+
+    const { error } = await supabase
+      .from("students")
+      .delete()
+      .eq("id", id);
+
+    if (error) return sendError(res, error.message, 500);
+    return sendJson(res, { success: true });
   }
 
   return sendError(res, "Method not allowed.", 405);

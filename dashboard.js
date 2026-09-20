@@ -399,7 +399,6 @@ function renderExamsList(exams) {
     examsList.appendChild(li);
   });
 }
-
 function renderPerformanceTable(exams, marks, students) {
   const thead = document.getElementById("performance-table-head");
   const tbody = document.getElementById("performance-table-body");
@@ -411,6 +410,7 @@ function renderPerformanceTable(exams, marks, students) {
     headerHtml += `<th style="padding: 1rem; font-weight: 600; color: var(--text-muted); text-align: center;">${escapeHtml(ex.name)}<br><small style="font-weight:400; opacity:0.8;">(${ex.total_marks})</small></th>`;
   });
   headerHtml += `<th style="padding: 1rem; font-weight: 600; color: var(--text-muted); text-align: right;">Total %</th>`;
+  headerHtml += `<th style="padding: 1rem; font-weight: 600; color: var(--text-muted); text-align: right;">Action</th>`;
   thead.innerHTML = headerHtml;
   
   // Build Rows
@@ -452,14 +452,50 @@ function renderPerformanceTable(exams, marks, students) {
     
     rowHtml += `<td style="padding: 1rem; border-bottom: 1px solid var(--border); text-align: right; font-weight: 600;">${percentage}</td>`;
     
+    rowHtml += `<td style="padding: 1rem; border-bottom: 1px solid var(--border); text-align: right;">
+      <button class="btn btn-danger small-btn delete-student-btn" data-id="${escapeHtml(student.id)}" data-name="${escapeHtml(student.name)}">Delete</button>
+    </td>`;
+    
     const tr = document.createElement("tr");
     tr.innerHTML = rowHtml;
     tbody.appendChild(tr);
   });
   
+  // Attach event listeners for delete buttons
+  document.querySelectorAll(".delete-student-btn").forEach(btn => {
+    btn.addEventListener("click", async (e) => {
+      const id = e.target.getAttribute("data-id");
+      const name = e.target.getAttribute("data-name");
+      if (!confirm(`Are you sure you want to completely delete student "${name}"? This will also remove all their marks.`)) return;
+      
+      e.target.disabled = true;
+      e.target.textContent = "Deleting...";
+      
+      try {
+        const response = await fetch(`/api/students?id=${encodeURIComponent(id)}`, {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${getCoachPassword()}`
+          }
+        });
+        const data = await parseResponse(response);
+        if (data.success) {
+          await loadExamData(); // Refresh table
+        }
+      } catch (err) {
+        alert("Error deleting student: " + err.message);
+        e.target.disabled = false;
+        e.target.textContent = "Delete";
+      }
+    });
+  });
+  
   globalMarksByStudent = marksByStudent;
   
   // Render Chart
+  const selectedStudentId = document.getElementById("analytics-student")?.value || null;
+  renderChart(exams, marksByStudent, selectedStudentId);
+}
   const selectedStudentId = document.getElementById("analytics-student")?.value || null;
   renderChart(exams, marksByStudent, selectedStudentId);
 }
