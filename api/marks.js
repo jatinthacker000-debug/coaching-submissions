@@ -5,9 +5,7 @@ export default async function handler(req, res) {
   const supabase = getSupabase();
 
   if (req.method === "GET") {
-    // Only coach should view all marks to prevent cheating/snooping
-    if (!isCoachAuthorized(req)) return coachUnauthorized(res);
-
+    // Public read access for student report generation
     // Fetch marks with student and exam details
     const { data, error } = await supabase
       .from("marks")

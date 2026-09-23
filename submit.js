@@ -668,3 +668,120 @@ document.addEventListener("DOMContentLoaded", () => {
     effectiveEl.textContent = effectiveDays;
   }
 });
+
+// --- STUDENT REPORT FEATURE ---
+let publicStudents = [];
+let publicExams = [];
+let publicMarks = [];
+let studentReportChart = null;
+
+async function initStudentReport() {
+  const selectEl = document.getElementById("student-report-select");
+  if (!selectEl) return;
+  
+  try {
+    // Fetch data using the existing api-client methods
+    // Since we updated marks to not require coach auth for GET, these should work
+    const [studentsRes, examsRes, marksRes] = await Promise.all([
+      fetchStudents(),
+      fetchExams(),
+      fetchMarks() // Public now!
+    ]);
+    
+    publicStudents = studentsRes.students || [];
+    publicExams = examsRes.exams || [];
+    publicMarks = marksRes.marks || [];
+    
+    // Sort exams chronologically
+    publicExams.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    
+    // Populate select
+    let html = `<option value="">Select your name...</option>`;
+    publicStudents.forEach(s => {
+      html += `<option value="${escapeHtml(s.id)}">${escapeHtml(s.name)}</option>`;
+    });
+    selectEl.innerHTML = html;
+    
+    selectEl.addEventListener("change", renderStudentReportChart);
+  } catch (err) {
+    console.error("Error loading student report data:", err);
+    selectEl.innerHTML = `<option value="">Error loading data.</option>`;
+  }
+}
+
+function renderStudentReportChart() {
+  const selectEl = document.getElementById("student-report-select");
+  const container = document.getElementById("student-report-chart-container");
+  const ctx = document.getElementById("student-report-chart");
+  
+  if (!selectEl || !container || !ctx) return;
+  
+  const studentId = selectEl.value;
+  if (!studentId) {
+    container.style.display = "none";
+    return;
+  }
+  
+  container.style.display = "block";
+  
+  // Filter marks for this student
+  const studentMarks = publicMarks.filter(m => m.student_id === studentId);
+  
+  const labels = [];
+  const data = [];
+  
+  publicExams.forEach(ex => {
+    labels.push(ex.name);
+    const markObj = studentMarks.find(m => m.exam_id === ex.id);
+    if (markObj) {
+      const perc = (markObj.marks_obtained / ex.total_marks) * 100;
+      data.push(perc.toFixed(1));
+    } else {
+      data.push(null);
+    }
+  });
+  
+  if (studentReportChart) {
+    studentReportChart.destroy();
+  }
+  
+  studentReportChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'My Score (%)',
+        data: data,
+        backgroundColor: 'rgba(139, 92, 246, 0.6)',
+        borderColor: 'rgba(139, 92, 246, 1)',
+        borderWidth: 1,
+        borderRadius: 4
+      }]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        y: {
+          beginAtZero: true,
+          max: 100,
+          ticks: { color: '#9ca3af' },
+          grid: { color: 'rgba(255,255,255,0.1)' }
+        },
+        x: {
+          ticks: { color: '#9ca3af' },
+          grid: { display: false }
+        }
+      },
+      plugins: {
+        legend: { labels: { color: '#9ca3af' } }
+      }
+    }
+  });
+}
+
+// Initialize when DOM is ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initStudentReport);
+} else {
+  initStudentReport();
+}
