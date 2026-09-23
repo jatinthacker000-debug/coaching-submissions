@@ -17,13 +17,13 @@
 </head>
 <body>
   <header class="site-header">
-    <div class="header-content">
+    <div class="header-inner container">
       <div class="brand">
         <img src="logo.jpg" alt="Padh rahi public Logo" class="brand-logo">
         <span class="brand-text gradient-glow">Padh rahi public</span>
       </div>
       <div style="display: flex; gap: 1rem; align-items: center;" class="header-right-actions">
-        <button id="notif-bell-btn" class="btn" style="background: var(--surface-card); border: 1px solid var(--border); color: var(--text); padding: 0.4rem 0.8rem; border-radius: 99px; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem;">
+        <button id="notif-bell-btn" style="background: var(--surface-card); border: 1px solid var(--border); color: var(--text); padding: 0.4rem 0.8rem; border-radius: 99px; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; width: max-content; transition: background 0.2s;">
           <span class="notif-icon">🔔</span> <span id="notif-badge" style="background: var(--danger); color: white; border-radius: 99px; padding: 0.1rem 0.5rem; font-size: 0.75rem; display: none; font-weight: bold;">0</span>
         </button>
         <a href="dashboard.html" class="nav-link header-dash-link">Coach Dashboard 👉</a>
@@ -42,12 +42,12 @@
       <h2 style="margin: 0; font-size: 1.25rem; color: var(--text);">⏳ Prelims Exam Countdown</h2>
       <div style="display: flex; justify-content: center; gap: 2rem; margin-top: 0.5rem; flex-wrap: wrap;">
         <div style="display: flex; flex-direction: column; align-items: center;">
-          <span id="cd-total" style="font-size: 2.5rem; font-weight: 700; color: var(--primary);">--</span>
+          <span id="cd-total" style="font-size: 2.5rem; font-weight: 700; color: var(--danger);">--</span>
           <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Total Days Left</span>
         </div>
         <div style="width: 1px; background: var(--border);"></div>
         <div style="display: flex; flex-direction: column; align-items: center;">
-          <span id="cd-effective" style="font-size: 2.5rem; font-weight: 700; color: #059669;">--</span>
+          <span id="cd-effective" style="font-size: 2.5rem; font-weight: 700; color: var(--danger);">--</span>
           <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Pure Study Days*</span>
         </div>
       </div>
