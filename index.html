@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <!-- Vercel Web Analytics -->
   <script>
@@ -17,27 +17,27 @@
 </head>
 <body>
   <header class="site-header">
-    <div class="container header-inner">
-      <div class="brand">
-        <img src="logo.jpg" alt="Padh rahi public Logo" class="brand-logo">
-        <span class="brand-text gradient-glow">Padh rahi public</span>
+    <div class="header-content">
+      <div class="logo">
+        <img src="https://yt3.googleusercontent.com/v1-i0N675R7P37FiyU-332wJ_m-38R-B8y7RzGzP7_R1Ym44F3xH-F7_1R8pQG_1_Q=s160-c-k-c0x00ffffff-no-rj" alt="Padh rahi public logo" class="logo-img">
+        <span>Padh rahi public</span>
       </div>
       <div style="display: flex; gap: 1rem; align-items: center;" class="header-right-actions">
         <button id="notif-bell-btn" class="btn" style="background: var(--surface-card); border: 1px solid var(--border); color: var(--text); padding: 0.4rem 1rem; border-radius: 99px; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem;">
-          <span class="notif-icon">🔓</span> <span class="notif-text">Notifications</span> <span id="notif-badge" style="background: var(--danger); color: white; border-radius: 99px; padding: 0.1rem 0.5rem; font-size: 0.75rem; display: none; font-weight: bold;">0</span>
+          <span class="notif-icon">🔔</span> <span class="notif-text">Notifications</span> <span id="notif-badge" style="background: var(--danger); color: white; border-radius: 99px; padding: 0.1rem 0.5rem; font-size: 0.75rem; display: none; font-weight: bold;">0</span>
         </button>
         <a href="dashboard.html" class="nav-link header-dash-link">Coach Dashboard 👉</a>
       </div>
     </div>
   </header>
 
-  <main class="container main-content">
-    <section class="hero">
+  <main class="container">
+    <section class="hero text-center">
       <h1>Grade 10 Study Material & Worksheets</h1>
       <p class="subtitle">Get the latest chapter-wise study notes, revision guides, and practice worksheets from Padh rahi public.</p>
     </section>
 
-        <!-- NEW COUNTDOWN SECTION -->
+    <!-- NEW COUNTDOWN SECTION -->
     <div id="exam-countdown" style="background: var(--surface-card); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem; box-shadow: var(--shadow); text-align: center; display: flex; flex-direction: column; gap: 0.5rem;">
       <h2 style="margin: 0; font-size: 1.25rem; color: var(--text);">⏳ Prelims Exam Countdown</h2>
       <div style="display: flex; justify-content: center; gap: 2rem; margin-top: 0.5rem; flex-wrap: wrap;">
@@ -53,6 +53,7 @@
       </div>
       <p style="margin: 0; font-size: 0.8rem; color: var(--text-muted); opacity: 0.8; margin-top: 0.5rem;">*Subtracting 20 days for Diwali & festivals.</p>
     </div>
+
     <div id="offline-notice" class="notice-banner hidden">
       This page must be opened from your online website link (not as a local file) after setup is complete.
     </div>
@@ -84,18 +85,19 @@
 
     <div class="notes-panel-wide">
       <div id="notes-x-container" class="notes-grid-subjects">
+        
         <!-- History Subject Card -->
         <div class="subject-card" id="group-x-history" style="display: none;">
           <div class="card-header">
-            <span class="subject-icon">Ã°Å¸â€œÅ“</span>
+            <span class="subject-icon">📜</span>
             <h4>History</h4>
           </div>
           <div class="notes-section" id="section-x-history-other" style="display: none;">
-            <h5 class="resource-group-title">📂 Other Materials</h5>
+            <h5 class="resource-group-title">📁 Other Materials</h5>
             <ul id="other-x-history" class="notes-list"></ul>
           </div>
           <div class="notes-section" id="section-x-history-notes" style="display: none;">
-            <h5 class="resource-group-title">📞 Study Notes</h5>
+            <h5 class="resource-group-title">📝 Study Notes</h5>
             <ul id="notes-x-history" class="notes-list"></ul>
           </div>
           <div class="notes-section" id="section-x-history-worksheets" style="display: none;">
@@ -111,11 +113,11 @@
             <h4>Geography</h4>
           </div>
           <div class="notes-section" id="section-x-geography-other" style="display: none;">
-            <h5 class="resource-group-title">📂 Other Materials</h5>
+            <h5 class="resource-group-title">📁 Other Materials</h5>
             <ul id="other-x-geography" class="notes-list"></ul>
           </div>
           <div class="notes-section" id="section-x-geography-notes" style="display: none;">
-            <h5 class="resource-group-title">📞 Study Notes</h5>
+            <h5 class="resource-group-title">📝 Study Notes</h5>
             <ul id="notes-x-geography" class="notes-list"></ul>
           </div>
           <div class="notes-section" id="section-x-geography-worksheets" style="display: none;">
@@ -127,11 +129,11 @@
         <!-- Civics Subject Card -->
         <div class="subject-card" id="group-x-civics" style="display: none;">
           <div class="card-header">
-            <span class="subject-icon">🏛</span>
+            <span class="subject-icon">🏛️</span>
             <h4>Civics</h4>
           </div>
           <div class="notes-section" id="section-x-civics-notes" style="display: none;">
-            <h5 class="resource-group-title">📞 Study Notes</h5>
+            <h5 class="resource-group-title">📝 Study Notes</h5>
             <ul id="notes-x-civics" class="notes-list"></ul>
           </div>
           <div class="notes-section" id="section-x-civics-worksheets" style="display: none;">
@@ -147,7 +149,7 @@
             <h4>Economics</h4>
           </div>
           <div class="notes-section" id="section-x-economics-notes" style="display: none;">
-            <h5 class="resource-group-title">📞 Study Notes</h5>
+            <h5 class="resource-group-title">📝 Study Notes</h5>
             <ul id="notes-x-economics" class="notes-list"></ul>
           </div>
           <div class="notes-section" id="section-x-economics-worksheets" style="display: none;">
@@ -156,12 +158,13 @@
           </div>
         </div>
       </div>
+      
       <div id="loading-indicator" class="empty-state" style="display: none;">
-        <div class="empty-state-icon">Ã¢ÂÂ³</div>
+        <div class="empty-state-icon">⏳</div>
         <p class="muted-text">Loading resources...</p>
       </div>
       <div id="no-notes-x" class="empty-state" style="display: none;">
-        <div class="empty-state-icon" id="no-notes-icon">Ã°Å¸â€œÂ­</div>
+        <div class="empty-state-icon" id="no-notes-icon">📁</div>
         <p class="muted-text text-center" id="no-notes-text">No resources uploaded yet.</p>
       </div>
     </div>
@@ -192,31 +195,31 @@
         
         <div id="marks-success" class="text-center" style="color: #059669; background: #d1fae5; padding: 0.5rem; border-radius: 8px; display: none; margin-top: 0.5rem; font-weight: 500;">Marks saved successfully!</div>
       </form>
-      </section>
+    </section>
 
-      <!-- NEW STUDENT REPORT SECTION -->
-      <div id="student-report-section" style="background: var(--surface-card); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem; box-shadow: var(--shadow);">
-        <h2 style="margin: 0 0 1rem 0; font-size: 1.25rem; color: var(--text); text-align: center;">📈 My Performance Report</h2>
+    <!-- NEW STUDENT REPORT SECTION -->
+    <div id="student-report-section" style="background: var(--surface-card); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem; box-shadow: var(--shadow);">
+      <h2 style="margin: 0 0 1rem 0; font-size: 1.25rem; color: var(--text); text-align: center;">📈 My Performance Report</h2>
+      
+      <div style="display: flex; flex-direction: column; gap: 1rem; align-items: center;">
+        <p class="muted-text" style="margin: 0; text-align: center;">Select your name to view your exam scores.</p>
+        <div class="custom-select-wrapper" style="width: 100%; max-width: 300px;">
+          <select id="student-report-select" class="custom-select" style="width: 100%;">
+            <option value="">Select your name...</option>
+            <option value="loading">Loading students...</option>
+          </select>
+        </div>
         
-        <div style="display: flex; flex-direction: column; gap: 1rem; align-items: center;">
-          <p class="muted-text" style="margin: 0; text-align: center;">Select your name to view your exam scores.</p>
-          <div class="custom-select-wrapper" style="width: 100%; max-width: 300px;">
-            <select id="student-report-select" class="custom-select" style="width: 100%;">
-              <option value="">Select your name...</option>
-              <option value="loading">Loading students...</option>
-            </select>
-          </div>
-          
-          <div id="student-report-chart-container" style="width: 100%; max-width: 600px; display: none; margin-top: 1rem;">
-            <canvas id="student-report-chart" height="200"></canvas>
-          </div>
+        <div id="student-report-chart-container" style="width: 100%; max-width: 600px; display: none; margin-top: 1rem;">
+          <canvas id="student-report-chart" height="200"></canvas>
         </div>
       </div>
+    </div>
     
-      <div class="mobile-footer" style="margin-top: 3rem; margin-bottom: 2rem;">
-        <a href="dashboard.html" class="btn" style="width: 100%; display: flex; justify-content: center; align-items: center; gap: 0.5rem;">Coach Dashboard 👉</a>
-      </div>
-    </main>
+    <div class="mobile-footer" style="margin-top: 3rem; margin-bottom: 2rem;">
+      <a href="dashboard.html" class="btn" style="width: 100%; display: flex; justify-content: center; align-items: center; gap: 0.5rem;">Coach Dashboard 👉</a>
+    </div>
+  </main>
 
   <div id="notif-modal" class="modal-overlay hidden">
     <div class="modal-content">
