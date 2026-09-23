@@ -785,3 +785,19 @@ if (document.readyState === 'loading') {
 } else {
   initStudentReport();
 }
+
+// Map Work New Badge Logic
+document.addEventListener("DOMContentLoaded", () => {
+  const mapBadge = document.getElementById("map-work-new-badge");
+  const mapLink = document.getElementById("map-work-link");
+  if (mapBadge && mapLink) {
+    if (!localStorage.getItem("padhrahi_clicked_map_work")) {
+      mapBadge.style.display = "inline-block";
+    }
+    mapLink.addEventListener("click", () => {
+      localStorage.setItem("padhrahi_clicked_map_work", "true");
+      mapBadge.style.display = "none";
+    });
+  }
+});
+
