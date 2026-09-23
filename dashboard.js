@@ -356,7 +356,8 @@ async function loadExamData() {
       fetchStudents()
     ]);
     
-    globalExams = examsRes.exams || [];
+    // Ensure chronological order
+    globalExams = (examsRes.exams || []).sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
     globalMarks = marksRes.marks || [];
     globalStudents = studentsRes.students || [];
     
@@ -364,6 +365,10 @@ async function loadExamData() {
     renderPerformanceTable(globalExams, globalMarks, globalStudents);
     updateAnalyticsDropdowns();
     if (typeof updateEditMarksDropdowns === 'function') updateEditMarksDropdowns();
+    
+    // Advanced Analytics
+    calculateClassStats(globalExams, globalMarksByStudent);
+    renderAttentionList(globalExams, globalMarksByStudent);
   } catch (err) {
     console.error("Error loading exam data:", err);
   }
@@ -502,45 +507,43 @@ function renderChart(exams, marksByStudent, studentId = null) {
   if (!ctx) return;
   
   const labels = [];
-  const data = [];
+  const classAvgData = [];
+  const studentData = [];
   
   exams.forEach(ex => {
     labels.push(ex.name);
     
+    // Calculate Class Average for this exam
+    let totalMarks = 0;
+    let studentCount = 0;
+    Object.values(marksByStudent).forEach(studentMarks => {
+      if (studentMarks[ex.id] !== undefined) {
+        totalMarks += (studentMarks[ex.id] / ex.total_marks) * 100;
+        studentCount++;
+      }
+    });
+    const avg = studentCount > 0 ? (totalMarks / studentCount) : 0;
+    classAvgData.push(avg.toFixed(1));
+
+    // Calculate Individual Student if selected
     if (studentId) {
-      // Individual student
       const studentMarks = marksByStudent[studentId] || {};
       if (studentMarks[ex.id] !== undefined) {
         const perc = (studentMarks[ex.id] / ex.total_marks) * 100;
-        data.push(perc.toFixed(1));
+        studentData.push(perc.toFixed(1));
       } else {
-        data.push(null); // No exam data
+        studentData.push(null);
       }
-    } else {
-      // Class average
-      let totalMarks = 0;
-      let studentCount = 0;
-      
-      Object.values(marksByStudent).forEach(studentMarks => {
-        if (studentMarks[ex.id] !== undefined) {
-          totalMarks += (studentMarks[ex.id] / ex.total_marks) * 100;
-          studentCount++;
-        }
-      });
-      
-      const avg = studentCount > 0 ? (totalMarks / studentCount) : 0;
-      data.push(avg.toFixed(1));
     }
   });
 
-  const chartLabel = studentId ? 'Student Performance (%)' : 'Class Average (%)';
   const chartTitle = document.getElementById("chart-title");
   if (chartTitle) {
     if (studentId) {
       const studentObj = globalStudents.find(s => s.id === studentId);
-      chartTitle.textContent = studentObj ? `${studentObj.name}'s Performance` : chartLabel;
+      chartTitle.textContent = studentObj ? `${studentObj.name}'s Performance vs Class` : 'Student Performance vs Class';
     } else {
-      chartTitle.textContent = 'Class Average Performance';
+      chartTitle.textContent = 'Class Performance Trend';
     }
   }
 
@@ -548,21 +551,58 @@ function renderChart(exams, marksByStudent, studentId = null) {
     window.performanceChartInstance.destroy();
   }
 
+  const datasets = [];
+
+  // Always show Class Average (as a line)
+  datasets.push({
+    label: 'Class Average (%)',
+    data: classAvgData,
+    backgroundColor: 'rgba(139, 92, 246, 0.1)',
+    borderColor: 'rgba(139, 92, 246, 1)',
+    borderWidth: 2,
+    tension: 0.3,
+    borderDash: studentId ? [5, 5] : [], // Dashed if comparing with student
+    fill: !studentId,
+    pointBackgroundColor: 'rgba(139, 92, 246, 1)',
+  });
+
+  // If a student is selected, add their dataset
+  if (studentId) {
+    datasets.push({
+      label: 'Student Performance (%)',
+      data: studentData,
+      backgroundColor: 'rgba(5, 150, 105, 0.2)',
+      borderColor: 'rgba(5, 150, 105, 1)',
+      borderWidth: 3,
+      tension: 0.3,
+      fill: true,
+      pointBackgroundColor: 'rgba(5, 150, 105, 1)',
+    });
+    
+    // Also update overall average in the UI
+    const overallAvgContainer = document.getElementById("student-overall-avg-container");
+    const overallAvgEl = document.getElementById("student-overall-avg");
+    if (overallAvgContainer && overallAvgEl) {
+      const validMarks = studentData.filter(m => m !== null);
+      if (validMarks.length > 0) {
+        const sum = validMarks.reduce((a, b) => parseFloat(a) + parseFloat(b), 0);
+        overallAvgEl.textContent = (sum / validMarks.length).toFixed(1) + "%";
+        overallAvgContainer.style.display = "block";
+      } else {
+        overallAvgContainer.style.display = "none";
+      }
+    }
+  } else {
+    // Hide overall average container if no student selected
+    const overallAvgContainer = document.getElementById("student-overall-avg-container");
+    if (overallAvgContainer) overallAvgContainer.style.display = "none";
+  }
+
   window.performanceChartInstance = new Chart(ctx, {
-    type: studentId ? 'line' : 'bar',
+    type: 'line',
     data: {
       labels: labels,
-      datasets: [{
-        label: chartLabel,
-        data: data,
-        backgroundColor: studentId ? 'rgba(5, 150, 105, 0.2)' : 'rgba(139, 92, 246, 0.6)',
-        borderColor: studentId ? 'rgba(5, 150, 105, 1)' : 'rgba(139, 92, 246, 1)',
-        borderWidth: 2,
-        borderRadius: 4,
-        tension: 0.3,
-        fill: !!studentId,
-        pointBackgroundColor: studentId ? 'rgba(5, 150, 105, 1)' : 'transparent',
-      }]
+      datasets: datasets
     },
     options: {
       responsive: true,
@@ -570,32 +610,22 @@ function renderChart(exams, marksByStudent, studentId = null) {
         y: {
           beginAtZero: true,
           max: 100,
-          ticks: {
-            color: '#9ca3af'
-          },
-          grid: {
-            color: 'rgba(255,255,255,0.1)'
-          }
+          ticks: { color: '#9ca3af' },
+          grid: { color: 'rgba(255,255,255,0.1)' }
         },
         x: {
-          ticks: {
-            color: '#9ca3af'
-          },
-          grid: {
-            display: false
-          }
+          ticks: { color: '#9ca3af' },
+          grid: { display: false }
         }
       },
       plugins: {
         legend: {
-          labels: { color: '#f3f4f6' }
+          labels: { color: '#9ca3af' }
         }
       }
     }
   });
 }
-
-
 
 // --- ANALYTICS FEATURE ---
 function updateAnalyticsDropdowns() {
@@ -866,3 +896,165 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 });
+
+
+
+
+// --- ADVANCED ANALYTICS COMPUTATIONS ---
+function calculateClassStats(exams, marksByStudent) {
+  let allPercentages = [];
+  let d90 = 0, d75 = 0, d50 = 0, dBelow = 0;
+  
+  // Calculate average for each student over all exams they took
+  Object.values(marksByStudent).forEach(studentMarks => {
+    let studentTotalMax = 0;
+    let studentTotalObtained = 0;
+    
+    exams.forEach(ex => {
+      if (studentMarks[ex.id] !== undefined) {
+        studentTotalMax += ex.total_marks;
+        studentTotalObtained += studentMarks[ex.id];
+      }
+    });
+    
+    if (studentTotalMax > 0) {
+      const perc = (studentTotalObtained / studentTotalMax) * 100;
+      allPercentages.push(perc);
+      
+      if (perc >= 90) d90++;
+      else if (perc >= 75) d75++;
+      else if (perc >= 50) d50++;
+      else dBelow++;
+    }
+  });
+
+  const avgEl = document.getElementById("stat-class-avg");
+  const highestEl = document.getElementById("stat-highest");
+  const lowestEl = document.getElementById("stat-lowest");
+  const medianEl = document.getElementById("stat-median");
+  const below50El = document.getElementById("stat-below-50");
+  
+  if (!avgEl) return;
+  
+  if (allPercentages.length === 0) {
+    avgEl.innerHTML = "&mdash;";
+    highestEl.innerHTML = "&mdash;";
+    lowestEl.innerHTML = "&mdash;";
+    medianEl.innerHTML = "&mdash;";
+    below50El.innerHTML = "&mdash;";
+    return;
+  }
+  
+  allPercentages.sort((a, b) => a - b);
+  
+  const sum = allPercentages.reduce((a, b) => a + b, 0);
+  const avg = sum / allPercentages.length;
+  const highest = allPercentages[allPercentages.length - 1];
+  const lowest = allPercentages[0];
+  
+  let median;
+  const mid = Math.floor(allPercentages.length / 2);
+  if (allPercentages.length % 2 === 0) {
+    median = (allPercentages[mid - 1] + allPercentages[mid]) / 2;
+  } else {
+    median = allPercentages[mid];
+  }
+  
+  avgEl.textContent = avg.toFixed(1) + "%";
+  highestEl.textContent = highest.toFixed(1) + "%";
+  lowestEl.textContent = lowest.toFixed(1) + "%";
+  medianEl.textContent = median.toFixed(1) + "%";
+  below50El.textContent = dBelow;
+  
+  document.getElementById("dist-90").textContent = d90;
+  document.getElementById("dist-75").textContent = d75;
+  document.getElementById("dist-50").textContent = d50;
+  document.getElementById("dist-below").textContent = dBelow;
+}
+
+function renderAttentionList(exams, marksByStudent) {
+  const attentionList = document.getElementById("attention-list");
+  if (!attentionList) return;
+  
+  if (exams.length === 0) {
+    attentionList.innerHTML = `<li style="color: var(--text-muted); text-align: center; padding: 1rem;">No exams available.</li>`;
+    return;
+  }
+  
+  const latestExam = exams[exams.length - 1];
+  const previousExam = exams.length > 1 ? exams[exams.length - 2] : null;
+  
+  const attentionStudents = [];
+  
+  globalStudents.forEach(student => {
+    const sm = marksByStudent[student.id] || {};
+    
+    const latestMark = sm[latestExam.id];
+    let latestPerc = null;
+    let needsAttention = false;
+    let reason = "";
+    
+    if (latestMark !== undefined) {
+      latestPerc = (latestMark / latestExam.total_marks) * 100;
+      if (latestPerc < 50) {
+        needsAttention = true;
+        reason = "Scored below 50% in the latest exam.";
+      }
+    }
+    
+    let previousPerc = null;
+    let drop = null;
+    if (previousExam && sm[previousExam.id] !== undefined) {
+      previousPerc = (sm[previousExam.id] / previousExam.total_marks) * 100;
+      if (latestPerc !== null) {
+        drop = previousPerc - latestPerc;
+        if (drop >= 10 && !needsAttention) {
+          needsAttention = true;
+          reason = `Performance dropped by ${drop.toFixed(1)}%.`;
+        }
+      }
+    }
+    
+    if (needsAttention) {
+      attentionStudents.push({
+        name: student.name,
+        latestPerc: latestPerc,
+        previousPerc: previousPerc,
+        reason: reason
+      });
+    }
+  });
+  
+  if (attentionStudents.length === 0) {
+    attentionList.innerHTML = `<li style="color: #059669; text-align: center; padding: 1rem; font-weight: 500;">?? Great job! No students currently require immediate attention.</li>`;
+    return;
+  }
+  
+  let html = "";
+  attentionStudents.forEach(s => {
+    let statHtml = "";
+    if (s.latestPerc !== null) {
+      statHtml += `<span style="color: var(--danger); font-weight: bold;">${s.latestPerc.toFixed(1)}%</span> (Latest)`;
+    } else {
+      statHtml += `<span style="color: var(--text-muted);">Missed Latest Exam</span>`;
+    }
+    
+    if (s.previousPerc !== null) {
+      statHtml += ` <span style="color: var(--text-muted); margin: 0 0.5rem;">|</span> <span style="color: var(--text);">${s.previousPerc.toFixed(1)}%</span> (Previous)`;
+    }
+    
+    html += `
+      <li style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: var(--bg); border: 1px solid var(--border); border-radius: 8px;">
+        <div>
+          <strong style="color: var(--text); font-size: 1.1rem; display: block; margin-bottom: 0.25rem;">${escapeHtml(s.name)}</strong>
+          <span style="color: var(--danger); font-size: 0.85rem;">?? ${s.reason}</span>
+        </div>
+        <div style="text-align: right; font-size: 0.95rem;">
+          ${statHtml}
+        </div>
+      </li>
+    `;
+  });
+  
+  attentionList.innerHTML = html;
+}
