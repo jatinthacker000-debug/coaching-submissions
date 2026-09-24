@@ -24,9 +24,9 @@
       </div>
       <div style="display: flex; gap: 1rem; align-items: center;" class="header-right-actions">
         <button id="notif-bell-btn" style="background: var(--surface-card); border: 1px solid var(--border); color: var(--text); padding: 0.4rem 0.8rem; border-radius: 99px; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; width: max-content; transition: background 0.2s;">
-          <span class="notif-icon">ðŸ””</span> <span id="notif-badge" style="background: var(--danger); color: white; border-radius: 99px; padding: 0.1rem 0.5rem; font-size: 0.75rem; display: none; font-weight: bold;">0</span>
+          <span class="notif-icon">🔔</span> <span id="notif-badge" style="background: var(--danger); color: white; border-radius: 99px; padding: 0.1rem 0.5rem; font-size: 0.75rem; display: none; font-weight: bold;">0</span>
         </button>
-        <a href="dashboard.html" class="nav-link header-dash-link">Coach Dashboard ðŸ‘‰</a>
+        <a href="dashboard.html" class="nav-link header-dash-link">Coach Dashboard 👉</a>
       </div>
     </div>
   </header>
@@ -39,7 +39,7 @@
 
     <!-- NEW COUNTDOWN SECTION -->
     <div id="exam-countdown" style="background: var(--surface-card); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem; box-shadow: var(--shadow); text-align: center; display: flex; flex-direction: column; gap: 0.5rem;">
-      <h2 style="margin: 0; font-size: 1.25rem; color: var(--text);">â³ Prelims Exam Countdown</h2>
+      <h2 style="margin: 0; font-size: 1.25rem; color: var(--text);">⏳ Prelims Exam Countdown</h2>
       <div style="display: flex; justify-content: center; gap: 2rem; margin-top: 0.5rem; flex-wrap: wrap;">
         <div style="display: flex; flex-direction: column; align-items: center;">
           <span id="cd-total" style="font-size: 2.5rem; font-weight: 700; color: var(--danger);">--</span>
@@ -68,7 +68,7 @@
         </select>
       </div>
       <div class="search-input-wrapper">
-        <span class="search-icon">ðŸ”</span>
+        <span class="search-icon">🔍</span>
         <input type="text" id="search-input" placeholder="Search for a chapter..." class="search-input" autocomplete="off">
       </div>
     </div>
@@ -81,7 +81,7 @@
       <div class="cbse-grid" style="margin-bottom: 2rem;">
         <a href="https://cbsemaps.github.io/mapwork/" target="_blank" rel="noopener noreferrer" class="cbse-card" id="map-work-link" style="position: relative;">
           <span id="map-work-new-badge" style="position: absolute; top: -10px; right: -10px; background: var(--danger); color: white; font-size: 0.75rem; font-weight: 800; padding: 0.2rem 0.6rem; border-radius: 99px; box-shadow: 0 4px 10px rgba(244, 63, 94, 0.4); display: none;">NEW!</span>
-          <span class="cbse-card-icon">ðŸ—ºï¸</span>
+          <span class="cbse-card-icon">🗺️</span>
           <h3 class="cbse-card-title">CBSE Map Work Practice</h3>
         </a>
       </div>
@@ -96,19 +96,18 @@
         <!-- History Subject Card -->
         <div class="subject-card" id="group-x-history" style="display: none;">
           <div class="card-header">
-            <span class="subject-icon">ðŸ“œ</span>
-            <h4>History</h4>
+            <span class="subject-icon">📜</span><h4>History</h4>
           </div>
           <div class="notes-section" id="section-x-history-other" style="display: none;">
-            <h5 class="resource-group-title">ðŸ“ Other Materials</h5>
+            <h5 class="resource-group-title">📦 Other Materials</h5>
             <ul id="other-x-history" class="notes-list"></ul>
           </div>
           <div class="notes-section" id="section-x-history-notes" style="display: none;">
-            <h5 class="resource-group-title">ðŸ“ Study Notes</h5>
+            <h5 class="resource-group-title">📚 Study Notes</h5>
             <ul id="notes-x-history" class="notes-list"></ul>
           </div>
           <div class="notes-section" id="section-x-history-worksheets" style="display: none;">
-            <h5 class="resource-group-title">ðŸ“„ Worksheets</h5>
+            <h5 class="resource-group-title">📝 Worksheets</h5>
             <ul id="worksheets-x-history" class="notes-list"></ul>
           </div>
         </div>
@@ -116,19 +115,18 @@
         <!-- Geography Subject Card -->
         <div class="subject-card" id="group-x-geography" style="display: none;">
           <div class="card-header">
-            <span class="subject-icon">ðŸŒ</span>
-            <h4>Geography</h4>
+            <span class="subject-icon">🌍</span><h4>Geography</h4>
           </div>
           <div class="notes-section" id="section-x-geography-other" style="display: none;">
-            <h5 class="resource-group-title">ðŸ“ Other Materials</h5>
+            <h5 class="resource-group-title">📦 Other Materials</h5>
             <ul id="other-x-geography" class="notes-list"></ul>
           </div>
           <div class="notes-section" id="section-x-geography-notes" style="display: none;">
-            <h5 class="resource-group-title">ðŸ“ Study Notes</h5>
+            <h5 class="resource-group-title">📚 Study Notes</h5>
             <ul id="notes-x-geography" class="notes-list"></ul>
           </div>
           <div class="notes-section" id="section-x-geography-worksheets" style="display: none;">
-            <h5 class="resource-group-title">ðŸ“„ Worksheets</h5>
+            <h5 class="resource-group-title">📝 Worksheets</h5>
             <ul id="worksheets-x-geography" class="notes-list"></ul>
           </div>
         </div>
@@ -136,15 +134,14 @@
         <!-- Civics Subject Card -->
         <div class="subject-card" id="group-x-civics" style="display: none;">
           <div class="card-header">
-            <span class="subject-icon">ðŸ›ï¸</span>
-            <h4>Civics</h4>
+            <span class="subject-icon">🏛️</span><h4>Civics</h4>
           </div>
           <div class="notes-section" id="section-x-civics-notes" style="display: none;">
-            <h5 class="resource-group-title">ðŸ“ Study Notes</h5>
+            <h5 class="resource-group-title">📚 Study Notes</h5>
             <ul id="notes-x-civics" class="notes-list"></ul>
           </div>
           <div class="notes-section" id="section-x-civics-worksheets" style="display: none;">
-            <h5 class="resource-group-title">ðŸ“„ Worksheets</h5>
+            <h5 class="resource-group-title">📝 Worksheets</h5>
             <ul id="worksheets-x-civics" class="notes-list"></ul>
           </div>
         </div>
@@ -152,15 +149,14 @@
         <!-- Economics Subject Card -->
         <div class="subject-card" id="group-x-economics" style="display: none;">
           <div class="card-header">
-            <span class="subject-icon">ðŸ“ˆ</span>
-            <h4>Economics</h4>
+            <span class="subject-icon">📈</span><h4>Economics</h4>
           </div>
           <div class="notes-section" id="section-x-economics-notes" style="display: none;">
-            <h5 class="resource-group-title">ðŸ“ Study Notes</h5>
+            <h5 class="resource-group-title">📚 Study Notes</h5>
             <ul id="notes-x-economics" class="notes-list"></ul>
           </div>
           <div class="notes-section" id="section-x-economics-worksheets" style="display: none;">
-            <h5 class="resource-group-title">ðŸ“„ Worksheets</h5>
+            <h5 class="resource-group-title">📝 Worksheets</h5>
             <ul id="worksheets-x-economics" class="notes-list"></ul>
           </div>
         </div>
@@ -171,7 +167,7 @@
         <p class="muted-text">Loading resources...</p>
       </div>
       <div id="no-notes-x" class="empty-state" style="display: none;">
-        <div class="empty-state-icon" id="no-notes-icon">ðŸ“</div>
+        <div class="empty-state-icon" id="no-notes-icon">📁</div>
         <p class="muted-text text-center" id="no-notes-text">No resources uploaded yet.</p>
       </div>
     </div>
@@ -206,7 +202,7 @@
 
     <!-- NEW STUDENT REPORT SECTION -->
     <div id="student-report-section" style="background: var(--surface-card); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem; box-shadow: var(--shadow);">
-      <h2 style="margin: 0 0 1rem 0; font-size: 1.25rem; color: var(--text); text-align: center;">ðŸ“ˆ My Performance Report</h2>
+      <h2 style="margin: 0 0 1rem 0; font-size: 1.25rem; color: var(--text); text-align: center;">📊 My Performance Report</h2>
       
       <div style="display: flex; flex-direction: column; gap: 1rem; align-items: center;">
         <p class="muted-text" style="margin: 0; text-align: center;">Select your name to view your exam scores.</p>
@@ -222,7 +218,7 @@
     </div>
     
     <div class="mobile-footer" style="margin-top: 3rem; margin-bottom: 2rem;">
-      <a href="dashboard.html" class="btn" style="width: 100%; display: flex; justify-content: center; align-items: center; gap: 0.5rem;">Coach Dashboard ðŸ‘‰</a>
+      <a href="dashboard.html" class="btn" style="width: 100%; display: flex; justify-content: center; align-items: center; gap: 0.5rem;">Coach Dashboard 👉</a>
     </div>
   </main>
 
@@ -249,4 +245,8 @@
   <script src="submit.js"></script>
 </body>
 </html>
+
+
+
+
 
