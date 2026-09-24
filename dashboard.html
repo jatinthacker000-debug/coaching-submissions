@@ -191,7 +191,7 @@
         <button type="submit" class="btn btn-primary" id="exam-submit-btn" style="width: auto; min-width: 180px;">
           Create Exam
         </button>
-        <div class="form-group" style="margin-bottom: 1.5rem; margin-top: 1rem;"><label>Groups taking this exam (leave all unchecked to allow everyone)</label><div style="display: flex; gap: 1rem; flex-wrap: wrap;" id="exam-groups-container"><label style="display: flex; align-items: center; gap: 0.25rem;"><input type="checkbox" value="Ignite"> Ignite</label><label style="display: flex; align-items: center; gap: 0.25rem;"><input type="checkbox" value="Lakshya"> Lakshya</label><label style="display: flex; align-items: center; gap: 0.25rem;"><input type="checkbox" value="Sankalp"> Sankalp</label><label style="display: flex; align-items: center; gap: 0.25rem;"><input type="checkbox" value="Prayas"> Prayas</label></div></div>      </form>
+        <div class="form-group" style="margin-bottom: 1.5rem; margin-top: 1rem;"><label>Groups taking this exam (leave all unchecked to allow everyone)</label><div style="display: flex; gap: 1rem; flex-wrap: wrap;" id="exam-groups-container"><label style="display: flex; align-items: center; gap: 0.25rem;"><input type="checkbox" value="Ignite"> Ignite</label><label style="display: flex; align-items: center; gap: 0.25rem;"><input type="checkbox" value="Velocity"> Velocity</label><label style="display: flex; align-items: center; gap: 0.25rem;"><input type="checkbox" value="Lakshya"> Lakshya</label><label style="display: flex; align-items: center; gap: 0.25rem;"><input type="checkbox" value="Sankalp"> Sankalp</label><label style="display: flex; align-items: center; gap: 0.25rem;"><input type="checkbox" value="Prayas"> Prayas</label></div></div>      </form>
 
       <!-- Pre-register Student -->
       <div class="panel-header" style="margin-top: 3rem;"><div><h1>Add New Student</h1><p class="subtitle">Pre-register a student and assign them to a group.</p></div></div>
@@ -205,7 +205,7 @@
             <label for="add-student-group">Select Group</label>
             <select id="add-student-group">
               <option value="">-- No Group --</option>
-              <option value="Ignite">Ignite</option>
+              <option value="Ignite">Ignite</option><option value="Velocity">Velocity</option>
               <option value="Lakshya">Lakshya</option>
               <option value="Sankalp">Sankalp</option>
               <option value="Prayas">Prayas</option>
@@ -217,7 +217,7 @@
       </div>
 
       <!-- Student Groups Management -->
-      <div class="panel-header" style="margin-top: 3rem;"><div><h1>Student Groups Management</h1><p class="subtitle">Assign students to specific groups.</p></div></div>`n<button class="btn btn-danger" id="delete-all-students-btn" style="margin-bottom: 1rem;">Delete All Students</button><div class="submit-card wide-card" style="margin-bottom: 3rem;"><div class="form-row"><div class="form-group" style="flex: 1.5;"><label for="manage-group-student">Select Student</label><select id="manage-group-student"><option value="">Select Student...</option></select></div><div class="form-group" style="flex: 1;"><label for="manage-group-select">Select Group</label><select id="manage-group-select"><option value="">-- No Group --</option><option value="Ignite">Ignite</option><option value="Lakshya">Lakshya</option><option value="Sankalp">Sankalp</option><option value="Prayas">Prayas</option></select></div></div><button class="btn btn-primary" id="manage-group-update-btn">Update Group</button><p id="manage-group-status" style="margin-top: 1rem; font-size: 0.9rem; font-weight: 500; display: none;"></p></div>
+      <div class="panel-header" style="margin-top: 3rem;"><div><h1>Student Groups Management</h1><p class="subtitle">Assign students to specific groups.</p></div></div>`n<button class="btn btn-danger" id="delete-all-students-btn" style="margin-bottom: 1rem;">Delete All Students</button><div class="submit-card wide-card" style="margin-bottom: 3rem;"><div class="form-row"><div class="form-group" style="flex: 1.5;"><label for="manage-group-student">Select Student</label><select id="manage-group-student"><option value="">Select Student...</option></select></div><div class="form-group" style="flex: 1;"><label for="manage-group-select">Select Group</label><select id="manage-group-select"><option value="">-- No Group --</option><option value="Ignite">Ignite</option><option value="Velocity">Velocity</option><option value="Lakshya">Lakshya</option><option value="Sankalp">Sankalp</option><option value="Prayas">Prayas</option></select></div></div><button class="btn btn-primary" id="manage-group-update-btn">Update Group</button><p id="manage-group-status" style="margin-top: 1rem; font-size: 0.9rem; font-weight: 500; display: none;"></p></div>
 
       <!-- Class Performance Overview (Advanced Analytics) -->
       <div class="panel-header" style="margin-top: 3rem;">
@@ -281,7 +281,7 @@
         <div style="margin-top: 1rem;">
           <button class="btn btn-primary" id="export-excel-btn" style="padding: 0.5rem 1rem; border-radius: 8px; margin-right: 1rem;">Export to Excel</button>`n          <select id="performance-group-filter" style="padding: 0.5rem; border-radius: 8px;">
             <option value="">All Groups</option>
-            <option value="Ignite">Ignite</option><option value="Lakshya">Lakshya</option><option value="Sankalp">Sankalp</option><option value="Prayas">Prayas</option>
+            <option value="Ignite">Ignite</option><option value="Velocity">Velocity</option><option value="Lakshya">Lakshya</option><option value="Sankalp">Sankalp</option><option value="Prayas">Prayas</option>
           </select>
         </div>
       </div>
@@ -405,6 +405,7 @@
   <script src="dashboard.js"></script>
 </body>
 </html>
+
 
 
 
