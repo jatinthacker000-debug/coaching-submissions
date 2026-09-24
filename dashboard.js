@@ -1202,3 +1202,84 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 
+
+
+// ADD NEW STUDENT
+document.addEventListener("DOMContentLoaded", () => {
+  const addStudentBtn = document.getElementById("add-student-btn");
+  if (addStudentBtn) {
+    addStudentBtn.addEventListener("click", async () => {
+      const nameEl = document.getElementById("add-student-name");
+      const groupEl = document.getElementById("add-student-group");
+      const statusEl = document.getElementById("add-student-status");
+      
+      const name = nameEl.value.trim();
+      const group_name = groupEl.value;
+      if (!name) return alert("Please enter student name.");
+      
+      addStudentBtn.disabled = true;
+      addStudentBtn.textContent = "Adding...";
+      try {
+        await fetch("/api/students", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, group_name })
+        });
+        statusEl.textContent = "Student added successfully!";
+        statusEl.style.color = "green";
+        statusEl.style.display = "block";
+        nameEl.value = "";
+        groupEl.value = "";
+        
+        if (typeof populateGroupManager === "function") await populateGroupManager();
+        if (typeof loadExamData === "function") await loadExamData();
+      } catch (err) {
+        statusEl.textContent = "Error: " + err.message;
+        statusEl.style.color = "red";
+        statusEl.style.display = "block";
+      }
+      addStudentBtn.disabled = false;
+      addStudentBtn.textContent = "Add Student";
+      setTimeout(() => { statusEl.style.display = "none"; }, 3000);
+    });
+  }
+
+  // EXPORT TO EXCEL
+  const exportBtn = document.getElementById("export-excel-btn");
+  if (exportBtn) {
+    exportBtn.addEventListener("click", () => {
+      const table = document.querySelector("#performance-table-body").closest("table");
+      if (!table) return alert("No table found to export.");
+      
+      let csv = [];
+      const rows = table.querySelectorAll("tr");
+      
+      rows.forEach(row => {
+        // Skip hidden rows (like filtered out students)
+        if (row.style.display === "none") return;
+        
+        let rowData = [];
+        const cols = row.querySelectorAll("th, td");
+        
+        // Exclude the last "Action" column (Delete button)
+        for (let i = 0; i < cols.length - 1; i++) {
+          let text = cols[i].innerText.replace(/"/g, '"').trim();
+          rowData.push('"' + text + '"');
+        }
+        if (rowData.length > 0) csv.push(rowData.join(","));
+      });
+      
+      const csvStr = csv.join("\n");
+      const blob = new Blob([csvStr], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute("download", "student_performance_data.csv");
+      link.style.visibility = "hidden";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    });
+  }
+});
+
