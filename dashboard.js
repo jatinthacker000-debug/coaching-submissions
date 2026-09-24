@@ -1135,3 +1135,70 @@ function applyGroupFilterAndRender() {
   renderAttentionList(globalExams, globalMarksByStudent, filteredStudents);
 }
 
+
+
+// DELETE ALL FUNCTIONALITY
+document.addEventListener("DOMContentLoaded", () => {
+  const delAllNotesBtn = document.getElementById("delete-all-notes-btn");
+  if (delAllNotesBtn) {
+    delAllNotesBtn.addEventListener("click", async () => {
+      if (!confirm("Are you sure you want to delete ALL Grade 10 Resources? This cannot be undone!")) return;
+      delAllNotesBtn.disabled = true;
+      delAllNotesBtn.textContent = "Deleting...";
+      try {
+        await fetch("/api/notes?delete_all=true&type=notes", { method: "DELETE", headers: { Authorization: `Bearer ${getCoachPassword()}` } });
+        await renderNotes();
+      } catch (err) { alert(err.message); }
+      delAllNotesBtn.disabled = false;
+      delAllNotesBtn.textContent = "Delete All Resources";
+    });
+  }
+
+  const delAllCbseBtn = document.getElementById("delete-all-cbse-btn");
+  if (delAllCbseBtn) {
+    delAllCbseBtn.addEventListener("click", async () => {
+      if (!confirm("Are you sure you want to delete ALL CBSE Resources? This cannot be undone!")) return;
+      delAllCbseBtn.disabled = true;
+      delAllCbseBtn.textContent = "Deleting...";
+      try {
+        await fetch("/api/notes?delete_all=true&type=cbse", { method: "DELETE", headers: { Authorization: `Bearer ${getCoachPassword()}` } });
+        await renderNotes();
+      } catch (err) { alert(err.message); }
+      delAllCbseBtn.disabled = false;
+      delAllCbseBtn.textContent = "Delete All CBSE Resources";
+    });
+  }
+
+  const delAllExamsBtn = document.getElementById("delete-all-exams-btn");
+  if (delAllExamsBtn) {
+    delAllExamsBtn.addEventListener("click", async () => {
+      if (!confirm("Are you sure you want to delete ALL Exams and their associated marks? This cannot be undone!")) return;
+      delAllExamsBtn.disabled = true;
+      delAllExamsBtn.textContent = "Deleting...";
+      try {
+        await fetch("/api/exams?delete_all=true", { method: "DELETE", headers: { Authorization: `Bearer ${getCoachPassword()}` } });
+        await loadExamData();
+      } catch (err) { alert(err.message); }
+      delAllExamsBtn.disabled = false;
+      delAllExamsBtn.textContent = "Delete All Exams";
+    });
+  }
+
+  const delAllStudentsBtn = document.getElementById("delete-all-students-btn");
+  if (delAllStudentsBtn) {
+    delAllStudentsBtn.addEventListener("click", async () => {
+      if (!confirm("Are you sure you want to delete ALL Students and their marks? This cannot be undone!")) return;
+      delAllStudentsBtn.disabled = true;
+      delAllStudentsBtn.textContent = "Deleting...";
+      try {
+        await fetch("/api/students?delete_all=true", { method: "DELETE", headers: { Authorization: `Bearer ${getCoachPassword()}` } });
+        await populateGroupManager();
+        await loadExamData();
+      } catch (err) { alert(err.message); }
+      delAllStudentsBtn.disabled = false;
+      delAllStudentsBtn.textContent = "Delete All Students";
+    });
+  }
+});
+
+

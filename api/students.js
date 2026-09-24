@@ -55,7 +55,18 @@ export default async function handler(req, res) {
   if (req.method === "DELETE") {
     if (!isCoachAuthorized(req)) return coachUnauthorized(res);
 
-    const { id } = req.query;
+    const { id, delete_all } = req.query;
+    
+    if (delete_all === "true") {
+      const { error } = await supabase
+        .from("students")
+        .delete()
+        .neq("id", "00000000-0000-0000-0000-000000000000"); // deletes all
+      
+      if (error) return sendError(res, error.message, 500);
+      return sendJson(res, { success: true });
+    }
+
     if (!id) return sendError(res, "Missing student ID.", 400);
 
     const { error } = await supabase

@@ -1,4 +1,4 @@
-import { getSupabase } from "./_lib/supabase.js";
+﻿import { getSupabase } from "./_lib/supabase.js";
 import { isCoachAuthorized, coachUnauthorized, sendJson, sendError } from "./_lib/utils.js";
 
 export default async function handler(req, res) {
@@ -39,7 +39,14 @@ export default async function handler(req, res) {
   if (req.method === "DELETE") {
     if (!isCoachAuthorized(req)) return coachUnauthorized(res);
 
-    const id = req.query.id;
+    const { id, delete_all } = req.query;
+    
+    if (delete_all === "true") {
+      const { error } = await supabase.from("exams").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+      if (error) return sendError(res, error.message, 500);
+      return sendJson(res, { success: true });
+    }
+
     if (!id) return sendError(res, "Missing exam id.");
 
     const { error } = await supabase.from("exams").delete().eq("id", id);
@@ -49,4 +56,5 @@ export default async function handler(req, res) {
 
   return sendError(res, "Method not allowed.", 405);
 }
+
 

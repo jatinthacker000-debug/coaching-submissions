@@ -1,4 +1,4 @@
-import { getSupabase } from "./_lib/supabase.js";
+﻿import { getSupabase } from "./_lib/supabase.js";
 import { isCoachAuthorized, coachUnauthorized, sendJson, sendError, randomId } from "./_lib/utils.js";
 
 export default async function handler(req, res) {
@@ -42,8 +42,15 @@ export default async function handler(req, res) {
   if (req.method === "DELETE") {
     if (!isCoachAuthorized(req)) return coachUnauthorized(res);
 
-    const id = req.query.id;
-    if (!id) return sendError(res, "Missing question paper id.");
+    const { id, delete_all } = req.query;
+    
+    if (delete_all === "true") {
+      const { error } = await supabase.from("question_papers").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+      if (error) return sendError(res, error.message, 500);
+      return sendJson(res, { success: true });
+    }
+
+    if (!id) return sendError(res, "Missing id.");
 
     const { error } = await supabase.from("question_papers").delete().eq("id", id);
     if (error) return sendError(res, error.message, 500);
@@ -60,3 +67,4 @@ export const config = {
     },
   },
 };
+

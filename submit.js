@@ -718,19 +718,18 @@ async function initStudentReport() {
     });
     selectEl.innerHTML = html;
     
-    selectEl.addEventListener("change", renderStudentReportChart);
+    selectEl.addEventListener("change", renderStudentReportContent);
   } catch (err) {
     console.error("Error loading student report data:", err);
     selectEl.innerHTML = `<option value="">Error loading data.</option>`;
   }
 }
 
-function renderStudentReportChart() {
+function renderStudentReportContent() {
   const selectEl = document.getElementById("student-report-select");
-  const container = document.getElementById("student-report-chart-container");
-  const ctx = document.getElementById("student-report-chart");
+  const container = document.getElementById("student-report-content");
   
-  if (!selectEl || !container || !ctx) return;
+  if (!selectEl || !container) return;
   
   const studentId = selectEl.value;
   if (!studentId) {
@@ -740,59 +739,61 @@ function renderStudentReportChart() {
   
   container.style.display = "block";
   
-  // Filter marks for this student
   const studentMarks = publicMarks.filter(m => m.student_id === studentId);
   
-  const labels = [];
-  const data = [];
-  
+  let html = `<div class="submit-card" style="padding: 0; overflow: hidden;"><table style="width: 100%; border-collapse: collapse; text-align: left; background: var(--surface);">
+    <thead>
+      <tr style="border-bottom: 2px solid var(--border);">
+        <th style="padding: 1rem; color: var(--text-muted); font-weight: 600;">Exam</th>
+        <th style="padding: 1rem; color: var(--text-muted); font-weight: 600;">Marks</th>
+        <th style="padding: 1rem; color: var(--text-muted); font-weight: 600;">Percentage</th>
+        <th style="padding: 1rem; color: var(--text-muted); font-weight: 600;">Change</th>
+      </tr>
+    </thead>
+    <tbody>`;
+
+  let prevPercentage = null;
+  let hasExams = false;
+
   publicExams.forEach(ex => {
-    labels.push(ex.name);
     const markObj = studentMarks.find(m => m.exam_id === ex.id);
     if (markObj) {
-      const perc = (markObj.marks_obtained / ex.total_marks) * 100;
-      data.push(perc.toFixed(1));
-    } else {
-      data.push(null);
-    }
-  });
-  
-  if (studentReportChart) {
-    studentReportChart.destroy();
-  }
-  
-  studentReportChart = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: labels,
-      datasets: [{
-        label: 'My Score (%)',
-        data: data,
-        backgroundColor: 'rgba(139, 92, 246, 0.6)',
-        borderColor: 'rgba(139, 92, 246, 1)',
-        borderWidth: 1,
-        borderRadius: 4
-      }]
-    },
-    options: {
-      responsive: true,
-      scales: {
-        y: {
-          beginAtZero: true,
-          max: 100,
-          ticks: { color: '#9ca3af' },
-          grid: { color: 'rgba(255,255,255,0.1)' }
-        },
-        x: {
-          ticks: { color: '#9ca3af' },
-          grid: { display: false }
+      hasExams = true;
+      const marksObtained = markObj.marks_obtained;
+      const maxMarks = ex.total_marks;
+      const perc = (marksObtained / maxMarks) * 100;
+      
+      let changeText = "—";
+      let changeColor = "var(--text-muted)";
+      if (prevPercentage !== null) {
+        const diff = perc - prevPercentage;
+        if (diff > 0) {
+          changeText = "+" + diff.toFixed(1) + "%";
+          changeColor = "#059669"; // green
+        } else if (diff < 0) {
+          changeText = diff.toFixed(1) + "%";
+          changeColor = "#dc2626"; // red
+        } else {
+          changeText = "0%";
         }
-      },
-      plugins: {
-        legend: { labels: { color: '#9ca3af' } }
       }
+      prevPercentage = perc;
+
+      html += `<tr style="border-bottom: 1px solid var(--border);">
+        <td style="padding: 1rem;">${escapeHtml(ex.name)}</td>
+        <td style="padding: 1rem; font-weight: 500;">${marksObtained}/${maxMarks}</td>
+        <td style="padding: 1rem; color: var(--primary); font-weight: 600;">${perc.toFixed(1)}%</td>
+        <td style="padding: 1rem; color: ${changeColor}; font-weight: 500;">${changeText}</td>
+      </tr>`;
     }
   });
+
+  if (!hasExams) {
+    html += `<tr><td colspan="4" style="padding: 1rem; text-align: center; color: var(--text-muted);">No exam records found.</td></tr>`;
+  }
+
+  html += `</tbody></table></div>`;
+  container.innerHTML = html;
 }
 
 // Initialize when DOM is ready
@@ -816,6 +817,10 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 });
+
+
+
+
 
 
 
