@@ -1,4 +1,4 @@
-const offlineNotice = document.getElementById("offline-notice");
+﻿const offlineNotice = document.getElementById("offline-notice");
 
 function isOfflineFileMode() {
   return window.location.protocol === "file:";
@@ -488,6 +488,7 @@ const examsContainer = document.getElementById("exams-container");
 const dynamicExamsList = document.getElementById("dynamic-exams-list");
 
 let availableExams = [];
+let globalStudentsForMarks = [];
 
 async function initMarksSection() {
   if (!marksForm) return;
@@ -499,10 +500,12 @@ async function initMarksSection() {
     
     // Populate students datalist
     if (studentsRes.students) {
-      studentsRes.students.forEach(s => {
-        const opt = document.createElement("option");
-        opt.value = s.name;
-        studentsDatalist.appendChild(opt);
+        globalStudentsForMarks = studentsRes.students;
+        studentsRes.students.forEach(s => {
+          const opt = document.createElement("option");
+          opt.value = s.name;
+          studentsDatalist.appendChild(opt);
+        });
       });
     }
 
@@ -524,13 +527,27 @@ async function initMarksSection() {
 }
 
 function renderExamsCheckboxes() {
-  dynamicExamsList.innerHTML = "";
-  if (availableExams.length === 0) {
-    dynamicExamsList.innerHTML = `<p class="muted-text">No exams currently available.</p>`;
-    return;
-  }
+    dynamicExamsList.innerHTML = "";
+    
+    const studentName = marksNameInput.value.trim().toLowerCase();
+    const studentObj = globalStudentsForMarks.find(s => s.name.toLowerCase() === studentName);
+    const groupName = studentObj ? studentObj.group_name : null;
 
-  availableExams.forEach(ex => {
+    let examsToShow = availableExams.filter(ex => {
+      if (ex.target_groups && ex.target_groups.length > 0) {
+        if (!groupName || !ex.target_groups.includes(groupName)) {
+          return false;
+        }
+      }
+      return true;
+    });
+
+    if (examsToShow.length === 0) {
+      dynamicExamsList.innerHTML = `<p class="muted-text">No exams currently available for your group.</p>`;
+      return;
+    }
+  
+    examsToShow.forEach(ex => {
     const row = document.createElement("div");
     row.style.display = "flex";
     row.style.alignItems = "center";
@@ -800,4 +817,5 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 });
+
 

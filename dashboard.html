@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ï»¿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -191,7 +191,10 @@
         <button type="submit" class="btn btn-primary" id="exam-submit-btn" style="width: auto; min-width: 180px;">
           Create Exam
         </button>
-      </form>
+        <div class="form-group" style="margin-bottom: 1.5rem; margin-top: 1rem;"><label>Groups taking this exam (leave all unchecked to allow everyone)</label><div style="display: flex; gap: 1rem; flex-wrap: wrap;" id="exam-groups-container"><label style="display: flex; align-items: center; gap: 0.25rem;"><input type="checkbox" value="Ignite"> Ignite</label><label style="display: flex; align-items: center; gap: 0.25rem;"><input type="checkbox" value="Velocity"> Velocity</label><label style="display: flex; align-items: center; gap: 0.25rem;"><input type="checkbox" value="Group 3"> Group 3</label><label style="display: flex; align-items: center; gap: 0.25rem;"><input type="checkbox" value="Group 4"> Group 4</label><label style="display: flex; align-items: center; gap: 0.25rem;"><input type="checkbox" value="Group 5"> Group 5</label></div></div>      </form>
+
+      <!-- Student Groups Management -->
+      <div class="panel-header" style="margin-top: 3rem;"><div><h1>Student Groups Management</h1><p class="subtitle">Assign students to specific groups.</p></div></div><div class="submit-card wide-card" style="margin-bottom: 3rem;"><div class="form-row"><div class="form-group" style="flex: 1.5;"><label for="manage-group-student">Select Student</label><select id="manage-group-student"><option value="">Select Student...</option></select></div><div class="form-group" style="flex: 1;"><label for="manage-group-select">Select Group</label><select id="manage-group-select"><option value="">-- No Group --</option><option value="Ignite">Ignite</option><option value="Velocity">Velocity</option><option value="Group 3">Group 3</option><option value="Group 4">Group 4</option><option value="Group 5">Group 5</option></select></div></div><button class="btn btn-primary" id="manage-group-update-btn">Update Group</button><p id="manage-group-status" style="margin-top: 1rem; font-size: 0.9rem; font-weight: 500; display: none;"></p></div>
 
       <!-- Class Performance Overview (Advanced Analytics) -->
       <div class="panel-header" style="margin-top: 3rem;">
@@ -228,15 +231,15 @@
         <h3 style="margin-bottom: 1rem; color: var(--text);">Performance Distribution</h3>
         <div style="display: flex; gap: 1rem; text-align: center; flex-wrap: wrap;">
           <div style="flex: 1; min-width: 120px; padding: 1rem; background: rgba(5, 150, 105, 0.1); border-radius: 8px;">
-            <strong style="color: #059669; display: block; margin-bottom: 0.5rem;">90–100%</strong>
+            <strong style="color: #059669; display: block; margin-bottom: 0.5rem;">90ï¿½100%</strong>
             <span id="dist-90" style="font-size: 1.2rem; font-weight: bold; color: var(--text);">&mdash;</span>
           </div>
           <div style="flex: 1; min-width: 120px; padding: 1rem; background: rgba(37, 99, 235, 0.1); border-radius: 8px;">
-            <strong style="color: #2563eb; display: block; margin-bottom: 0.5rem;">75–89%</strong>
+            <strong style="color: #2563eb; display: block; margin-bottom: 0.5rem;">75ï¿½89%</strong>
             <span id="dist-75" style="font-size: 1.2rem; font-weight: bold; color: var(--text);">&mdash;</span>
           </div>
           <div style="flex: 1; min-width: 120px; padding: 1rem; background: rgba(217, 119, 6, 0.1); border-radius: 8px;">
-            <strong style="color: #d97706; display: block; margin-bottom: 0.5rem;">50–74%</strong>
+            <strong style="color: #d97706; display: block; margin-bottom: 0.5rem;">50ï¿½74%</strong>
             <span id="dist-50" style="font-size: 1.2rem; font-weight: bold; color: var(--text);">&mdash;</span>
           </div>
           <div style="flex: 1; min-width: 120px; padding: 1rem; background: rgba(220, 38, 38, 0.1); border-radius: 8px;">
@@ -251,6 +254,16 @@
         <div>
           <h1>Student Performance Overview</h1>
           <p class="subtitle">View and analyze marks across all exams.</p>
+        </div>
+        <div style="margin-top: 1rem;">
+          <select id="performance-group-filter" style="padding: 0.5rem; border-radius: 8px;">
+            <option value="">All Groups</option>
+            <option value="Ignite">Ignite</option>
+            <option value="Velocity">Velocity</option>
+            <option value="Group 3">Group 3</option>
+            <option value="Group 4">Group 4</option>
+            <option value="Group 5">Group 5</option>
+          </select>
         </div>
       </div>
       
@@ -373,4 +386,6 @@
   <script src="dashboard.js"></script>
 </body>
 </html>
+
+
 

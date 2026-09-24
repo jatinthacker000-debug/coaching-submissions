@@ -7,7 +7,7 @@ export default async function handler(req, res) {
   if (req.method === "GET") {
     const { data, error } = await supabase
       .from("exams")
-      .select("id, name, total_marks, created_at")
+      .select("id, name, total_marks, target_groups, created_at")
       .order("created_at", { ascending: true });
 
     if (error) return sendError(res, error.message, 500);
@@ -26,7 +26,8 @@ export default async function handler(req, res) {
       .from("exams")
       .insert({
         name: body.name.trim(),
-        total_marks: Number(body.total_marks)
+        total_marks: Number(body.total_marks),
+        target_groups: Array.isArray(body.target_groups) ? body.target_groups : []
       })
       .select()
       .single();

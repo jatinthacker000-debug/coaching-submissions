@@ -1,4 +1,4 @@
-const loginScreen = document.getElementById("login-screen");
+﻿const loginScreen = document.getElementById("login-screen");
 const dashboardMain = document.getElementById("dashboard-main");
 const loginForm = document.getElementById("login-form");
 const loginError = document.getElementById("login-error");
@@ -327,9 +327,11 @@ if (examForm) {
     examSubmitBtn.disabled = true;
     examSubmitBtn.textContent = "Creating...";
     try {
+      const checkedGroups = Array.from(document.querySelectorAll("#exam-groups-container input:checked")).map(cb => cb.value);
       await createExam({
         name: examNameInput.value.trim(),
-        total_marks: examTotalInput.value
+        total_marks: examTotalInput.value,
+        target_groups: checkedGroups
       });
       examForm.reset();
       await loadExamData();
@@ -349,27 +351,20 @@ let globalStudents = [];
 let globalMarksByStudent = {};
 
 async function loadExamData() {
-  try {
-    const [examsRes, marksRes, studentsRes] = await Promise.all([
-      fetchExams(),
-      fetchMarks(),
-      fetchStudents()
-    ]);
-    
-    // Ensure chronological order
-    globalExams = (examsRes.exams || []).sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-    globalMarks = marksRes.marks || [];
-    globalStudents = studentsRes.students || [];
-    
-    renderExamsList(globalExams);
-    renderPerformanceTable(globalExams, globalMarks, globalStudents);
-    updateAnalyticsDropdowns();
-    if (typeof updateEditMarksDropdowns === 'function') updateEditMarksDropdowns();
-    
-    // Advanced Analytics
-    calculateClassStats(globalExams, globalMarksByStudent);
-    renderAttentionList(globalExams, globalMarksByStudent);
-  } catch (err) {
+    try {
+      const [examsRes, marksRes, studentsRes] = await Promise.all([
+        fetchExams(),
+        fetchMarks(),
+        fetchStudents()
+      ]);
+      
+      globalExams = (examsRes.exams || []).sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+      globalMarks = marksRes.marks || [];
+      globalStudents = studentsRes.students || [];
+      
+      renderExamsList(globalExams);
+      applyGroupFilterAndRender();
+    } catch (err) {
     console.error("Error loading exam data:", err);
   }
 }
@@ -628,7 +623,7 @@ function renderChart(exams, marksByStudent, studentId = null) {
 }
 
 // --- ANALYTICS FEATURE ---
-function updateAnalyticsDropdowns() {
+function updateAnalyticsDropdowns(studentsToUse = globalStudents) {
   const studentSelect = document.getElementById("analytics-student");
   const exam1Select = document.getElementById("analytics-exam1");
   const exam2Select = document.getElementById("analytics-exam2");
@@ -642,7 +637,7 @@ function updateAnalyticsDropdowns() {
 
   // Populate students
   let studentHtml = `<option value="">-- Class Average --</option>`;
-  globalStudents.forEach(s => {
+  studentsToUse.forEach(s => {
     studentHtml += `<option value="${escapeHtml(s.id)}">${escapeHtml(s.name)}</option>`;
   });
   studentSelect.innerHTML = studentHtml;
@@ -742,7 +737,7 @@ document.addEventListener("DOMContentLoaded", () => {
 // --- EDIT OR DELETE MARKS FEATURE ---
 let currentMarkId = null;
 
-function updateEditMarksDropdowns() {
+function updateEditMarksDropdowns(studentsToUse = globalStudents) {
   const studentSelect = document.getElementById("edit-mark-student");
   const examSelect = document.getElementById("edit-mark-exam");
   
@@ -752,7 +747,7 @@ function updateEditMarksDropdowns() {
   const currExam = examSelect.value;
 
   let studentHtml = `<option value="">Select Student...</option>`;
-  globalStudents.forEach(s => {
+  studentsToUse.forEach(s => {
     studentHtml += `<option value="${escapeHtml(s.id)}">${escapeHtml(s.name)}</option>`;
   });
   studentSelect.innerHTML = studentHtml;
@@ -972,7 +967,7 @@ function calculateClassStats(exams, marksByStudent) {
   document.getElementById("dist-below").textContent = dBelow;
 }
 
-function renderAttentionList(exams, marksByStudent) {
+function renderAttentionList(exams, marksByStudent, studentsToUse = globalStudents) {
   const attentionList = document.getElementById("attention-list");
   if (!attentionList) return;
   
@@ -986,7 +981,7 @@ function renderAttentionList(exams, marksByStudent) {
   
   const attentionStudents = [];
   
-  globalStudents.forEach(student => {
+  studentsToUse.forEach(student => {
     const sm = marksByStudent[student.id] || {};
     
     const latestMark = sm[latestExam.id];
@@ -1026,7 +1021,7 @@ function renderAttentionList(exams, marksByStudent) {
   });
   
   if (attentionStudents.length === 0) {
-    attentionList.innerHTML = `<li style="color: #059669; text-align: center; padding: 1rem; font-weight: 500;">?? Great job! No students currently require immediate attention.</li>`;
+    attentionList.innerHTML = `<li style="color: #059669; text-align: center; padding: 1rem; font-weight: 500;">🎉 Great job! No students currently require immediate attention.</li>`;
     return;
   }
   
@@ -1047,7 +1042,7 @@ function renderAttentionList(exams, marksByStudent) {
       <li style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: var(--bg); border: 1px solid var(--border); border-radius: 8px;">
         <div>
           <strong style="color: var(--text); font-size: 1.1rem; display: block; margin-bottom: 0.25rem;">${escapeHtml(s.name)}</strong>
-          <span style="color: var(--danger); font-size: 0.85rem;">?? ${s.reason}</span>
+          <span style="color: var(--danger); font-size: 0.85rem;">⚠️ ${s.reason}</span>
         </div>
         <div style="text-align: right; font-size: 0.95rem;">
           ${statHtml}
@@ -1058,3 +1053,85 @@ function renderAttentionList(exams, marksByStudent) {
   
   attentionList.innerHTML = html;
 }
+
+
+// STUDENT GROUPS MANAGEMENT
+const manageGroupStudent = document.getElementById("manage-group-student");
+const manageGroupSelect = document.getElementById("manage-group-select");
+const manageGroupUpdateBtn = document.getElementById("manage-group-update-btn");
+const manageGroupStatus = document.getElementById("manage-group-status");
+
+async function populateGroupManager() {
+  if (!manageGroupStudent) return;
+  try {
+    const { students } = await fetchStudents();
+    manageGroupStudent.innerHTML = '<option value="">Select Student...</option>';
+    students.forEach(s => {
+      manageGroupStudent.innerHTML += `<option value="${s.id}" data-group="${s.group_name || '}">${escapeHtml(s.name)} ${s.group_name ? `(${escapeHtml(s.group_name)})` : '}</option>`;
+    });
+  } catch(e) {}
+}
+
+if (manageGroupStudent) {
+  manageGroupStudent.addEventListener("change", (e) => {
+    const opt = e.target.options[e.target.selectedIndex];
+    manageGroupSelect.value = opt.getAttribute("data-group") || "";
+  });
+}
+
+if (manageGroupUpdateBtn) {
+  manageGroupUpdateBtn.addEventListener("click", async () => {
+    const sid = manageGroupStudent.value;
+    const grp = manageGroupSelect.value;
+    if (!sid) return alert("Select student first");
+    manageGroupUpdateBtn.disabled = true;
+    try {
+      const studentName = manageGroupStudent.options[manageGroupStudent.selectedIndex].text.split(" (")[0];
+      await fetch("/api/students", {
+         method: "POST",
+         headers: { "Content-Type": "application/json" },
+         body: JSON.stringify({ name: studentName, group_name: grp })
+      });
+      manageGroupStatus.textContent = "Group updated!";
+      manageGroupStatus.style.display = "block";
+      manageGroupStatus.style.color = "#059669";
+      setTimeout(() => manageGroupStatus.style.display="none", 3000);
+      await populateGroupManager();
+      await loadExamData();
+    } catch (e) {
+      alert(e.message);
+    }
+    manageGroupUpdateBtn.disabled = false;
+  });
+}
+
+document.addEventListener("DOMContentLoaded", populateGroupManager);
+
+// GROUP FILTER LOGIC FOR PERFORMANCE
+const perfGroupFilter = document.getElementById("performance-group-filter");
+if (perfGroupFilter) {
+  perfGroupFilter.addEventListener("change", () => {
+    applyGroupFilterAndRender();
+  });
+}
+
+function applyGroupFilterAndRender() {
+  if (!globalStudents || !globalExams) return;
+  
+  const selectedGrp = perfGroupFilter ? perfGroupFilter.value : "";
+  let filteredStudents = globalStudents;
+  if (selectedGrp) {
+    filteredStudents = globalStudents.filter(s => s.group_name === selectedGrp);
+  }
+  
+  const validStudentIds = new Set(filteredStudents.map(s => s.id));
+  const filteredMarks = globalMarks.filter(m => validStudentIds.has(m.student_id));
+  
+  renderPerformanceTable(globalExams, filteredMarks, filteredStudents);
+  updateAnalyticsDropdowns(filteredStudents);
+  if (typeof updateEditMarksDropdowns === "function") updateEditMarksDropdowns(filteredStudents);
+  
+  calculateClassStats(globalExams, globalMarksByStudent);
+  renderAttentionList(globalExams, globalMarksByStudent, filteredStudents);
+}
+

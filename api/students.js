@@ -7,7 +7,7 @@ export default async function handler(req, res) {
   if (req.method === "GET") {
     const { data, error } = await supabase
       .from("students")
-      .select("id, name")
+      .select("id, name, group_name")
       .order("name", { ascending: true });
 
     if (error) return sendError(res, error.message, 500);
@@ -18,19 +18,33 @@ export default async function handler(req, res) {
     const body = req.body || {};
     if (!body.name?.trim()) return sendError(res, "Student name is required.");
 
+    const cleanName = body.name.trim().replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
     // Check if exists
     const { data: existing } = await supabase
       .from("students")
-      .select("id, name")
-      .ilike("name", body.name.trim())
+      .select("id, name, group_name")
+      .ilike("name", cleanName)
       .maybeSingle();
 
-    if (existing) return sendJson(res, { student: existing });
+    if (existing) {
+      if (body.group_name !== undefined && body.group_name !== existing.group_name) {
+        const { data: updated, error: updateError } = await supabase
+          .from("students")
+          .update({ group_name: body.group_name || null })
+          .eq("id", existing.id)
+          .select()
+          .single();
+        if (updateError) return sendError(res, updateError.message, 500);
+        return sendJson(res, { student: updated });
+      }
+      return sendJson(res, { student: existing });
+    }
 
     // Create new
     const { data, error } = await supabase
       .from("students")
-      .insert({ name: body.name.trim() })
+      .insert({ name: cleanName, group_name: body.group_name || null })
       .select()
       .single();
 
