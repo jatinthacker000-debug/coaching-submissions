@@ -506,8 +506,7 @@ async function initMarksSection() {
           opt.value = s.name;
           studentsDatalist.appendChild(opt);
         });
-      });
-    }
+      }
 
     availableExams = examsRes.exams || [];
     
@@ -817,5 +816,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 });
+
 
 
