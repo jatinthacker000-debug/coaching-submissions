@@ -1,4 +1,4 @@
-const offlineNotice = document.getElementById("offline-notice");
+﻿const offlineNotice = document.getElementById("offline-notice");
 
 function isOfflineFileMode() {
   return window.location.protocol === "file:";
@@ -138,12 +138,12 @@ async function loadPDFNotes() {
           
           if (resource.grade === "X-Other") {
             if (target.otherList) {
-              li.innerHTML = `<a href="${escapeHtml(resource.link)}" target="_blank" rel="noopener noreferrer" class="note-link">??? ${chapterBadge}${escapeHtml(parsed.cleanTitle)}</a>`;
+              li.innerHTML = `<a href="${escapeHtml(resource.link)}" target="_blank" rel="noopener noreferrer" class="note-link">📚📁 ${chapterBadge}${escapeHtml(parsed.cleanTitle)}</a>`;
               target.otherList.appendChild(li);
               if (target.otherSection) target.otherSection.style.display = "block";
             }
           } else if (resource.grade === "X-Worksheet") {
-            li.innerHTML = `<a href="${escapeHtml(resource.link)}" target="_blank" rel="noopener noreferrer" class="note-link">?? ${chapterBadge}${escapeHtml(parsed.cleanTitle)}</a>`;
+            li.innerHTML = `<a href="${escapeHtml(resource.link)}" target="_blank" rel="noopener noreferrer" class="note-link">📚📝 ${chapterBadge}${escapeHtml(parsed.cleanTitle)}</a>`;
             target.worksheetsList.appendChild(li);
             if (target.worksheetsSection) target.worksheetsSection.style.display = "block";
           } else {
@@ -151,7 +151,7 @@ async function loadPDFNotes() {
             if (resource.subject === "Macro Economics") prefix = `<span class="note-sub-tag">Macro</span> `;
             if (resource.subject === "Indian Economics Development") prefix = `<span class="note-sub-tag">IED</span> `;
 
-            li.innerHTML = `<a href="${escapeHtml(resource.link)}" target="_blank" rel="noopener noreferrer" class="note-link">?? ${prefix}${chapterBadge}${escapeHtml(parsed.cleanTitle)}</a>`;
+            li.innerHTML = `<a href="${escapeHtml(resource.link)}" target="_blank" rel="noopener noreferrer" class="note-link">📚📝 ${prefix}${chapterBadge}${escapeHtml(parsed.cleanTitle)}</a>`;
             target.notesList.appendChild(li);
             if (target.notesSection) target.notesSection.style.display = "block";
           }
@@ -173,7 +173,7 @@ async function loadPDFNotes() {
       if (header && !header.hasAttribute('data-accordion-init')) {
         header.setAttribute('data-accordion-init', 'true');
         header.style.cursor = 'pointer';
-        header.innerHTML += `<span class="accordion-icon" style="margin-left: auto; transition: transform 0.2s;">?</span>`;
+        header.innerHTML += `<span class="accordion-icon" style="margin-left: auto; transition: transform 0.2s;">▼</span>`;
         
         // Hide all sections initially
         const sections = card.querySelectorAll('.notes-section');
@@ -215,15 +215,15 @@ async function loadPDFNotes() {
         
         subjectCard.innerHTML = `
           <div class="card-header" style="cursor: pointer; display: flex; align-items: center;">
-            <span class="subject-icon">??</span>
+            <span class="subject-icon">📚</span>
             <h4>General Resources</h4>
-            <span class="accordion-icon" style="margin-left: auto; transition: transform 0.2s;">?</span>
+            <span class="accordion-icon" style="margin-left: auto; transition: transform 0.2s;">▼</span>
           </div>
           <div class="notes-section collapsed">
             <ul class="notes-list">
               ${cbseResources.map(res => `
                 <li>
-                  <a href="${escapeHtml(res.link)}" target="_blank" rel="noopener noreferrer" class="note-link">${docIcon} <span>${escapeHtml(res.title)}</span></a>
+                  <a href="${escapeHtml(res.link)}" target="_blank" rel="noopener noreferrer" class="note-link">📚${docIcon} <span>${escapeHtml(res.title)}</span></a>
                 </li>
               `).join('')}
             </ul>
@@ -294,7 +294,7 @@ async function loadPDFNotes() {
       const textEl = document.getElementById("no-notes-text");
       const iconEl = document.getElementById("no-notes-icon");
       if (textEl) textEl.textContent = "Failed to load resources.";
-      if (iconEl) iconEl.textContent = "??";
+      if (iconEl) iconEl.textContent = "❌";
       noNotesX.style.display = "block";
     }
   }
@@ -370,7 +370,7 @@ function filterResources() {
       const textEl = document.getElementById("no-notes-text");
       const iconEl = document.getElementById("no-notes-icon");
       if (textEl) textEl.textContent = "No matching chapters found.";
-      if (iconEl) iconEl.textContent = "??";
+      if (iconEl) iconEl.textContent = "🔍";
     } else {
       noNotesX.style.display = "none";
     }
@@ -590,7 +590,7 @@ function renderStudentReportContent() {
       const maxMarks = ex.total_marks;
       const perc = (marksObtained / maxMarks) * 100;
       
-      let changeText = "�";
+      let changeText = "�";
       let changeColor = "var(--text-muted)";
       if (prevPercentage !== null) {
         const diff = perc - prevPercentage;
@@ -644,6 +644,10 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 });
+
+
+
+
 
 
 
