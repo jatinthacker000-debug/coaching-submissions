@@ -59,3 +59,4 @@ export default async function handler(req, res) {
 
   return sendJson(res, { keysCount: keys.length, results });
 }
+

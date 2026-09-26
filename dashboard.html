@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -22,7 +22,7 @@
         <img src="logo.jpg" alt="Padh rahi public Logo" class="brand-logo">
         <span class="brand-text gradient-glow">Padh rahi public Coach Portal</span>
       </div>
-      <a href="index.html" class="nav-link">← Go to Student Page</a>
+      <a href="index.html" class="nav-link">? Go to Student Page</a>
     </div>
   </header>
 
@@ -159,7 +159,7 @@
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
         <h2 class="section-title" style="margin-bottom: 0;">Active Grade 10 Resources</h2>
         <div class="search-input-wrapper" style="max-width: 300px; width: 100%;">
-          <span class="search-icon">🔍</span>
+          <span class="search-icon">??</span>
           <input type="text" id="dashboard-search-input" placeholder="Search resources..." class="search-input" autocomplete="off">
         </div>
       </div>
@@ -254,15 +254,15 @@
         <h3 style="margin-bottom: 1rem; color: var(--text);">Performance Distribution</h3>
         <div style="display: flex; gap: 1rem; text-align: center; flex-wrap: wrap;">
           <div style="flex: 1; min-width: 120px; padding: 1rem; background: rgba(5, 150, 105, 0.1); border-radius: 8px;">
-            <strong style="color: #059669; display: block; margin-bottom: 0.5rem;">90�100%</strong>
+            <strong style="color: #059669; display: block; margin-bottom: 0.5rem;">90?100%</strong>
             <span id="dist-90" style="font-size: 1.2rem; font-weight: bold; color: var(--text);">&mdash;</span>
           </div>
           <div style="flex: 1; min-width: 120px; padding: 1rem; background: rgba(37, 99, 235, 0.1); border-radius: 8px;">
-            <strong style="color: #2563eb; display: block; margin-bottom: 0.5rem;">75�89%</strong>
+            <strong style="color: #2563eb; display: block; margin-bottom: 0.5rem;">75?89%</strong>
             <span id="dist-75" style="font-size: 1.2rem; font-weight: bold; color: var(--text);">&mdash;</span>
           </div>
           <div style="flex: 1; min-width: 120px; padding: 1rem; background: rgba(217, 119, 6, 0.1); border-radius: 8px;">
-            <strong style="color: #d97706; display: block; margin-bottom: 0.5rem;">50�74%</strong>
+            <strong style="color: #d97706; display: block; margin-bottom: 0.5rem;">50?74%</strong>
             <span id="dist-50" style="font-size: 1.2rem; font-weight: bold; color: var(--text);">&mdash;</span>
           </div>
           <div style="flex: 1; min-width: 120px; padding: 1rem; background: rgba(220, 38, 38, 0.1); border-radius: 8px;">
@@ -364,6 +364,41 @@
         <ul id="exams-list" class="papers-list" style="list-style: none; padding: 0;"></ul>
       </div>
 
+            <!-- Bulk Enter Marks Section -->
+      <div class="panel-header" style="margin-top: 3rem;">
+        <div>
+          <h1>Bulk Enter Marks</h1>
+          <p class="subtitle">Select a group to enter marks for all students in a grid format (like an Excel sheet).</p>
+        </div>
+      </div>
+      <div class="submit-card" style="padding: 1.5rem;">
+        <div style="display: flex; gap: 1rem; align-items: flex-end; margin-bottom: 1.5rem;">
+          <div class="form-group" style="flex: 1;">
+            <label for="bulk-group-select">Select Group</label>
+            <select id="bulk-group-select">
+              <option value="">Choose a group...</option>
+              <option value="Grade 9">Grade 9</option>
+              <option value="Grade 10">Grade 10</option>
+              <option value="Grade 11">Grade 11</option>
+              <option value="Grade 12">Grade 12</option>
+              <option value="Dropper">Dropper</option>
+              <option value="General">General / Other</option>
+            </select>
+          </div>
+          <button id="bulk-load-btn" class="btn btn-primary">Load Grid</button>
+        </div>
+        <div id="bulk-grid-container" style="display: none; overflow-x: auto;">
+          <table class="grid-table" style="width: 100%; border-collapse: collapse; text-align: left;">
+            <thead id="bulk-grid-head"></thead>
+            <tbody id="bulk-grid-body"></tbody>
+          </table>
+          <div style="margin-top: 1.5rem; text-align: right;">
+            <span id="bulk-save-status" style="margin-right: 1rem; font-weight: 500;"></span>
+            <button id="bulk-save-btn" class="btn btn-primary" style="background: #059669;">Save All Marks</button>
+          </div>
+        </div>
+      </div>
+
       <!-- Edit or Delete Marks -->
       <div class="panel-header" style="margin-top: 3rem;">
         <div>
@@ -405,6 +440,7 @@
   <script src="dashboard.js"></script>
 </body>
 </html>
+
 
 
 

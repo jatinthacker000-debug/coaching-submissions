@@ -232,7 +232,10 @@ async function deleteNote(id) {
 async function submitMarks(payload) {
   const response = await fetch("/api/marks", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { 
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${getCoachPassword()}`
+    },
     body: JSON.stringify(payload),
   });
   return parseResponse(response);
@@ -248,7 +251,10 @@ async function fetchStudents() {
 async function createStudent(payload) {
   const response = await fetch("/api/students", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { 
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${getCoachPassword()}`
+    },
     body: JSON.stringify(payload),
   });
   return parseResponse(response);

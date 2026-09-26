@@ -1,4 +1,4 @@
-﻿const loginScreen = document.getElementById("login-screen");
+const loginScreen = document.getElementById("login-screen");
 const dashboardMain = document.getElementById("dashboard-main");
 const loginForm = document.getElementById("login-form");
 const loginError = document.getElementById("login-error");
@@ -51,10 +51,18 @@ loginForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   loginError.classList.add("hidden");
   const password = document.getElementById("coach-password").value;
-  setCoachPassword(password);
 
   try {
-    // Attempt to fetch submissions as a way to verify the coach password.
+    const res = await fetch("/api/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || "Login failed");
+    }
+    setCoachPassword(data.token);
     await fetchSubmissions();
     showDashboard();
     await renderNotes();
@@ -1282,4 +1290,178 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 });
+
+
+// --- BULK MARKS ENTRY ---
+const bulkGroupSelect = document.getElementById("bulk-group-select");
+const bulkLoadBtn = document.getElementById("bulk-load-btn");
+const bulkGridContainer = document.getElementById("bulk-grid-container");
+const bulkGridHead = document.getElementById("bulk-grid-head");
+const bulkGridBody = document.getElementById("bulk-grid-body");
+const bulkSaveBtn = document.getElementById("bulk-save-btn");
+const bulkSaveStatus = document.getElementById("bulk-save-status");
+
+let bulkExams = [];
+let bulkStudents = [];
+let bulkExistingMarks = [];
+
+if (bulkLoadBtn) {
+  bulkLoadBtn.addEventListener("click", async () => {
+    const group = bulkGroupSelect.value;
+    if (!group) {
+      alert("Please select a group");
+      return;
+    }
+
+    bulkLoadBtn.textContent = "Loading...";
+    bulkGridContainer.style.display = "none";
+    
+    try {
+      // Fetch all necessary data
+      const [studentsRes, examsRes, marksRes] = await Promise.all([
+        fetchStudents(),
+        fetchExams(),
+        fetchMarks()
+      ]);
+
+      bulkStudents = (studentsRes.students || []).filter(s => s.group_name === group);
+      
+      // Filter exams: either target_groups is empty/null, or contains the selected group
+      bulkExams = (examsRes.exams || []).filter(ex => {
+        if (!ex.target_groups || ex.target_groups.length === 0) return true;
+        return ex.target_groups.includes(group);
+      });
+      // Sort exams chronologically
+      bulkExams.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+      
+      bulkExistingMarks = marksRes.marks || [];
+
+      if (bulkStudents.length === 0) {
+        alert("No students found in this group.");
+        bulkLoadBtn.textContent = "Load Grid";
+        return;
+      }
+      
+      renderBulkGrid();
+      bulkGridContainer.style.display = "block";
+    } catch (err) {
+      alert("Failed to load data: " + err.message);
+    } finally {
+      bulkLoadBtn.textContent = "Load Grid";
+    }
+  });
+}
+
+function renderBulkGrid() {
+  // Head
+  let headHtml = `<tr>
+    <th style="width: 50px;">Sl no</th>
+    <th style="min-width: 150px;">Name of the student</th>`;
+  
+  bulkExams.forEach((ex, idx) => {
+    headHtml += `<th title="${ex.name} (Max: ${ex.total_marks})">${ex.name}<br><small style="font-weight:normal;">Max: ${ex.total_marks}</small></th>`;
+  });
+  headHtml += `</tr>`;
+  bulkGridHead.innerHTML = headHtml;
+
+  // Body
+  let bodyHtml = "";
+  bulkStudents.forEach((st, sIdx) => {
+    bodyHtml += `<tr>
+      <td style="text-align: center;">${sIdx + 1}</td>
+      <td>${escapeHtml(st.name)}</td>`;
+    
+    bulkExams.forEach(ex => {
+      // Find existing mark
+      const existing = bulkExistingMarks.find(m => m.student_id === st.id && m.exam_id === ex.id);
+      const val = existing && existing.marks_obtained !== null ? existing.marks_obtained : "";
+      
+      bodyHtml += `<td>
+        <input type="number" 
+               step="0.5" 
+               min="0" 
+               max="${ex.total_marks}" 
+               data-student-id="${st.id}" 
+               data-exam-id="${ex.id}" 
+               value="${val}" 
+               class="bulk-mark-input" />
+      </td>`;
+    });
+    bodyHtml += `</tr>`;
+  });
+  bulkGridBody.innerHTML = bodyHtml;
+}
+
+if (bulkSaveBtn) {
+  bulkSaveBtn.addEventListener("click", async () => {
+    const inputs = document.querySelectorAll(".bulk-mark-input");
+    
+    // Group inputs by student
+    const studentSubmissions = {};
+    
+    inputs.forEach(input => {
+      const val = input.value.trim();
+      if (val !== "") {
+        const sId = input.dataset.studentId;
+        const eId = input.dataset.examId;
+        const maxMarks = Number(input.getAttribute("max"));
+        const marksObtained = Number(val);
+        
+        if (marksObtained < 0 || marksObtained > maxMarks) {
+          alert(`Invalid mark ${marksObtained} for exam (Max: ${maxMarks})`);
+          throw new Error("Invalid mark");
+        }
+        
+        if (!studentSubmissions[sId]) {
+          studentSubmissions[sId] = [];
+        }
+        studentSubmissions[sId].push({
+          exam_id: eId,
+          marks_obtained: marksObtained
+        });
+      }
+    });
+
+    if (Object.keys(studentSubmissions).length === 0) {
+      alert("No marks entered.");
+      return;
+    }
+
+    bulkSaveBtn.disabled = true;
+    bulkSaveBtn.textContent = "Saving...";
+    bulkSaveStatus.textContent = "Saving...";
+    bulkSaveStatus.style.color = "var(--text)";
+
+    try {
+      // Send one request per student
+      const promises = Object.keys(studentSubmissions).map(sId => {
+        return submitMarks({
+          student_id: sId,
+          submissions: studentSubmissions[sId]
+        });
+      });
+      
+      await Promise.all(promises);
+      
+      bulkSaveStatus.textContent = "Marks saved successfully!";
+      bulkSaveStatus.style.color = "#059669";
+      
+      // Refresh marks list if needed
+      if (typeof fetchAndRenderPerformance === 'function') {
+        fetchAndRenderPerformance();
+      }
+      
+      setTimeout(() => {
+        bulkSaveStatus.textContent = "";
+      }, 3000);
+    } catch (err) {
+      alert("Error saving marks: " + err.message);
+      bulkSaveStatus.textContent = "Error saving marks.";
+      bulkSaveStatus.style.color = "#dc2626";
+    } finally {
+      bulkSaveBtn.disabled = false;
+      bulkSaveBtn.textContent = "Save All Marks";
+    }
+  });
+}
 

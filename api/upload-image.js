@@ -10,7 +10,7 @@ export default async function handler(req, res) {
   const folder = body.folder || "misc";
   const isCoachUpload = folder.startsWith("question-papers");
 
-  if (isCoachUpload && !isCoachAuthorized(req)) {
+  if (isCoachUpload && !await isCoachAuthorized(req)) {
     return sendError(res, "Unauthorized.", 401);
   }
 
@@ -44,3 +44,4 @@ export const config = {
     },
   },
 };
+

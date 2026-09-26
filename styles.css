@@ -707,3 +707,23 @@ input:focus, select:focus, textarea:focus {
 .search-input-wrapper .search-icon { position: absolute; left: 12px; font-size: 1.1rem; }
 .search-input-wrapper .search-input { padding-left: 2.5rem; width: 100%; }
 
+.grid-table th, .grid-table td {
+  border: 1px solid var(--border);
+  padding: 0.5rem;
+}
+.grid-table th {
+  background: var(--surface-card);
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.grid-table input {
+  width: 60px;
+  padding: 0.25rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--text);
+}
+.grid-table input:focus {
+  outline: 2px solid var(--primary);
+}

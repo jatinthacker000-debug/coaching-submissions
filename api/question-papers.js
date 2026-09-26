@@ -1,4 +1,4 @@
-﻿import { getSupabase } from "./_lib/supabase.js";
+import { getSupabase } from "./_lib/supabase.js";
 import { isCoachAuthorized, coachUnauthorized, sendJson, sendError, randomId } from "./_lib/utils.js";
 
 export default async function handler(req, res) {
@@ -15,7 +15,7 @@ export default async function handler(req, res) {
   }
 
   if (req.method === "POST") {
-    if (!isCoachAuthorized(req)) return coachUnauthorized(res);
+    if (!await isCoachAuthorized(req)) return coachUnauthorized(res);
 
     const body = req.body || {};
     if (!body.title?.trim()) {
@@ -40,7 +40,7 @@ export default async function handler(req, res) {
   }
 
   if (req.method === "DELETE") {
-    if (!isCoachAuthorized(req)) return coachUnauthorized(res);
+    if (!await isCoachAuthorized(req)) return coachUnauthorized(res);
 
     const { id, delete_all } = req.query;
     
@@ -67,4 +67,5 @@ export const config = {
     },
   },
 };
+
 

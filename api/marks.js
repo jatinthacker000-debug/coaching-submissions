@@ -20,6 +20,7 @@ export default async function handler(req, res) {
   }
 
   if (req.method === "POST") {
+    if (!await isCoachAuthorized(req)) return coachUnauthorized(res);
     const body = req.body || {};
     const { student_id, submissions } = body;
     // submissions = [{exam_id: "...", marks_obtained: 10}, ...]
@@ -48,7 +49,7 @@ export default async function handler(req, res) {
   }
 
   if (req.method === "DELETE") {
-    if (!isCoachAuthorized(req)) return coachUnauthorized(res);
+    if (!await isCoachAuthorized(req)) return coachUnauthorized(res);
     
     const { id } = req.query;
     if (!id) return sendError(res, "Missing mark ID.", 400);
@@ -64,4 +65,5 @@ export default async function handler(req, res) {
 
   return sendError(res, "Method not allowed.", 405);
 }
+
 

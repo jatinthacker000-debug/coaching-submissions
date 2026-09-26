@@ -122,7 +122,7 @@ async function deleteSubmission(req, res) {
 
 export default async function handler(req, res) {
   if (req.method === "GET") {
-    if (!isCoachAuthorized(req)) return coachUnauthorized(res);
+    if (!await isCoachAuthorized(req)) return coachUnauthorized(res);
     return listSubmissions(req, res);
   }
 
@@ -131,7 +131,7 @@ export default async function handler(req, res) {
   }
 
   if (req.method === "DELETE") {
-    if (!isCoachAuthorized(req)) return coachUnauthorized(res);
+    if (!await isCoachAuthorized(req)) return coachUnauthorized(res);
     return deleteSubmission(req, res);
   }
 
@@ -145,3 +145,4 @@ export const config = {
     },
   },
 };
+

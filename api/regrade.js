@@ -6,7 +6,7 @@ export default async function handler(req, res) {
   if (req.method !== "POST") {
     return sendError(res, "Method not allowed.", 405);
   }
-  if (!isCoachAuthorized(req)) return coachUnauthorized(res);
+  if (!await isCoachAuthorized(req)) return coachUnauthorized(res);
 
   const id = req.query.id;
   if (!id) return sendError(res, "Missing submission id.");
@@ -59,3 +59,4 @@ export const config = {
     maxDuration: 60,
   },
 };
+

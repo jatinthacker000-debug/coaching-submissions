@@ -1,4 +1,4 @@
-﻿const offlineNotice = document.getElementById("offline-notice");
+const offlineNotice = document.getElementById("offline-notice");
 
 function isOfflineFileMode() {
   return window.location.protocol === "file:";
@@ -138,12 +138,12 @@ async function loadPDFNotes() {
           
           if (resource.grade === "X-Other") {
             if (target.otherList) {
-              li.innerHTML = `<a href="${escapeHtml(resource.link)}" target="_blank" rel="noopener noreferrer" class="note-link">🗂️ ${chapterBadge}${escapeHtml(parsed.cleanTitle)}</a>`;
+              li.innerHTML = `<a href="${escapeHtml(resource.link)}" target="_blank" rel="noopener noreferrer" class="note-link">??? ${chapterBadge}${escapeHtml(parsed.cleanTitle)}</a>`;
               target.otherList.appendChild(li);
               if (target.otherSection) target.otherSection.style.display = "block";
             }
           } else if (resource.grade === "X-Worksheet") {
-            li.innerHTML = `<a href="${escapeHtml(resource.link)}" target="_blank" rel="noopener noreferrer" class="note-link">📝 ${chapterBadge}${escapeHtml(parsed.cleanTitle)}</a>`;
+            li.innerHTML = `<a href="${escapeHtml(resource.link)}" target="_blank" rel="noopener noreferrer" class="note-link">?? ${chapterBadge}${escapeHtml(parsed.cleanTitle)}</a>`;
             target.worksheetsList.appendChild(li);
             if (target.worksheetsSection) target.worksheetsSection.style.display = "block";
           } else {
@@ -151,7 +151,7 @@ async function loadPDFNotes() {
             if (resource.subject === "Macro Economics") prefix = `<span class="note-sub-tag">Macro</span> `;
             if (resource.subject === "Indian Economics Development") prefix = `<span class="note-sub-tag">IED</span> `;
 
-            li.innerHTML = `<a href="${escapeHtml(resource.link)}" target="_blank" rel="noopener noreferrer" class="note-link">📄 ${prefix}${chapterBadge}${escapeHtml(parsed.cleanTitle)}</a>`;
+            li.innerHTML = `<a href="${escapeHtml(resource.link)}" target="_blank" rel="noopener noreferrer" class="note-link">?? ${prefix}${chapterBadge}${escapeHtml(parsed.cleanTitle)}</a>`;
             target.notesList.appendChild(li);
             if (target.notesSection) target.notesSection.style.display = "block";
           }
@@ -173,7 +173,7 @@ async function loadPDFNotes() {
       if (header && !header.hasAttribute('data-accordion-init')) {
         header.setAttribute('data-accordion-init', 'true');
         header.style.cursor = 'pointer';
-        header.innerHTML += `<span class="accordion-icon" style="margin-left: auto; transition: transform 0.2s;">▼</span>`;
+        header.innerHTML += `<span class="accordion-icon" style="margin-left: auto; transition: transform 0.2s;">?</span>`;
         
         // Hide all sections initially
         const sections = card.querySelectorAll('.notes-section');
@@ -215,9 +215,9 @@ async function loadPDFNotes() {
         
         subjectCard.innerHTML = `
           <div class="card-header" style="cursor: pointer; display: flex; align-items: center;">
-            <span class="subject-icon">📁</span>
+            <span class="subject-icon">??</span>
             <h4>General Resources</h4>
-            <span class="accordion-icon" style="margin-left: auto; transition: transform 0.2s;">▼</span>
+            <span class="accordion-icon" style="margin-left: auto; transition: transform 0.2s;">?</span>
           </div>
           <div class="notes-section collapsed">
             <ul class="notes-list">
@@ -294,7 +294,7 @@ async function loadPDFNotes() {
       const textEl = document.getElementById("no-notes-text");
       const iconEl = document.getElementById("no-notes-icon");
       if (textEl) textEl.textContent = "Failed to load resources.";
-      if (iconEl) iconEl.textContent = "⚠️";
+      if (iconEl) iconEl.textContent = "??";
       noNotesX.style.display = "block";
     }
   }
@@ -370,7 +370,7 @@ function filterResources() {
       const textEl = document.getElementById("no-notes-text");
       const iconEl = document.getElementById("no-notes-icon");
       if (textEl) textEl.textContent = "No matching chapters found.";
-      if (iconEl) iconEl.textContent = "🔍";
+      if (iconEl) iconEl.textContent = "??";
     } else {
       noNotesX.style.display = "none";
     }
@@ -482,180 +482,7 @@ notifTabs.forEach(tab => {
 
 // Marks Submission Logic
 const marksForm = document.getElementById("marks-form");
-const marksNameInput = document.getElementById("marks-name");
-const studentsDatalist = document.getElementById("students-list");
-const examsContainer = document.getElementById("exams-container");
-const dynamicExamsList = document.getElementById("dynamic-exams-list");
 
-let availableExams = [];
-let globalStudentsForMarks = [];
-
-async function initMarksSection() {
-  if (!marksForm) return;
-  try {
-    const [studentsRes, examsRes] = await Promise.all([
-      fetchStudents(),
-      fetchExams()
-    ]);
-    
-    // Populate students datalist
-    if (studentsRes.students) {
-        globalStudentsForMarks = studentsRes.students;
-        studentsRes.students.forEach(s => {
-          const opt = document.createElement("option");
-          opt.value = s.name;
-          studentsDatalist.appendChild(opt);
-        });
-      }
-
-    availableExams = examsRes.exams || [];
-    
-    // When name is entered, show exams
-    marksNameInput.addEventListener("input", () => {
-      if (marksNameInput.value.trim().length > 0) {
-        examsContainer.style.display = "flex";
-        renderExamsCheckboxes();
-      } else {
-        examsContainer.style.display = "none";
-      }
-    });
-
-  } catch (err) {
-    console.error("Error init marks:", err);
-  }
-}
-
-function renderExamsCheckboxes() {
-    dynamicExamsList.innerHTML = "";
-    
-    const studentName = marksNameInput.value.trim().toLowerCase();
-    const studentObj = globalStudentsForMarks.find(s => s.name.toLowerCase() === studentName);
-    const groupName = studentObj ? studentObj.group_name : null;
-
-    let examsToShow = availableExams.filter(ex => {
-      if (ex.target_groups && ex.target_groups.length > 0) {
-        if (!groupName || !ex.target_groups.includes(groupName)) {
-          return false;
-        }
-      }
-      return true;
-    });
-
-    if (examsToShow.length === 0) {
-      dynamicExamsList.innerHTML = `<p class="muted-text">No exams currently available for your group.</p>`;
-      return;
-    }
-  
-    examsToShow.forEach(ex => {
-    const row = document.createElement("div");
-    row.style.display = "flex";
-    row.style.alignItems = "center";
-    row.style.gap = "1rem";
-    row.style.background = "var(--bg)";
-    row.style.padding = "0.75rem";
-    row.style.borderRadius = "8px";
-    row.style.border = "1px solid var(--border)";
-    
-    row.innerHTML = `
-      <label style="display: flex; align-items: center; gap: 0.5rem; flex: 1; cursor: pointer;">
-        <input type="checkbox" class="exam-checkbox" data-exam-id="${ex.id}" data-max-marks="${ex.total_marks}">
-        <span style="font-weight: 500;">${escapeHtml(ex.name)}</span>
-      </label>
-      <div class="exam-marks-input-wrapper" style="display: none; align-items: center; gap: 0.5rem;">
-        <input type="number" class="exam-marks-input" min="0" max="${ex.total_marks}" step="0.5" placeholder="Marks" style="width: 80px; padding: 0.4rem; border-radius: 4px; border: 1px solid var(--border); background: var(--surface); color: var(--text);">
-        <span class="muted-text" style="font-size: 0.85rem;">/ ${ex.total_marks}</span>
-      </div>
-    `;
-
-    const checkbox = row.querySelector(".exam-checkbox");
-    const inputWrapper = row.querySelector(".exam-marks-input-wrapper");
-    const marksInput = row.querySelector(".exam-marks-input");
-
-    checkbox.addEventListener("change", (e) => {
-      if (e.target.checked) {
-        inputWrapper.style.display = "flex";
-        marksInput.required = true;
-      } else {
-        inputWrapper.style.display = "none";
-        marksInput.required = false;
-        marksInput.value = "";
-      }
-    });
-
-    dynamicExamsList.appendChild(row);
-  });
-}
-
-if (marksForm) {
-  initMarksSection();
-  
-  marksForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const btn = document.getElementById("marks-submit-btn");
-    const successMsg = document.getElementById("marks-success");
-    
-    // Gather selected exams
-    const checkboxes = dynamicExamsList.querySelectorAll(".exam-checkbox:checked");
-    if (checkboxes.length === 0) {
-      alert("Please select at least one exam to submit marks for.");
-      return;
-    }
-
-    const submissions = [];
-    let validationError = null;
-
-    checkboxes.forEach(cb => {
-      const examId = cb.dataset.examId;
-      const maxMarks = Number(cb.dataset.maxMarks);
-      const input = cb.closest("div").querySelector(".exam-marks-input");
-      const marksObtained = Number(input.value);
-
-      if (marksObtained < 0) {
-        validationError = "Marks cannot be negative.";
-      }
-      if (marksObtained > maxMarks) {
-        validationError = `Marks for this exam cannot exceed ${maxMarks}.`;
-      }
-
-      submissions.push({
-        exam_id: examId,
-        marks_obtained: marksObtained
-      });
-    });
-
-    if (validationError) {
-      alert(validationError);
-      return;
-    }
-
-    btn.disabled = true;
-    btn.textContent = "Saving...";
-    successMsg.style.display = "none";
-    
-    try {
-      // 1. Create or fetch student
-      const studentName = marksNameInput.value.trim();
-      const studentRes = await createStudent({ name: studentName });
-      const studentId = studentRes.student.id;
-
-      // 2. Submit marks
-      await submitMarks({
-        student_id: studentId,
-        submissions: submissions
-      });
-
-      marksForm.reset();
-      examsContainer.style.display = "none";
-      successMsg.style.display = "block";
-      setTimeout(() => { successMsg.style.display = "none"; }, 5000);
-    } catch (err) {
-      alert("Error saving marks: " + err.message);
-    } finally {
-      btn.disabled = false;
-      btn.textContent = "Submit Marks";
-    }
-  });
-}
 
 
 
@@ -763,7 +590,7 @@ function renderStudentReportContent() {
       const maxMarks = ex.total_marks;
       const perc = (marksObtained / maxMarks) * 100;
       
-      let changeText = "—";
+      let changeText = "�";
       let changeColor = "var(--text-muted)";
       if (prevPercentage !== null) {
         const diff = perc - prevPercentage;
@@ -817,6 +644,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 });
+
 
 
 

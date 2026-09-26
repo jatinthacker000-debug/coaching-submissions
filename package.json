@@ -5,15 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vercel dev",
-    "deploy": "vercel --prod",
-    "build": "esbuild analytics.js --bundle --outfile=analytics.bundle.js --format=iife"
+    "deploy": "vercel --prod"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.0",
     "@supabase/supabase-js": "^2.49.1",
-    "@vercel/analytics": "^2.0.1"
-  },
-  "devDependencies": {
-    "esbuild": "^0.28.2"
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2"
   }
 }
