@@ -1,4 +1,4 @@
-const loginScreen = document.getElementById("login-screen");
+﻿const loginScreen = document.getElementById("login-screen");
 const dashboardMain = document.getElementById("dashboard-main");
 const loginForm = document.getElementById("login-form");
 const loginError = document.getElementById("login-error");
@@ -1324,12 +1324,12 @@ if (bulkLoadBtn) {
         fetchMarks()
       ]);
 
-      bulkStudents = (studentsRes.students || []).filter(s => s.group_name === group);
+      bulkStudents = (studentsRes.students || []).filter(s => s.group_name === group || (group === "Epsilon" && s.group_name === "Velocity"));
       
       // Filter exams: either target_groups is empty/null, or contains the selected group
       bulkExams = (examsRes.exams || []).filter(ex => {
         if (!ex.target_groups || ex.target_groups.length === 0) return true;
-        return ex.target_groups.includes(group);
+        return ex.target_groups.includes(group) || (group === "Epsilon" && ex.target_groups.includes("Velocity"));
       });
       // Sort exams chronologically
       bulkExams.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
@@ -1464,4 +1464,5 @@ if (bulkSaveBtn) {
     }
   });
 }
+
 
