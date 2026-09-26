@@ -6,7 +6,7 @@ export async function isCoachAuthorized(req) {
   
   if (!token) return false;
 
-  const jwtSecret = process.env.JWT_SECRET || process.env.COACH_PASSWORD_HASH || "fallback_secret_for_dev";
+  const jwtSecret = process.env.JWT_SECRET || process.env.COACH_PASSWORD_HASH || process.env.COACH_PASSWORD || "fallback_secret_for_dev";
   
   try {
     const decoded = jwt.verify(token, jwtSecret);

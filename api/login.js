@@ -13,14 +13,22 @@ export default async function handler(req, res) {
   }
 
   const coachHash = process.env.COACH_PASSWORD_HASH;
-  const jwtSecret = process.env.JWT_SECRET || process.env.COACH_PASSWORD_HASH || "fallback_secret_for_dev";
+  const legacyPassword = process.env.COACH_PASSWORD;
+  const jwtSecret = process.env.JWT_SECRET || coachHash || legacyPassword || "fallback_secret_for_dev";
 
-  if (!coachHash) {
-    return sendError(res, "Server configuration error: COACH_PASSWORD_HASH not set", 500);
+  if (!coachHash && !legacyPassword) {
+    return sendError(res, "Server configuration error: COACH_PASSWORD_HASH or COACH_PASSWORD not set", 500);
   }
 
   try {
-    const isMatch = await bcrypt.compare(password, coachHash);
+    let isMatch = false;
+    if (coachHash) {
+      isMatch = await bcrypt.compare(password, coachHash);
+    } else if (legacyPassword) {
+      // Fallback for seamless migration: if they haven't set the hash yet, check the plain text password.
+      isMatch = (password === legacyPassword);
+    }
+
     if (!isMatch) {
       return sendError(res, "Invalid password", 401);
     }
