@@ -148,10 +148,17 @@
       <form id="cbse-form" class="submit-card wide-card" style="margin-bottom: 3rem;">
         <div class="form-row">
           <div class="form-group" style="flex: 1;">
+            <label for="cbse-grade">Grade</label>
+            <select id="cbse-grade" required>
+              <option value="CBSE">Grade 10</option>
+              <option value="CBSE-XII">Grade 12</option>
+            </select>
+          </div>
+          <div class="form-group" style="flex: 1;">
             <label for="cbse-title">Title (e.g., 2023 Resources)</label>
             <input type="text" id="cbse-title" placeholder="2023 Resources" required>
           </div>
-          <div class="form-group" style="flex: 2;">
+          <div class="form-group" style="flex: 1.5;">
             <label for="cbse-link">Google Drive Link</label>
             <input type="url" id="cbse-link" placeholder="https://drive.google.com/..." required>
           </div>

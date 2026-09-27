@@ -44,7 +44,15 @@ export default async function handler(req, res) {
     const { id, delete_all } = req.query;
     
     if (delete_all === "true") {
-      const { error } = await supabase.from("notes").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+      const type = req.query.type;
+      let error;
+      if (type === "cbse") {
+        const { error: cbseError } = await supabase.from("notes").delete().in("grade", ["CBSE", "CBSE-XII"]);
+        error = cbseError;
+      } else {
+        const { error: allErr } = await supabase.from("notes").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+        error = allErr;
+      }
       if (error) return sendError(res, error.message, 500);
       return sendJson(res, { success: true });
     }

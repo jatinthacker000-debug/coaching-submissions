@@ -86,7 +86,7 @@ async function renderNotes() {
       note.grade === "X" || note.grade === "X-Worksheet" || 
       note.grade === "X-Other" || note.grade === "XII" || 
       note.grade === "XII-Worksheet" || note.grade === "XII-Other" || 
-      note.grade === "NOTIFICATION" || note.grade === "CBSE"
+      note.grade === "NOTIFICATION" || note.grade === "CBSE" || note.grade === "CBSE-XII"
     );
 
     if (!gradeXNotes.length) {
@@ -124,7 +124,7 @@ async function renderNotes() {
       } else if (note.grade === "NOTIFICATION") {
         typeLabel = "Notification";
         typeColor = "background: var(--danger-hover); color: white;";
-      } else if (note.grade === "CBSE") {
+      } else if (note.grade === "CBSE" || note.grade === "CBSE-XII") {
         typeLabel = "CBSE Folder";
         typeColor = "background: #fffbe3; color: #b45309;";
       }
@@ -243,7 +243,7 @@ if (cbseForm) {
     try {
       await createNote({
         title: document.getElementById("cbse-title").value.trim(),
-        grade: "CBSE",
+        grade: document.getElementById("cbse-grade").value,
         subject: "All",
         link: document.getElementById("cbse-link").value.trim()
       });
