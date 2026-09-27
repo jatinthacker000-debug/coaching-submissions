@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Grade 12 PDF Notes & Worksheets | Padh rahi public</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Vercel Web Analytics -->
+  <script>
+    window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+  </script>
+  <script defer src="/_vercel/insights/script.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner container">
+      <div class="brand">
+        <img src="logo.jpg" alt="Padh rahi public Logo" class="brand-logo">
+        <span class="brand-text gradient-glow">Padh rahi public</span>
+      </div>
+      <div style="display: flex; gap: 1rem; align-items: center;" class="header-right-actions">
+        <button id="notif-bell-btn" style="background: var(--surface-card); border: 1px solid var(--border); color: var(--text); padding: 0.4rem 0.8rem; border-radius: 99px; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; width: max-content; transition: background 0.2s;">
+          <span class="notif-icon">🔔</span> <span id="notif-badge" style="background: var(--danger); color: white; border-radius: 99px; padding: 0.1rem 0.5rem; font-size: 0.75rem; display: none; font-weight: bold;">0</span>
+        </button>
+        <a href="index.html" class="nav-link header-dash-link">⬅️ Back to Home</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="container main-content">
+    <section class="hero">
+      <h1>Grade 12 Study Material & Worksheets</h1>
+      <p class="subtitle">Get the latest chapter-wise study notes, revision guides, and practice worksheets from Padh rahi public.</p>
+    </section>
+
+
+
+    <div id="offline-notice" class="notice-banner hidden">
+      This page must be opened from your online website link (not as a local file) after setup is complete.
+    </div>
+
+    <div style="margin-bottom: 2.5rem; display: flex; justify-content: center; gap: 15px; align-items: center; flex-wrap: wrap;">
+      <div class="custom-select-wrapper">
+        <select id="type-filter" class="custom-select">
+          <option value="all">All Resources</option>
+          <option value="notes">Study Notes</option>
+          <option value="worksheets">Worksheets</option>
+          <option value="other">Other Materials</option>
+        </select>
+      </div>
+      <div class="search-input-wrapper">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="search-input" placeholder="Search for a chapter..." class="search-input" autocomplete="off">
+      </div>
+    </div>
+    
+    <div class="notes-panel-wide">
+      <div id="notes-xii-container" class="notes-grid-subjects">
+        
+        <!-- Accountancy Subject Card -->
+        <div class="subject-card" id="group-xii-accountancy" style="display: none;">
+          <div class="card-header">
+            <span class="subject-icon">📊</span><h4>Accountancy</h4>
+          </div>
+          <div class="notes-section" id="section-xii-accountancy-other" style="display: none;">
+            <h5 class="resource-group-title">📁 Other Materials</h5>
+            <ul id="other-xii-accountancy" class="notes-list"></ul>
+          </div>
+          <div class="notes-section" id="section-xii-accountancy-notes" style="display: none;">
+            <h5 class="resource-group-title">📚 Study Notes</h5>
+            <ul id="notes-xii-accountancy" class="notes-list"></ul>
+          </div>
+          <div class="notes-section" id="section-xii-accountancy-worksheets" style="display: none;">
+            <h5 class="resource-group-title">📝 Worksheets</h5>
+            <ul id="worksheets-xii-accountancy" class="notes-list"></ul>
+          </div>
+        </div>
+
+        <!-- Business Studies Subject Card -->
+        <div class="subject-card" id="group-xii-business" style="display: none;">
+          <div class="card-header">
+            <span class="subject-icon">💼</span><h4>Business Studies</h4>
+          </div>
+          <div class="notes-section" id="section-xii-business-other" style="display: none;">
+            <h5 class="resource-group-title">📁 Other Materials</h5>
+            <ul id="other-xii-business" class="notes-list"></ul>
+          </div>
+          <div class="notes-section" id="section-xii-business-notes" style="display: none;">
+            <h5 class="resource-group-title">📚 Study Notes</h5>
+            <ul id="notes-xii-business" class="notes-list"></ul>
+          </div>
+          <div class="notes-section" id="section-xii-business-worksheets" style="display: none;">
+            <h5 class="resource-group-title">📝 Worksheets</h5>
+            <ul id="worksheets-xii-business" class="notes-list"></ul>
+          </div>
+        </div>
+
+        <!-- Economics Subject Card -->
+        <div class="subject-card" id="group-xii-economics" style="display: none;">
+          <div class="card-header">
+            <span class="subject-icon">📈</span><h4>Economics</h4>
+          </div>
+          <div class="notes-section" id="section-xii-economics-other" style="display: none;">
+            <h5 class="resource-group-title">📁 Other Materials</h5>
+            <ul id="other-xii-economics" class="notes-list"></ul>
+          </div>
+          <div class="notes-section" id="section-xii-economics-notes" style="display: none;">
+            <h5 class="resource-group-title">📚 Study Notes</h5>
+            <ul id="notes-xii-economics" class="notes-list"></ul>
+          </div>
+          <div class="notes-section" id="section-xii-economics-worksheets" style="display: none;">
+            <h5 class="resource-group-title">📝 Worksheets</h5>
+            <ul id="worksheets-xii-economics" class="notes-list"></ul>
+          </div>
+        </div>
+      </div>
+      
+      <div id="loading-indicator" class="empty-state" style="display: none;">
+        <div class="empty-state-icon">⏳</div>
+        <p class="muted-text">Loading resources...</p>
+      </div>
+      <div id="no-notes-xii" class="empty-state" style="display: none;">
+        <div class="empty-state-icon" id="no-notes-icon">📭</div>
+        <p class="muted-text text-center" id="no-notes-text">No resources uploaded yet.</p>
+      </div>
+    </div>
+
+
+
+    
+    <div class="mobile-footer" style="margin-top: 3rem; margin-bottom: 2rem;">
+      <a href="index.html" class="btn" style="width: 100%; display: flex; justify-content: center; align-items: center; gap: 0.5rem;">⬅️ Back to Home</a>
+    </div>
+  </main>
+
+  <div id="notif-modal" class="modal-overlay hidden">
+    <div class="modal-content">
+      <button id="notif-close-btn" style="position: absolute; top: 1.25rem; right: 1.25rem; background: none; border: none; color: var(--text-muted); font-size: 1.5rem; cursor: pointer; line-height: 1;">&times;</button>
+      <h2 style="margin-bottom: 1.25rem;">Recent Notifications</h2>
+      
+      <!-- Filter Tabs -->
+      <div id="notif-tabs" style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem; overflow-x: auto; padding-bottom: 0.25rem; scrollbar-width: none;">
+         <button class="notif-tab active" data-inst="all">All</button>
+         <button class="notif-tab" data-inst="IGNITE coaching class">IGNITE coaching class</button>
+         <button class="notif-tab" data-inst="Epsilon Classes">Epsilon Classes</button>
+         <button class="notif-tab" data-inst="Velocity">Velocity</button>
+         <button class="notif-tab" data-inst="Nerd Tutors">Nerd Tutors</button>
+      </div>
+
+      <ul id="notif-list" style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 1rem; overflow-y: auto; flex: 1;">
+         <p class="muted-text text-center" style="margin-top: 1rem;">No new notifications.</p>
+      </ul>
+    </div>
+  </div>
+
+  <script src="api-client.js"></script>
+  <script src="submit.js"></script>
+</body>
+</html>
+
+
+
+
+
+
+
+

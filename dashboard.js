@@ -1,4 +1,4 @@
-﻿const loginScreen = document.getElementById("login-screen");
+const loginScreen = document.getElementById("login-screen");
 const dashboardMain = document.getElementById("dashboard-main");
 const loginForm = document.getElementById("login-form");
 const loginError = document.getElementById("login-error");
@@ -81,11 +81,12 @@ async function renderNotes() {
     const { notes } = await fetchNotes();
     notesList.innerHTML = "";
 
-    // Show Grade 10 (X) notes, worksheets, other materials, notifications, and CBSE resources
+    // Show Grade 10 (X), Grade 12 (XII) notes, worksheets, other materials, notifications, and CBSE resources
     const gradeXNotes = (notes || []).filter(note => 
       note.grade === "X" || note.grade === "X-Worksheet" || 
-      note.grade === "X-Other" || note.grade === "NOTIFICATION" || 
-      note.grade === "CBSE"
+      note.grade === "X-Other" || note.grade === "XII" || 
+      note.grade === "XII-Worksheet" || note.grade === "XII-Other" || 
+      note.grade === "NOTIFICATION" || note.grade === "CBSE"
     );
 
     if (!gradeXNotes.length) {
@@ -111,12 +112,15 @@ async function renderNotes() {
     gradeXNotes.forEach((note) => {
       let typeLabel = "Study Note";
       let typeColor = "background: var(--primary-light); color: var(--primary);";
-      if (note.grade === "X-Worksheet") {
+      if (note.grade === "X-Worksheet" || note.grade === "XII-Worksheet") {
         typeLabel = "Worksheet";
         typeColor = "background: var(--accent-light); color: var(--accent);";
-      } else if (note.grade === "X-Other") {
+      } else if (note.grade === "X-Other" || note.grade === "XII-Other") {
         typeLabel = "Other Material";
         typeColor = "background: #fdf4ff; color: #d946ef;";
+      } else if (note.grade === "XII") {
+        typeLabel = "Study Note";
+        typeColor = "background: var(--primary-light); color: var(--primary);";
       } else if (note.grade === "NOTIFICATION") {
         typeLabel = "Notification";
         typeColor = "background: var(--danger-hover); color: white;";
@@ -223,7 +227,7 @@ if (noteForm) {
       alert(err.message || "Could not add resource.");
     } finally {
       noteSubmitBtn.disabled = false;
-      noteSubmitBtn.textContent = "Add Grade 10 Resource";
+      noteSubmitBtn.textContent = "Add Resource";
     }
   });
 }
