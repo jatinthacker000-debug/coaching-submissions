@@ -63,3 +63,17 @@ create table if not exists marks (
   created_at timestamptz not null default now(),
   unique(student_id, exam_id)
 );
+
+-- NEW AUTHENTICATION FIELDS FOR STUDENTS
+ALTER TABLE students ADD COLUMN IF NOT EXISTS student_id_alias TEXT UNIQUE;
+ALTER TABLE students ADD COLUMN IF NOT EXISTS password TEXT;
+
+-- NEW HOMEWORK LINKS TABLE
+CREATE TABLE IF NOT EXISTS homework_links (
+  id uuid primary key default gen_random_uuid(),
+  homework_date date not null,
+  group_name text not null,
+  link text not null,
+  created_at timestamptz not null default now(),
+  unique(homework_date, group_name)
+);

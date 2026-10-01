@@ -58,6 +58,32 @@
       </div>
     </div>
     
+    <!-- OSEM AND NALANDA SECTIONS -->
+    <div class="tabs-container" style="display: flex; gap: 1rem; justify-content: center; margin-bottom: 2rem;">
+      <button id="tab-osem" class="btn btn-primary" style="flex: 1; max-width: 200px;">Osem Section</button>
+      <button id="tab-nalanda" class="btn" style="background: var(--surface-card); color: var(--text); border: 1px solid var(--border); flex: 1; max-width: 200px;">Nalanda Section</button>
+    </div>
+
+    <div id="section-osem" style="margin-bottom: 3rem; display: block;">
+      <h2 style="text-align: center; margin-bottom: 1rem; color: var(--text);">Osem Homework Calendar</h2>
+      <div id="calendar-osem" class="calendar-container"></div>
+    </div>
+    
+    <div id="section-nalanda" style="margin-bottom: 3rem; display: none;">
+      <h2 style="text-align: center; margin-bottom: 1rem; color: var(--text);">Nalanda Homework Calendar</h2>
+      <div id="calendar-nalanda" class="calendar-container"></div>
+    </div>
+
+    <!-- CALENDAR MODAL -->
+    <div id="calendar-modal" class="modal-overlay hidden">
+      <div class="modal-content" style="max-width: 400px; text-align: center; padding: 2rem;">
+        <button id="calendar-modal-close" style="position: absolute; top: 1rem; right: 1rem; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text);">&times;</button>
+        <h3 id="calendar-modal-date" style="margin-bottom: 1rem; color: var(--text);">Date</h3>
+        <p id="calendar-modal-text" style="color: var(--text-muted); margin-bottom: 1.5rem;">Loading homework link...</p>
+        <a id="calendar-modal-link" href="#" target="_blank" class="btn btn-primary" style="display: none; width: 100%;">Open Homework</a>
+      </div>
+    </div>
+
     <section class="cbse-resources-section" style="margin-bottom: 3rem;">
       <div class="text-center" style="margin-bottom: 1.5rem;">
         <h2>CBSE Resources (Year-wise)</h2>
@@ -168,6 +194,8 @@
   </div>
 
   <script src="api-client.js"></script>
+  <script src="student-auth.js"></script>
+  <script src="calendar.js"></script>
   <script src="submit.js"></script>
 </body>
 </html>

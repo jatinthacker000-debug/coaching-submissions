@@ -83,6 +83,35 @@
         </button>
       </form>
 
+      <!-- Homework Links Manager -->
+      <div class="panel-header" style="margin-top: 3rem;">
+        <div>
+          <h1>Homework Links Manager</h1>
+          <p class="subtitle">Set the Google Drive links for the Grade 12 calendar.</p>
+        </div>
+      </div>
+      <div class="submit-card wide-card" style="margin-bottom: 3rem;">
+        <div class="form-row">
+          <div class="form-group" style="flex: 1;">
+            <label for="hw-date">Select Date (Oct 2026)</label>
+            <input type="date" id="hw-date" value="2026-10-01" min="2026-10-01" max="2026-10-31">
+          </div>
+          <div class="form-group" style="flex: 1;">
+            <label for="hw-group">Select Group</label>
+            <select id="hw-group">
+              <option value="Osem">Osem</option>
+              <option value="Nalanda">Nalanda</option>
+            </select>
+          </div>
+          <div class="form-group" style="flex: 2;">
+            <label for="hw-link">Google Drive Link</label>
+            <input type="url" id="hw-link" placeholder="https://drive.google.com/...">
+          </div>
+        </div>
+        <button class="btn btn-primary" id="hw-submit-btn" style="margin-top: 1rem;">Save Homework Link</button>
+        <p id="hw-status" style="margin-top: 1rem; display: none; font-weight: 500;"></p>
+      </div>
+
       <div class="panel-header">
         <div>
           <h1>Resources Manager</h1>
@@ -207,12 +236,20 @@
         <div class="form-group" style="margin-bottom: 1.5rem; margin-top: 1rem;"><label>Groups taking this exam (leave all unchecked to allow everyone)</label><div style="display: flex; gap: 1rem; flex-wrap: wrap;" id="exam-groups-container"><label style="display: flex; align-items: center; gap: 0.25rem;"><input type="checkbox" value="Ignite"> Ignite</label><label style="display: flex; align-items: center; gap: 0.25rem;"><input type="checkbox" value="Epsilon"> Epsilon</label><label style="display: flex; align-items: center; gap: 0.25rem;"><input type="checkbox" value="Lakshya"> Lakshya</label><label style="display: flex; align-items: center; gap: 0.25rem;"><input type="checkbox" value="Sankalp"> Sankalp</label><label style="display: flex; align-items: center; gap: 0.25rem;"><input type="checkbox" value="Prayas"> Prayas</label><label style="display: flex; align-items: center; gap: 0.25rem;"><input type="checkbox" value="Nerd Tutors"> Nerd Tutors</label></div></div>      </form>
 
       <!-- Pre-register Student -->
-      <div class="panel-header" style="margin-top: 3rem;"><div><h1>Add New Student</h1><p class="subtitle">Pre-register a student and assign them to a group.</p></div></div>
+      <div class="panel-header" style="margin-top: 3rem;"><div><h1>Add New Student</h1><p class="subtitle">Pre-register a student and assign them to a group, along with login credentials.</p></div></div>
       <div class="submit-card wide-card" style="margin-bottom: 1rem;">
         <div class="form-row">
           <div class="form-group" style="flex: 1.5;">
             <label for="add-student-name">Student Name</label>
             <input type="text" id="add-student-name" placeholder="Enter full name...">
+          </div>
+          <div class="form-group" style="flex: 1;">
+            <label for="add-student-id-alias">Student ID (e.g. 1508)</label>
+            <input type="text" id="add-student-id-alias" placeholder="Birthday DDMM...">
+          </div>
+          <div class="form-group" style="flex: 1;">
+            <label for="add-student-password">Password</label>
+            <input type="text" id="add-student-password" placeholder="First name...">
           </div>
           <div class="form-group" style="flex: 1;">
             <label for="add-student-group">Select Group</label>
@@ -228,6 +265,24 @@
         </div>
         <button class="btn btn-primary" id="add-student-btn">Add Student</button>
         <p id="add-student-status" style="margin-top: 1rem; font-size: 0.9rem; font-weight: 500; display: none;"></p>
+      </div>
+
+      <!-- Student Credentials View -->
+      <div class="panel-header" style="margin-top: 3rem;"><div><h1>Student Credentials</h1><p class="subtitle">View current student IDs and passwords.</p></div></div>
+      <div class="submit-card wide-card" style="margin-bottom: 3rem; overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; text-align: left;">
+          <thead style="border-bottom: 1px solid var(--border);">
+            <tr>
+              <th style="padding: 0.75rem; color: var(--text-muted);">Name</th>
+              <th style="padding: 0.75rem; color: var(--text-muted);">Group</th>
+              <th style="padding: 0.75rem; color: var(--text-muted);">Student ID</th>
+              <th style="padding: 0.75rem; color: var(--text-muted);">Password</th>
+            </tr>
+          </thead>
+          <tbody id="credentials-table-body">
+            <tr><td colspan="4" style="padding: 1rem; color: var(--text-muted); text-align: center;">Loading...</td></tr>
+          </tbody>
+        </table>
       </div>
 
       <!-- Student Groups Management -->

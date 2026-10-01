@@ -1223,28 +1223,32 @@ document.addEventListener("DOMContentLoaded", () => {
     addStudentBtn.addEventListener("click", async () => {
       const nameEl = document.getElementById("add-student-name");
       const groupEl = document.getElementById("add-student-group");
+      const idAliasEl = document.getElementById("add-student-id-alias");
+      const passwordEl = document.getElementById("add-student-password");
       const statusEl = document.getElementById("add-student-status");
       
       const name = nameEl.value.trim();
       const group_name = groupEl.value;
+      const student_id_alias = idAliasEl ? idAliasEl.value.trim() : "";
+      const password = passwordEl ? passwordEl.value.trim() : "";
+      
       if (!name) return alert("Please enter student name.");
       
       addStudentBtn.disabled = true;
       addStudentBtn.textContent = "Adding...";
       try {
-        await fetch("/api/students", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name, group_name })
-        });
-        statusEl.textContent = "Student added successfully!";
+        await createStudent({ name, group_name, student_id_alias, password });
+        statusEl.textContent = "Student added/updated successfully!";
         statusEl.style.color = "green";
         statusEl.style.display = "block";
         nameEl.value = "";
         groupEl.value = "";
+        if (idAliasEl) idAliasEl.value = "";
+        if (passwordEl) passwordEl.value = "";
         
         if (typeof populateGroupManager === "function") await populateGroupManager();
         if (typeof loadExamData === "function") await loadExamData();
+        if (typeof loadCredentialsTable === "function") await loadCredentialsTable();
       } catch (err) {
         statusEl.textContent = "Error: " + err.message;
         statusEl.style.color = "red";
@@ -1255,6 +1259,38 @@ document.addEventListener("DOMContentLoaded", () => {
       setTimeout(() => { statusEl.style.display = "none"; }, 3000);
     });
   }
+
+  // Credentials table logic
+  const credTableBody = document.getElementById("credentials-table-body");
+  window.loadCredentialsTable = async function() {
+    if (!credTableBody) return;
+    try {
+      const res = await fetch("/api/students", {
+        headers: { "Authorization": `Bearer ${getCoachPassword()}` }
+      });
+      const data = await res.json();
+      if (data.students) {
+        credTableBody.innerHTML = "";
+        data.students.forEach(s => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td style="padding: 0.75rem;">${escapeHtml(s.name)}</td>
+            <td style="padding: 0.75rem;">${escapeHtml(s.group_name || "-")}</td>
+            <td style="padding: 0.75rem;">${escapeHtml(s.student_id_alias || "-")}</td>
+            <td style="padding: 0.75rem; font-family: monospace;">${escapeHtml(s.password || "-")}</td>
+          `;
+          credTableBody.appendChild(tr);
+        });
+      }
+    } catch (e) {
+      credTableBody.innerHTML = `<tr><td colspan="4" style="color:red; text-align:center;">Failed to load credentials</td></tr>`;
+    }
+  };
+  
+  if (hasCoachPassword()) {
+    window.loadCredentialsTable();
+  }
+});
 
   // EXPORT TO EXCEL
   const exportBtn = document.getElementById("export-excel-btn");
@@ -1469,4 +1505,45 @@ if (bulkSaveBtn) {
   });
 }
 
+
+
+// HOMEWORK LINK MANAGER
+document.addEventListener('DOMContentLoaded', () => {
+  const hwBtn = document.getElementById('hw-submit-btn');
+  if (hwBtn) {
+    hwBtn.addEventListener('click', async () => {
+      const date = document.getElementById('hw-date').value;
+      const group = document.getElementById('hw-group').value;
+      const link = document.getElementById('hw-link').value.trim();
+      const status = document.getElementById('hw-status');
+
+      if (!date || !group || !link) return alert('All fields are required');
+
+      hwBtn.disabled = true;
+      hwBtn.textContent = 'Saving...';
+      try {
+        const res = await fetch('/api/homework-links', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getCoachPassword() },
+          body: JSON.stringify({ homework_date: date, group_name: group, link })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to save');
+
+        status.textContent = 'Saved successfully!';
+        status.style.color = 'green';
+        status.style.display = 'block';
+        document.getElementById('hw-link').value = '';
+      } catch (e) {
+        status.textContent = e.message;
+        status.style.color = 'red';
+        status.style.display = 'block';
+      } finally {
+        hwBtn.disabled = false;
+        hwBtn.textContent = 'Save Homework Link';
+        setTimeout(() => status.style.display = 'none', 3000);
+      }
+    });
+  }
+});
 

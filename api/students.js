@@ -5,9 +5,13 @@ export default async function handler(req, res) {
   const supabase = getSupabase();
 
   if (req.method === "GET") {
+    const isCoach = await isCoachAuthorized(req);
+    // If coach, fetch credentials too
+    const selectFields = isCoach ? "id, name, group_name, student_id_alias, password" : "id, name, group_name";
+    
     const { data, error } = await supabase
       .from("students")
-      .select("id, name, group_name")
+      .select(selectFields)
       .order("name", { ascending: true });
 
     if (error) return sendError(res, error.message, 500);
@@ -20,19 +24,32 @@ export default async function handler(req, res) {
     if (!body.name?.trim()) return sendError(res, "Student name is required.");
 
     const cleanName = body.name.trim().replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const studentIdAlias = body.student_id_alias?.trim() || null;
+    const password = body.password?.trim() || null;
 
     // Check if exists
     const { data: existing } = await supabase
       .from("students")
-      .select("id, name, group_name")
+      .select("id, name, group_name, student_id_alias, password")
       .ilike("name", cleanName)
       .maybeSingle();
 
     if (existing) {
+      const updates = {};
       if (body.group_name !== undefined && body.group_name !== existing.group_name) {
+        updates.group_name = body.group_name || null;
+      }
+      if (studentIdAlias !== null && studentIdAlias !== existing.student_id_alias) {
+        updates.student_id_alias = studentIdAlias;
+      }
+      if (password !== null && password !== existing.password) {
+        updates.password = password;
+      }
+
+      if (Object.keys(updates).length > 0) {
         const { data: updated, error: updateError } = await supabase
           .from("students")
-          .update({ group_name: body.group_name || null })
+          .update(updates)
           .eq("id", existing.id)
           .select()
           .single();
@@ -45,7 +62,12 @@ export default async function handler(req, res) {
     // Create new
     const { data, error } = await supabase
       .from("students")
-      .insert({ name: cleanName, group_name: body.group_name || null })
+      .insert({ 
+        name: cleanName, 
+        group_name: body.group_name || null,
+        student_id_alias: studentIdAlias,
+        password: password
+      })
       .select()
       .single();
 
@@ -81,5 +103,3 @@ export default async function handler(req, res) {
 
   return sendError(res, "Method not allowed.", 405);
 }
-
-
