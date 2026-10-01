@@ -1290,7 +1290,6 @@ document.addEventListener("DOMContentLoaded", () => {
   if (hasCoachPassword()) {
     window.loadCredentialsTable();
   }
-});
 
   // EXPORT TO EXCEL
   const exportBtn = document.getElementById("export-excel-btn");
