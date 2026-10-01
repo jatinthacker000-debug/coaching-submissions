@@ -1079,7 +1079,7 @@ async function populateGroupManager() {
     const { students } = await fetchStudents();
     manageGroupStudent.innerHTML = '<option value="">Select Student...</option>';
     students.forEach(s => {
-      manageGroupStudent.innerHTML += `<option value="${s.id}" data-group="${s.group_name || '}">${escapeHtml(s.name)} ${s.group_name ? `(${escapeHtml(s.group_name)})` : '}</option>`;
+      manageGroupStudent.innerHTML += `<option value="${s.id}" data-group="${s.group_name || ''}">${escapeHtml(s.name)} ${s.group_name ? `(${escapeHtml(s.group_name)})` : ''}</option>`;
     });
   } catch(e) {}
 }
@@ -1101,7 +1101,10 @@ if (manageGroupUpdateBtn) {
       const studentName = manageGroupStudent.options[manageGroupStudent.selectedIndex].text.split(" (")[0];
       await fetch("/api/students", {
          method: "POST",
-         headers: { "Content-Type": "application/json" },
+         headers: { 
+           "Content-Type": "application/json",
+           "Authorization": `Bearer ${getCoachPassword()}`
+         },
          body: JSON.stringify({ name: studentName, group_name: grp })
       });
       manageGroupStatus.textContent = "Group updated!";
