@@ -285,38 +285,7 @@
         </table>
       </div>
 
-      <!-- Student Groups Management -->
-      <div class="panel-header" style="margin-top: 3rem;">
-        <div>
-          <h1>Student Groups Management</h1>
-          <p class="subtitle">Assign students to specific groups.</p>
-        </div>
-      </div>
-      <button class="btn btn-danger" id="delete-all-students-btn" style="margin-bottom: 1rem;">Delete All Students</button>
-      <div class="submit-card wide-card" style="margin-bottom: 3rem;">
-        <div class="form-row">
-          <div class="form-group" style="flex: 1.5;">
-            <label for="manage-group-student">Select Student</label>
-            <select id="manage-group-student">
-              <option value="">Select Student...</option>
-            </select>
-          </div>
-          <div class="form-group" style="flex: 1;">
-            <label for="manage-group-select">Select Group</label>
-            <select id="manage-group-select">
-              <option value="">-- No Group --</option>
-              <option value="Ignite">Ignite</option>
-              <option value="Epsilon">Epsilon</option>
-              <option value="Lakshya">Lakshya</option>
-              <option value="Sankalp">Sankalp</option>
-              <option value="Prayas">Prayas</option>
-              <option value="Nerd Tutors">Nerd Tutors</option>
-            </select>
-          </div>
-        </div>
-        <button class="btn btn-primary" id="manage-group-update-btn">Update Group</button>
-        <p id="manage-group-status" style="margin-top: 1rem; font-size: 0.9rem; font-weight: 500; display: none;"></p>
-      </div>
+      <button class="btn btn-danger" id="delete-all-students-btn" style="margin-bottom: 3rem;">Delete All Students</button>
 
       <!-- Class Performance Overview (Advanced Analytics) -->
       <div class="panel-header" style="margin-top: 3rem;">
@@ -471,8 +440,8 @@
         </div>
       </div>
       <div class="submit-card" style="padding: 1.5rem;">
-        <div style="display: flex; gap: 1rem; align-items: flex-end; margin-bottom: 1.5rem;">
-          <div class="form-group" style="flex: 1;">
+        <div style="margin-bottom: 1.5rem;">
+          <div class="form-group" style="max-width: 300px; margin-bottom: 1rem;">
             <label for="bulk-group-select">Select Group</label>
             <select id="bulk-group-select">
               <option value="">Choose a group...</option>
@@ -484,7 +453,7 @@
               <option value="Nerd Tutors">Nerd Tutors</option>
             </select>
           </div>
-          <button id="bulk-load-btn" class="btn btn-primary">Load Grid</button>
+          <button id="bulk-load-btn" class="btn btn-primary" style="width: auto; padding: 0.75rem 2rem;">Load Grid</button>
         </div>
         <div id="bulk-grid-container" style="display: none; overflow-x: auto;">
           <table class="grid-table" style="width: 100%; border-collapse: collapse; text-align: left;">

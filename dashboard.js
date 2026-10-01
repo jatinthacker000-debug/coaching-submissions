@@ -1397,11 +1397,24 @@ if (bulkLoadBtn) {
 function renderBulkGrid() {
   // Head
   let headHtml = `<tr>
-    <th style="width: 50px;">Sl no</th>
-    <th style="min-width: 150px;">Name of the student</th>`;
+    <th style="width: 50px; text-align: center; padding: 0.5rem;">Sl no</th>
+    <th style="min-width: 150px; padding: 0.5rem;">Name of the student</th>`;
   
+  if (bulkExams.length === 0) {
+    headHtml += `<th style="padding: 0.5rem;">No exams assigned to this group. Please create an exam first.</th></tr>`;
+    bulkGridHead.innerHTML = headHtml;
+    bulkGridBody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">No exams available to enter marks.</td></tr>`;
+    bulkSaveBtn.style.display = "none";
+    return;
+  }
+
+  bulkSaveBtn.style.display = "inline-block";
+
   bulkExams.forEach((ex, idx) => {
-    headHtml += `<th title="${ex.name} (Max: ${ex.total_marks})">${ex.name}<br><small style="font-weight:normal;">Max: ${ex.total_marks}</small></th>`;
+    headHtml += `<th title="${ex.name} (Max: ${ex.total_marks})" style="text-align: center; min-width: 100px; padding: 0.5rem;">
+      ${ex.name}<br>
+      <small style="font-weight:normal; color: var(--text-muted);">Max: ${ex.total_marks}</small>
+    </th>`;
   });
   headHtml += `</tr>`;
   bulkGridHead.innerHTML = headHtml;
@@ -1410,15 +1423,15 @@ function renderBulkGrid() {
   let bodyHtml = "";
   bulkStudents.forEach((st, sIdx) => {
     bodyHtml += `<tr>
-      <td style="text-align: center;">${sIdx + 1}</td>
-      <td>${escapeHtml(st.name)}</td>`;
+      <td style="text-align: center; padding: 0.5rem;">${sIdx + 1}</td>
+      <td style="font-weight: 500; padding: 0.5rem;">${escapeHtml(st.name)}</td>`;
     
     bulkExams.forEach(ex => {
       // Find existing mark
       const existing = bulkExistingMarks.find(m => m.student_id === st.id && m.exam_id === ex.id);
       const val = existing && existing.marks_obtained !== null ? existing.marks_obtained : "";
       
-      bodyHtml += `<td>
+      bodyHtml += `<td style="text-align: center; padding: 0.5rem;">
         <input type="number" 
                step="0.5" 
                min="0" 
@@ -1426,7 +1439,8 @@ function renderBulkGrid() {
                data-student-id="${st.id}" 
                data-exam-id="${ex.id}" 
                value="${val}" 
-               class="bulk-mark-input" />
+               class="bulk-mark-input" 
+               style="width: 70px; padding: 0.4rem; text-align: center; border: 1px solid #d1d5db; border-radius: 4px;" />
       </td>`;
     });
     bodyHtml += `</tr>`;

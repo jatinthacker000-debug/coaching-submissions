@@ -77,3 +77,5 @@ CREATE TABLE IF NOT EXISTS homework_links (
   created_at timestamptz not null default now(),
   unique(homework_date, group_name)
 );
+
+ALTER TABLE exams ADD COLUMN IF NOT EXISTS target_groups TEXT[] DEFAULT '{}';
