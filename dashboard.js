@@ -739,7 +739,7 @@ function updateAnalyticsDropdowns(studentsToUse = globalStudents) {
   const groupExams = globalExams.filter(ex => {
     if (!selectedGrp) return true;
     if (!ex.target_groups || ex.target_groups.length === 0) return true;
-    return ex.target_groups.includes(selectedGrp) || (selectedGrp === "Epsilon" && ex.target_groups.includes("Velocity"));
+    return ex.target_groups.includes(selectedGrp);
   });
 
   let examHtml = ``;
@@ -765,7 +765,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const groupExams = globalExams.filter(ex => {
       if (!selectedGrp) return true;
       if (!ex.target_groups || ex.target_groups.length === 0) return true;
-      return ex.target_groups.includes(selectedGrp) || (selectedGrp === "Epsilon" && ex.target_groups.includes("Velocity"));
+      return ex.target_groups.includes(selectedGrp);
     });
 
     let examsToRender = groupExams;
@@ -1105,7 +1105,7 @@ function renderAttentionList(exams, marksByStudent, studentsToUse = globalStuden
   attentionStudents.sort((a, b) => b.drop - a.drop);
   
   if (attentionStudents.length === 0) {
-    attentionList.innerHTML = `<li style="color: #059669; text-align: center; padding: 1rem; font-weight: 500;">🎉 Great job! No students currently require immediate attention.</li>`;
+    attentionList.innerHTML = `<li style="color: #059669; text-align: center; padding: 1rem; font-weight: 500;">Ã°Å¸Å½â€° Great job! No students currently require immediate attention.</li>`;
     return;
   }
   
@@ -1126,7 +1126,7 @@ function renderAttentionList(exams, marksByStudent, studentsToUse = globalStuden
       <li style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: var(--bg); border: 1px solid var(--border); border-radius: 8px;">
         <div>
           <strong style="color: var(--text); font-size: 1.1rem; display: block; margin-bottom: 0.25rem;">${escapeHtml(s.name)}</strong>
-          <span style="color: var(--danger); font-size: 0.85rem;">⚠️ ${s.reason}</span>
+          <span style="color: var(--danger); font-size: 0.85rem;">Ã¢Å¡Â Ã¯Â¸Â ${s.reason}</span>
         </div>
         <div style="text-align: right; font-size: 0.95rem;">
           ${statHtml}
@@ -1223,7 +1223,7 @@ function renderClassStatsSection() {
   const groupExams = globalExams.filter(ex => {
     if (!selectedGrp) return true;
     if (!ex.target_groups || ex.target_groups.length === 0) return true;
-    return ex.target_groups.includes(selectedGrp) || (selectedGrp === "Epsilon" && ex.target_groups.includes("Velocity"));
+    return ex.target_groups.includes(selectedGrp);
   });
 
   calculateClassStats(groupExams, globalMarksByStudent, validStudentIds);
@@ -1239,7 +1239,7 @@ function renderOverviewTableSection() {
   const groupExams = globalExams.filter(ex => {
     if (!selectedGrp) return true;
     if (!ex.target_groups || ex.target_groups.length === 0) return true;
-    return ex.target_groups.includes(selectedGrp) || (selectedGrp === "Epsilon" && ex.target_groups.includes("Velocity"));
+    return ex.target_groups.includes(selectedGrp);
   });
 
   renderPerformanceTable(groupExams, filteredMarks, filteredStudents);
@@ -1264,7 +1264,7 @@ function renderAttentionAndGrowthSection() {
   const groupExams = globalExams.filter(ex => {
     if (!selectedGrp) return true;
     if (!ex.target_groups || ex.target_groups.length === 0) return true;
-    return ex.target_groups.includes(selectedGrp) || (selectedGrp === "Epsilon" && ex.target_groups.includes("Velocity"));
+    return ex.target_groups.includes(selectedGrp);
   });
 
   renderAttentionList(groupExams, globalMarksByStudent, filteredStudents);
@@ -1449,7 +1449,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (newAlias === null) return;
     const newPass = prompt("Enter new Password:", student.password);
     if (newPass === null) return;
-    const newGroup = prompt("Enter new Group Name (Ignite, Epsilon, etc):", student.group_name);
+    const newGroup = prompt("Enter new Group Name:", student.group_name);
     if (newGroup === null) return;
     
     try {
@@ -1553,12 +1553,12 @@ if (bulkLoadBtn) {
         fetchMarks()
       ]);
 
-      bulkStudents = (studentsRes.students || []).filter(s => s.group_name === group || (group === "Epsilon" && s.group_name === "Velocity"));
+      bulkStudents = (studentsRes.students || []).filter(s => s.group_name === group);
       
       // Filter exams: either target_groups is empty/null, or contains the selected group
       bulkExams = (examsRes.exams || []).filter(ex => {
         if (!ex.target_groups || ex.target_groups.length === 0) return true;
-        return ex.target_groups.includes(group) || (group === "Epsilon" && ex.target_groups.includes("Velocity"));
+        return ex.target_groups.includes(group);
       });
       // Sort exams chronologically
       bulkExams.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
@@ -1736,7 +1736,7 @@ document.addEventListener('DOMContentLoaded', () => {
         status.textContent = 'Saved successfully!';
         status.style.color = 'green';
         status.style.display = 'block';
-        document.getElementById('hw-link').value = '';
+        document.getElementById('hw-link').value = ''; if (typeof loadHomeworkLinks !== 'undefined') loadHomeworkLinks();
       } catch (e) {
         status.textContent = e.message;
         status.style.color = 'red';
@@ -1813,3 +1813,96 @@ function renderGrowthList(exams, marksByStudent, studentsToUse = globalStudents)
   
   growthList.innerHTML = html;
 }
+
+// ACCORDION LOGIC
+document.addEventListener('DOMContentLoaded', () => {
+  const overviewHeader = document.getElementById('overview-header');
+  const overviewContent = document.getElementById('overview-content');
+  const overviewIcon = document.getElementById('overview-toggle-icon');
+
+  if (overviewHeader && overviewContent && overviewIcon) {
+    overviewHeader.addEventListener('click', () => {
+      const isHidden = overviewContent.style.display === 'none';
+      overviewContent.style.display = isHidden ? 'block' : 'none';
+      overviewIcon.textContent = isHidden ? '?' : '?';
+    });
+  }
+
+  const insightsHeader = document.getElementById('insights-header');
+  const insightsContent = document.getElementById('insights-content');
+  const insightsIcon = document.getElementById('insights-toggle-icon');
+
+  if (insightsHeader && insightsContent && insightsIcon) {
+    insightsHeader.addEventListener('click', () => {
+      const isHidden = insightsContent.style.display === 'none';
+      insightsContent.style.display = isHidden ? 'grid' : 'none';
+      insightsIcon.textContent = isHidden ? '?' : '?';
+    });
+  }
+});
+
+// HOMEWORK LINKS LOADING AND DELETION
+async function loadHomeworkLinks() {
+  const tbody = document.getElementById('hw-links-tbody');
+  if (!tbody) return;
+  try {
+    const res = await fetch('/api/homework-links', {
+      headers: { 'Authorization': 'Bearer ' + getCoachPassword() }
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to fetch links');
+    
+    const links = data.links || [];
+    if (links.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 1rem; color: var(--text-muted);">No links found.</td></tr>';
+      return;
+    }
+    
+    // Sort by date descending
+    links.sort((a, b) => new Date(b.homework_date) - new Date(a.homework_date));
+    
+    tbody.innerHTML = links.map(link => 
+      <tr>
+        <td style="padding: 1rem; border-bottom: 1px solid var(--border);"></td>
+        <td style="padding: 1rem; border-bottom: 1px solid var(--border);"></td>
+        <td style="padding: 1rem; border-bottom: 1px solid var(--border);"><a href="" target="_blank" style="color: var(--primary);">View Link</a></td>
+        <td style="padding: 1rem; border-bottom: 1px solid var(--border); text-align: right;">
+          <button class="btn" onclick="deleteHomeworkLink('')" style="background: #ef4444; color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.8rem;">Delete</button>
+        </td>
+      </tr>
+    ).join('');
+  } catch (e) {
+    tbody.innerHTML = <tr><td colspan="4" style="text-align: center; padding: 1rem; color: #ef4444;">Error: </td></tr>;
+  }
+}
+
+window.deleteHomeworkLink = async function(id) {
+  if (!confirm('Are you sure you want to delete this homework link?')) return;
+  try {
+    const res = await fetch('/api/homework-links?id=' + id, {
+      method: 'DELETE',
+      headers: { 'Authorization': 'Bearer ' + getCoachPassword() }
+    });
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || 'Failed to delete');
+    }
+    loadHomeworkLinks(); // Reload the list
+  } catch (e) {
+    alert('Error deleting link: ' + e.message);
+  }
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadHomeworkLinks();
+  
+  // Hook into the save button to reload the list after saving
+  const hwBtn = document.getElementById('hw-submit-btn');
+  if (hwBtn) {
+    // We can just add an event listener because multiple listeners are fine,
+    // we just want to refresh after a short delay to let the original listener finish.
+    hwBtn.addEventListener('click', () => {
+      setTimeout(loadHomeworkLinks, 1000); // 1 second delay to ensure save completes
+    });
+  }
+});
