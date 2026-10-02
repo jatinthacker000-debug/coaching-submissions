@@ -727,3 +727,10 @@ input:focus, select:focus, textarea:focus {
 .grid-table input:focus {
   outline: 2px solid var(--primary);
 }
+.accordion-icon {
+  margin-left: 0.5rem;
+  color: var(--primary);
+  transition: transform 0.3s ease;
+  display: inline-block;
+  vertical-align: middle;
+}

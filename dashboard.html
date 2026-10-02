@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -370,7 +370,7 @@
       <!-- Student Performance Overview -->
       <div class="panel-header" id="overview-header" style="margin-top: 3rem; display: flex; justify-content: space-between; align-items: flex-end; cursor: pointer; user-select: none;">
         <div>
-          <h1>Student Performance Overview <span id="overview-toggle-icon" style="font-size: 1rem; margin-left: 0.5rem;">&#9660;</span></h1>
+          <h1 style="display: flex; align-items: center;">Student Performance Overview <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="accordion-icon" id="overview-toggle-icon" style="transform: rotate(0deg);"><polyline points="6 9 12 15 18 9"></polyline></svg></h1>
           <p class="subtitle">View and analyze marks across all exams.</p>
         </div>
         <div style="margin-top: 1rem; display: flex; gap: 1rem; align-items: center;" onclick="event.stopPropagation();">
@@ -402,12 +402,12 @@
       </div>
       
       <!-- Student Analytics & Growth Comparison -->
-      <div class="panel-header" style="margin-top: 3rem; display: flex; justify-content: space-between; align-items: flex-end;">
+      <div class="panel-header" id="analytics-header" style="margin-top: 3rem; display: flex; justify-content: space-between; align-items: flex-end; cursor: pointer; user-select: none;">
         <div>
-          <h1>Individual Student Analytics</h1>
+          <h1 style="display: flex; align-items: center;">Individual Student Analytics <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="accordion-icon" id="analytics-toggle-icon" style="transform: rotate(0deg);"><polyline points="6 9 12 15 18 9"></polyline></svg></h1>
           <p class="subtitle">Select a student to view their specific performance and compare exams.</p>
         </div>
-        <div style="margin-top: 1rem;">
+        <div style="margin-top: 1rem;" onclick="event.stopPropagation();">
           <select id="analytics-group-filter" style="padding: 0.5rem; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text);">
             <option value="">All Groups</option>
             <option value="NEPS">NEPS</option><option value="NEGS">NEGS</option><option value="Nalanda">Nalanda</option>
@@ -419,37 +419,39 @@
         </div>
       </div>
       
-      <div class="submit-card wide-card" style="margin-bottom: 2rem;">
-        <div class="form-row">
-          <div class="form-group" style="flex: 1;">
-            <label for="analytics-student">Select Student (up to 4, Ctrl+Click)</label>
-            <select id="analytics-student" multiple size="5" style="height: auto; padding: 0.5rem; overflow-y: auto;">
-              <option value="">-- Class Average --</option>
-            </select>
-          </div>
-          <div class="form-group" style="flex: 1;">
-            <label for="analytics-exams">Select Exams (Filter, Ctrl+Click)</label>
-            <select id="analytics-exams" multiple size="5" style="height: auto; padding: 0.5rem; overflow-y: auto;">
-            </select>
+      <div id="analytics-content" style="display: none;">
+        <div class="submit-card wide-card" style="margin-bottom: 2rem;">
+          <div class="form-row">
+            <div class="form-group" style="flex: 1;">
+              <label for="analytics-student">Select Student (up to 4, Ctrl+Click)</label>
+              <select id="analytics-student" multiple size="5" style="height: auto; padding: 0.5rem; overflow-y: auto;">
+                <option value="">-- Class Average --</option>
+              </select>
+            </div>
+            <div class="form-group" style="flex: 1;">
+              <label for="analytics-exams">Select Exams (Filter, Ctrl+Click)</label>
+              <select id="analytics-exams" multiple size="5" style="height: auto; padding: 0.5rem; overflow-y: auto;">
+              </select>
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- Chart Summary Data Table -->
-      <div id="chart-summary-container" style="margin-top: 1rem;"></div>
+        <!-- Chart Summary Data Table -->
+        <div id="chart-summary-container" style="margin-top: 1rem;"></div>
 
-      <!-- Chart Container -->
-      <div style="background: var(--surface-card); border-radius: 12px; border: 1px solid var(--border); padding: 1.5rem; margin-top: 2rem; box-shadow: var(--shadow);">
-        <h3 id="chart-title" style="margin-bottom: 1rem; color: var(--text);">Class Average Performance</h3>
-        <div style="position: relative; max-height: 350px; width: 100%;">
-          <canvas id="performance-chart"></canvas>
+        <!-- Chart Container -->
+        <div style="background: var(--surface-card); border-radius: 12px; border: 1px solid var(--border); padding: 1.5rem; margin-top: 2rem; box-shadow: var(--shadow);">
+          <h3 id="chart-title" style="margin-bottom: 1rem; color: var(--text);">Class Average Performance</h3>
+          <div style="position: relative; max-height: 350px; width: 100%;">
+            <canvas id="performance-chart"></canvas>
+          </div>
         </div>
       </div>
 
       <!-- Attention & Growth Container -->
       <div class="panel-header" id="insights-header" style="margin-top: 3rem; display: flex; justify-content: space-between; align-items: flex-end; cursor: pointer; user-select: none;">
         <div>
-          <h1>Performance Insights <span id="insights-toggle-icon" style="font-size: 1rem; margin-left: 0.5rem;">&#9660;</span></h1>
+          <h1 style="display: flex; align-items: center;">Performance Insights <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="accordion-icon" id="insights-toggle-icon" style="transform: rotate(0deg);"><polyline points="6 9 12 15 18 9"></polyline></svg></h1>
           <p class="subtitle">Quickly identify students who need help and those showing the most growth.</p>
         </div>
         <div style="margin-top: 1rem;" onclick="event.stopPropagation();">
@@ -490,8 +492,10 @@
 
       <!-- List of created exams below table -->
       <div style="margin-top: 3rem;">
-        <h2 class="section-title">Active Exams</h2>
-        <ul id="exams-list" class="papers-list" style="list-style: none; padding: 0;"></ul>
+        <h2 class="section-title" id="exams-header" style="cursor: pointer; user-select: none; display: flex; align-items: center;">Active Exams <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="accordion-icon" id="exams-toggle-icon" style="transform: rotate(0deg);"><polyline points="6 9 12 15 18 9"></polyline></svg></h2>
+        <div id="exams-content" style="display: none; max-height: 400px; overflow-y: auto;">
+          <ul id="exams-list" class="papers-list" style="list-style: none; padding: 0;"></ul>
+        </div>
       </div>
 
             <!-- Bulk Enter Marks Section -->

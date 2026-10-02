@@ -1,4 +1,4 @@
-﻿const loginScreen = document.getElementById("login-screen");
+const loginScreen = document.getElementById("login-screen");
 const dashboardMain = document.getElementById("dashboard-main");
 const loginForm = document.getElementById("login-form");
 const loginError = document.getElementById("login-error");
@@ -1126,7 +1126,7 @@ function renderAttentionList(exams, marksByStudent, studentsToUse = globalStuden
       <li style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: var(--bg); border: 1px solid var(--border); border-radius: 8px;">
         <div>
           <strong style="color: var(--text); font-size: 1.1rem; display: block; margin-bottom: 0.25rem;">${escapeHtml(s.name)}</strong>
-          <span style="color: var(--danger); font-size: 0.85rem;">ÃƒÂ¢Ã…Â¡Ã‚Â ÃƒÂ¯Ã‚Â¸Ã‚Â ${s.reason}</span>
+          <span style="color: var(--danger); font-size: 0.85rem;">&#9888; ${s.reason}</span>
         </div>
         <div style="text-align: right; font-size: 0.95rem;">
           ${statHtml}
@@ -1816,29 +1816,24 @@ function renderGrowthList(exams, marksByStudent, studentsToUse = globalStudents)
 
 // ACCORDION LOGIC
 document.addEventListener('DOMContentLoaded', () => {
-  const overviewHeader = document.getElementById('overview-header');
-  const overviewContent = document.getElementById('overview-content');
-  const overviewIcon = document.getElementById('overview-toggle-icon');
+  function setupAccordion(headerId, contentId, iconId, displayType = 'block') {
+    const header = document.getElementById(headerId);
+    const content = document.getElementById(contentId);
+    const icon = document.getElementById(iconId);
 
-  if (overviewHeader && overviewContent && overviewIcon) {
-    overviewHeader.addEventListener('click', () => {
-      const isHidden = overviewContent.style.display === 'none';
-      overviewContent.style.display = isHidden ? 'block' : 'none';
-      overviewIcon.textContent = isHidden ? '\u25B2' : '\u25BC';
-    });
+    if (header && content && icon) {
+      header.addEventListener('click', () => {
+        const isHidden = content.style.display === 'none';
+        content.style.display = isHidden ? displayType : 'none';
+        icon.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+      });
+    }
   }
 
-  const insightsHeader = document.getElementById('insights-header');
-  const insightsContent = document.getElementById('insights-content');
-  const insightsIcon = document.getElementById('insights-toggle-icon');
-
-  if (insightsHeader && insightsContent && insightsIcon) {
-    insightsHeader.addEventListener('click', () => {
-      const isHidden = insightsContent.style.display === 'none';
-      insightsContent.style.display = isHidden ? 'grid' : 'none';
-      insightsIcon.textContent = isHidden ? '\u25B2' : '\u25BC';
-    });
-  }
+  setupAccordion('overview-header', 'overview-content', 'overview-toggle-icon', 'block');
+  setupAccordion('insights-header', 'insights-content', 'insights-toggle-icon', 'grid');
+  setupAccordion('analytics-header', 'analytics-content', 'analytics-toggle-icon', 'block');
+  setupAccordion('exams-header', 'exams-content', 'exams-toggle-icon', 'block');
 });
 
 // HOMEWORK LINKS LOADING AND DELETION
