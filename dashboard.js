@@ -1,4 +1,4 @@
-const loginScreen = document.getElementById("login-screen");
+﻿const loginScreen = document.getElementById("login-screen");
 const dashboardMain = document.getElementById("dashboard-main");
 const loginForm = document.getElementById("login-form");
 const loginError = document.getElementById("login-error");
@@ -1105,7 +1105,7 @@ function renderAttentionList(exams, marksByStudent, studentsToUse = globalStuden
   attentionStudents.sort((a, b) => b.drop - a.drop);
   
   if (attentionStudents.length === 0) {
-    attentionList.innerHTML = `<li style="color: #059669; text-align: center; padding: 1rem; font-weight: 500;">Ã°Å¸Å½â€° Great job! No students currently require immediate attention.</li>`;
+    attentionList.innerHTML = `<li style="color: #059669; text-align: center; padding: 1rem; font-weight: 500;">ÃƒÂ°Ã…Â¸Ã…Â½Ã¢â‚¬Â° Great job! No students currently require immediate attention.</li>`;
     return;
   }
   
@@ -1126,7 +1126,7 @@ function renderAttentionList(exams, marksByStudent, studentsToUse = globalStuden
       <li style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: var(--bg); border: 1px solid var(--border); border-radius: 8px;">
         <div>
           <strong style="color: var(--text); font-size: 1.1rem; display: block; margin-bottom: 0.25rem;">${escapeHtml(s.name)}</strong>
-          <span style="color: var(--danger); font-size: 0.85rem;">Ã¢Å¡Â Ã¯Â¸Â ${s.reason}</span>
+          <span style="color: var(--danger); font-size: 0.85rem;">ÃƒÂ¢Ã…Â¡Ã‚Â ÃƒÂ¯Ã‚Â¸Ã‚Â ${s.reason}</span>
         </div>
         <div style="text-align: right; font-size: 0.95rem;">
           ${statHtml}
@@ -1824,7 +1824,7 @@ document.addEventListener('DOMContentLoaded', () => {
     overviewHeader.addEventListener('click', () => {
       const isHidden = overviewContent.style.display === 'none';
       overviewContent.style.display = isHidden ? 'block' : 'none';
-      overviewIcon.textContent = isHidden ? '?' : '?';
+      overviewIcon.textContent = isHidden ? '\u25B2' : '\u25BC';
     });
   }
 
@@ -1836,7 +1836,7 @@ document.addEventListener('DOMContentLoaded', () => {
     insightsHeader.addEventListener('click', () => {
       const isHidden = insightsContent.style.display === 'none';
       insightsContent.style.display = isHidden ? 'grid' : 'none';
-      insightsIcon.textContent = isHidden ? '?' : '?';
+      insightsIcon.textContent = isHidden ? '\u25B2' : '\u25BC';
     });
   }
 });
@@ -1861,18 +1861,18 @@ async function loadHomeworkLinks() {
     // Sort by date descending
     links.sort((a, b) => new Date(b.homework_date) - new Date(a.homework_date));
     
-    tbody.innerHTML = links.map(link => 
+    tbody.innerHTML = links.map(link => `
       <tr>
-        <td style="padding: 1rem; border-bottom: 1px solid var(--border);"></td>
-        <td style="padding: 1rem; border-bottom: 1px solid var(--border);"></td>
-        <td style="padding: 1rem; border-bottom: 1px solid var(--border);"><a href="" target="_blank" style="color: var(--primary);">View Link</a></td>
+        <td style="padding: 1rem; border-bottom: 1px solid var(--border);">${link.homework_date}</td>
+        <td style="padding: 1rem; border-bottom: 1px solid var(--border);">${link.group_name}</td>
+        <td style="padding: 1rem; border-bottom: 1px solid var(--border);"><a href="${link.link}" target="_blank" style="color: var(--primary);">View Link</a></td>
         <td style="padding: 1rem; border-bottom: 1px solid var(--border); text-align: right;">
-          <button class="btn" onclick="deleteHomeworkLink('')" style="background: #ef4444; color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.8rem;">Delete</button>
+          <button class="btn" onclick="deleteHomeworkLink('${link.id}')" style="background: #ef4444; color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.8rem;">Delete</button>
         </td>
       </tr>
-    ).join('');
+    `).join('');
   } catch (e) {
-    tbody.innerHTML = <tr><td colspan="4" style="text-align: center; padding: 1rem; color: #ef4444;">Error: </td></tr>;
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; padding: 1rem; color: #ef4444;">Error: ${e.message}</td></tr>`;
   }
 }
 
