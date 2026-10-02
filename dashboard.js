@@ -572,6 +572,17 @@ function renderChart(exams, marksByStudent, studentIds = []) {
     borderDash: studentIds.length > 0 ? [5, 5] : [], // Dashed if comparing with student
     fill: studentIds.length === 0,
     pointBackgroundColor: 'rgba(139, 92, 246, 1)',
+    datalabels: {
+      display: true,
+      align: 'top',
+      anchor: 'end',
+      backgroundColor: 'rgba(139, 92, 246, 0.9)',
+      color: 'white',
+      borderRadius: 4,
+      padding: 4,
+      font: { weight: 'bold', size: 10 },
+      formatter: (value) => value + '%'
+    }
   });
 
   const colors = [
@@ -1049,6 +1060,8 @@ function renderAttentionList(exams, marksByStudent, studentsToUse = globalStuden
         if (drop >= 10 && !needsAttention) {
           needsAttention = true;
           reason = `Performance dropped by ${drop.toFixed(1)}%.`;
+        } else if (drop > 0 && needsAttention) {
+          reason = `Scored below 50% and dropped by ${drop.toFixed(1)}%.`;
         }
       }
     }
@@ -1058,10 +1071,14 @@ function renderAttentionList(exams, marksByStudent, studentsToUse = globalStuden
         name: student.name,
         latestPerc: latestPerc,
         previousPerc: previousPerc,
-        reason: reason
+        reason: reason,
+        drop: drop || 0
       });
     }
   });
+  
+  // Sort by highest drop first
+  attentionStudents.sort((a, b) => b.drop - a.drop);
   
   if (attentionStudents.length === 0) {
     attentionList.innerHTML = `<li style="color: #059669; text-align: center; padding: 1rem; font-weight: 500;">🎉 Great job! No students currently require immediate attention.</li>`;
@@ -1153,32 +1170,64 @@ if (manageGroupUpdateBtn) {
 
 document.addEventListener("DOMContentLoaded", populateGroupManager);
 
-// GROUP FILTER LOGIC FOR PERFORMANCE
+// GROUP FILTER LOGIC FOR SECTIONS
 const perfGroupFilter = document.getElementById("performance-group-filter");
-if (perfGroupFilter) {
-  perfGroupFilter.addEventListener("change", () => {
-    applyGroupFilterAndRender();
-  });
+const overviewGroupFilter = document.getElementById("overview-table-group-filter");
+const analyticsGroupFilter = document.getElementById("analytics-group-filter");
+const attentionGroupFilter = document.getElementById("attention-group-filter");
+
+function getFilteredStudents(filterEl) {
+  if (!globalStudents) return [];
+  const selectedGrp = filterEl ? filterEl.value : "";
+  if (selectedGrp) {
+    return globalStudents.filter(s => s.group_name === selectedGrp);
+  }
+  return globalStudents;
 }
 
-function applyGroupFilterAndRender() {
+if (perfGroupFilter) perfGroupFilter.addEventListener("change", renderClassStatsSection);
+if (overviewGroupFilter) overviewGroupFilter.addEventListener("change", renderOverviewTableSection);
+if (analyticsGroupFilter) analyticsGroupFilter.addEventListener("change", renderAnalyticsSection);
+if (attentionGroupFilter) attentionGroupFilter.addEventListener("change", renderAttentionAndGrowthSection);
+
+function renderClassStatsSection() {
   if (!globalStudents || !globalExams) return;
-  
-  const selectedGrp = perfGroupFilter ? perfGroupFilter.value : "";
-  let filteredStudents = globalStudents;
-  if (selectedGrp) {
-    filteredStudents = globalStudents.filter(s => s.group_name === selectedGrp);
-  }
-  
+  const filteredStudents = getFilteredStudents(perfGroupFilter);
+  const validStudentIds = new Set(filteredStudents.map(s => s.id));
+  calculateClassStats(globalExams, globalMarksByStudent, validStudentIds);
+}
+
+function renderOverviewTableSection() {
+  if (!globalStudents || !globalExams) return;
+  const filteredStudents = getFilteredStudents(overviewGroupFilter);
   const validStudentIds = new Set(filteredStudents.map(s => s.id));
   const filteredMarks = globalMarks.filter(m => validStudentIds.has(m.student_id));
-  
   renderPerformanceTable(globalExams, filteredMarks, filteredStudents);
+}
+
+function renderAnalyticsSection() {
+  if (!globalStudents || !globalExams) return;
+  const filteredStudents = getFilteredStudents(analyticsGroupFilter);
   updateAnalyticsDropdowns(filteredStudents);
   if (typeof updateEditMarksDropdowns === "function") updateEditMarksDropdowns(filteredStudents);
   
-  calculateClassStats(globalExams, globalMarksByStudent, validStudentIds);
+  // Call the inner chart display refresh
+  const event = new Event('change');
+  document.getElementById("analytics-student")?.dispatchEvent(event);
+}
+
+function renderAttentionAndGrowthSection() {
+  if (!globalStudents || !globalExams) return;
+  const filteredStudents = getFilteredStudents(attentionGroupFilter);
   renderAttentionList(globalExams, globalMarksByStudent, filteredStudents);
+  renderGrowthList(globalExams, globalMarksByStudent, filteredStudents);
+}
+
+function applyGroupFilterAndRender() {
+  renderClassStatsSection();
+  renderOverviewTableSection();
+  renderAnalyticsSection();
+  renderAttentionAndGrowthSection();
 }
 
 
@@ -1596,3 +1645,64 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 if (typeof ChartDataLabels !== 'undefined') Chart.register(ChartDataLabels);
+
+function renderGrowthList(exams, marksByStudent, studentsToUse = globalStudents) {
+  const growthList = document.getElementById('growth-list');
+  if (!growthList) return;
+  
+  if (exams.length < 2) {
+    growthList.innerHTML = \<li style="color: var(--text-muted); text-align: center; padding: 1rem;">Not enough exams to compare growth.</li>\;
+    return;
+  }
+  
+  const latestExam = exams[exams.length - 1];
+  const previousExam = exams[exams.length - 2];
+  
+  const growthStudents = [];
+  
+  studentsToUse.forEach(student => {
+    const sm = marksByStudent[student.id] || {};
+    const latestMark = sm[latestExam.id];
+    const previousMark = sm[previousExam.id];
+    
+    if (latestMark !== undefined && previousMark !== undefined) {
+      const latestPerc = (latestMark / latestExam.total_marks) * 100;
+      const previousPerc = (previousMark / previousExam.total_marks) * 100;
+      const growth = latestPerc - previousPerc;
+      
+      if (growth > 0) {
+        growthStudents.push({
+          name: student.name,
+          latestPerc: latestPerc,
+          previousPerc: previousPerc,
+          growth: growth
+        });
+      }
+    }
+  });
+  
+  growthStudents.sort((a, b) => b.growth - a.growth);
+  
+  if (growthStudents.length === 0) {
+    growthList.innerHTML = \<li style="color: var(--text-muted); text-align: center; padding: 1rem;">No positive growth recorded.</li>\;
+    return;
+  }
+  
+  let html = "";
+  growthStudents.forEach(s => {
+    html += \
+      <li style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: var(--bg); border: 1px solid var(--border); border-radius: 8px;">
+        <div>
+          <strong style="color: var(--text); font-size: 1.1rem; display: block; margin-bottom: 0.25rem;">\</strong>
+          <span style="color: #059669; font-size: 0.85rem; font-weight: bold;">&#8593; Grew by \%</span>
+        </div>
+        <div style="text-align: right; font-size: 0.95rem;">
+          <span style="color: #059669; font-weight: bold;">\%</span> (Latest)
+          <span style="color: var(--text-muted); margin: 0 0.5rem;">|</span> <span style="color: var(--text);">\%</span> (Previous)
+        </div>
+      </li>
+    \;
+  });
+  
+  growthList.innerHTML = html;
+}
