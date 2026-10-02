@@ -735,8 +735,15 @@ function updateAnalyticsDropdowns(studentsToUse = globalStudents) {
   });
 
   // Populate exams
+  const selectedGrp = analyticsGroupFilter ? analyticsGroupFilter.value : "";
+  const groupExams = globalExams.filter(ex => {
+    if (!selectedGrp) return true;
+    if (!ex.target_groups || ex.target_groups.length === 0) return true;
+    return ex.target_groups.includes(selectedGrp) || (selectedGrp === "Epsilon" && ex.target_groups.includes("Velocity"));
+  });
+
   let examHtml = ``;
-  globalExams.forEach(ex => {
+  groupExams.forEach(ex => {
     examHtml += `<option value="${escapeHtml(ex.id)}">${escapeHtml(ex.name)}</option>`;
   });
   examsSelect.innerHTML = examHtml;
@@ -754,12 +761,29 @@ document.addEventListener("DOMContentLoaded", () => {
     const finalStudentVals = Array.from(studentSelect.selectedOptions).map(o => o.value).filter(v => v !== "");
     const selectedExams = Array.from(examsSelect.selectedOptions).map(o => o.value).filter(v => v !== "");
     
-    let examsToRender = globalExams;
+    const selectedGrp = analyticsGroupFilter ? analyticsGroupFilter.value : "";
+    const groupExams = globalExams.filter(ex => {
+      if (!selectedGrp) return true;
+      if (!ex.target_groups || ex.target_groups.length === 0) return true;
+      return ex.target_groups.includes(selectedGrp) || (selectedGrp === "Epsilon" && ex.target_groups.includes("Velocity"));
+    });
+
+    let examsToRender = groupExams;
     if (selectedExams.length > 0) {
-      examsToRender = globalExams.filter(ex => selectedExams.includes(ex.id));
+      examsToRender = groupExams.filter(ex => selectedExams.includes(ex.id));
     }
     
-    renderChart(examsToRender, globalMarksByStudent, finalStudentVals);
+    const filteredStudents = getFilteredStudents(analyticsGroupFilter);
+    const groupStudentIds = new Set(filteredStudents.map(s => s.id));
+    
+    const groupMarksByStudent = {};
+    Object.keys(globalMarksByStudent).forEach(sId => {
+       if (groupStudentIds.has(sId)) {
+         groupMarksByStudent[sId] = globalMarksByStudent[sId];
+       }
+    });
+
+    renderChart(examsToRender, groupMarksByStudent, finalStudentVals);
   }
   
   if (studentSelect) {
@@ -1194,7 +1218,15 @@ function renderClassStatsSection() {
   if (!globalStudents || !globalExams) return;
   const filteredStudents = getFilteredStudents(perfGroupFilter);
   const validStudentIds = new Set(filteredStudents.map(s => s.id));
-  calculateClassStats(globalExams, globalMarksByStudent, validStudentIds);
+  
+  const selectedGrp = perfGroupFilter ? perfGroupFilter.value : "";
+  const groupExams = globalExams.filter(ex => {
+    if (!selectedGrp) return true;
+    if (!ex.target_groups || ex.target_groups.length === 0) return true;
+    return ex.target_groups.includes(selectedGrp) || (selectedGrp === "Epsilon" && ex.target_groups.includes("Velocity"));
+  });
+
+  calculateClassStats(groupExams, globalMarksByStudent, validStudentIds);
 }
 
 function renderOverviewTableSection() {
@@ -1202,7 +1234,15 @@ function renderOverviewTableSection() {
   const filteredStudents = getFilteredStudents(overviewGroupFilter);
   const validStudentIds = new Set(filteredStudents.map(s => s.id));
   const filteredMarks = globalMarks.filter(m => validStudentIds.has(m.student_id));
-  renderPerformanceTable(globalExams, filteredMarks, filteredStudents);
+  
+  const selectedGrp = overviewGroupFilter ? overviewGroupFilter.value : "";
+  const groupExams = globalExams.filter(ex => {
+    if (!selectedGrp) return true;
+    if (!ex.target_groups || ex.target_groups.length === 0) return true;
+    return ex.target_groups.includes(selectedGrp) || (selectedGrp === "Epsilon" && ex.target_groups.includes("Velocity"));
+  });
+
+  renderPerformanceTable(groupExams, filteredMarks, filteredStudents);
 }
 
 function renderAnalyticsSection() {
@@ -1219,8 +1259,16 @@ function renderAnalyticsSection() {
 function renderAttentionAndGrowthSection() {
   if (!globalStudents || !globalExams) return;
   const filteredStudents = getFilteredStudents(attentionGroupFilter);
-  renderAttentionList(globalExams, globalMarksByStudent, filteredStudents);
-  renderGrowthList(globalExams, globalMarksByStudent, filteredStudents);
+  
+  const selectedGrp = attentionGroupFilter ? attentionGroupFilter.value : "";
+  const groupExams = globalExams.filter(ex => {
+    if (!selectedGrp) return true;
+    if (!ex.target_groups || ex.target_groups.length === 0) return true;
+    return ex.target_groups.includes(selectedGrp) || (selectedGrp === "Epsilon" && ex.target_groups.includes("Velocity"));
+  });
+
+  renderAttentionList(groupExams, globalMarksByStudent, filteredStudents);
+  renderGrowthList(groupExams, globalMarksByStudent, filteredStudents);
 }
 
 function applyGroupFilterAndRender() {

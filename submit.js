@@ -665,7 +665,7 @@ function renderStudentReportContent() {
   
   const studentMarks = publicMarks.filter(m => m.student_id === studentId);
   
-  let html = `<div class="submit-card" style="padding: 0; overflow: hidden;"><table style="width: 100%; border-collapse: collapse; text-align: left; background: var(--surface);">
+  let html = `<div class="submit-card" style="padding: 0; overflow-x: auto;"><table style="width: 100%; border-collapse: collapse; text-align: left; background: var(--surface);">
     <thead>
       <tr style="border-bottom: 2px solid var(--border);">
         <th style="padding: 1rem; color: var(--text-muted); font-weight: 600;">Exam</th>
