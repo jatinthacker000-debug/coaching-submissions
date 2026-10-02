@@ -1651,7 +1651,7 @@ function renderGrowthList(exams, marksByStudent, studentsToUse = globalStudents)
   if (!growthList) return;
   
   if (exams.length < 2) {
-    growthList.innerHTML = \<li style="color: var(--text-muted); text-align: center; padding: 1rem;">Not enough exams to compare growth.</li>\;
+    growthList.innerHTML = `<li style="color: var(--text-muted); text-align: center; padding: 1rem;">Not enough exams to compare growth.</li>`;
     return;
   }
   
@@ -1684,24 +1684,24 @@ function renderGrowthList(exams, marksByStudent, studentsToUse = globalStudents)
   growthStudents.sort((a, b) => b.growth - a.growth);
   
   if (growthStudents.length === 0) {
-    growthList.innerHTML = \<li style="color: var(--text-muted); text-align: center; padding: 1rem;">No positive growth recorded.</li>\;
+    growthList.innerHTML = `<li style="color: var(--text-muted); text-align: center; padding: 1rem;">No positive growth recorded.</li>`;
     return;
   }
   
   let html = "";
   growthStudents.forEach(s => {
-    html += \
+    html += `
       <li style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: var(--bg); border: 1px solid var(--border); border-radius: 8px;">
         <div>
-          <strong style="color: var(--text); font-size: 1.1rem; display: block; margin-bottom: 0.25rem;">\</strong>
-          <span style="color: #059669; font-size: 0.85rem; font-weight: bold;">&#8593; Grew by \%</span>
+          <strong style="color: var(--text); font-size: 1.1rem; display: block; margin-bottom: 0.25rem;">${escapeHtml(s.name)}</strong>
+          <span style="color: #059669; font-size: 0.85rem; font-weight: bold;">&#8593; Grew by ${s.growth.toFixed(1)}%</span>
         </div>
         <div style="text-align: right; font-size: 0.95rem;">
-          <span style="color: #059669; font-weight: bold;">\%</span> (Latest)
-          <span style="color: var(--text-muted); margin: 0 0.5rem;">|</span> <span style="color: var(--text);">\%</span> (Previous)
+          <span style="color: #059669; font-weight: bold;">${s.latestPerc.toFixed(1)}%</span> (Latest)
+          <span style="color: var(--text-muted); margin: 0 0.5rem;">|</span> <span style="color: var(--text);">${s.previousPerc.toFixed(1)}%</span> (Previous)
         </div>
       </li>
-    \;
+    `;
   });
   
   growthList.innerHTML = html;
