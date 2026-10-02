@@ -59,15 +59,13 @@
       <form id="notif-form" class="submit-card wide-card" style="margin-bottom: 3rem;">
         <div class="form-row">
           <div class="form-group" style="flex: 1;">
-            <label for="notif-institute">Institute Name</label>
-            <select id="notif-institute" required>
-              <option value="">Select Institute...</option>
-              <option value="All Institutes">All Institutes</option>
-              <option value="IGNITE coaching class">IGNITE coaching class</option>
-              <option value="Epsilon Classes">Epsilon Classes</option>
-              <option value="Velocity">Velocity</option>
-              <option value="Nerd Tutors">Nerd Tutors</option>
-            </select>
+            <label>Institutes (Check all that apply)</label>
+            <div id="notif-institutes-container" style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 0.5rem;">
+              <label style="display: flex; align-items: center; gap: 0.25rem;"><input type="checkbox" value="IGNITE coaching class"> IGNITE coaching class</label>
+              <label style="display: flex; align-items: center; gap: 0.25rem;"><input type="checkbox" value="Epsilon Classes"> Epsilon Classes</label>
+              <label style="display: flex; align-items: center; gap: 0.25rem;"><input type="checkbox" value="Velocity"> Velocity</label>
+              <label style="display: flex; align-items: center; gap: 0.25rem;"><input type="checkbox" value="Nerd Tutors"> Nerd Tutors</label>
+            </div>
           </div>
           <div class="form-group" style="flex: 2;">
             <label for="notif-message">Notification Message</label>
@@ -288,10 +286,21 @@
       <button class="btn btn-danger" id="delete-all-students-btn" style="margin-bottom: 3rem;">Delete All Students</button>
 
       <!-- Class Performance Overview (Advanced Analytics) -->
-      <div class="panel-header" style="margin-top: 3rem;">
+      <div class="panel-header" style="margin-top: 3rem; display: flex; justify-content: space-between; align-items: flex-end;">
         <div>
           <h1>Class Performance Overview</h1>
           <p class="subtitle">Quick statistics and grade distribution across all exams.</p>
+        </div>
+        <div style="margin-top: 1rem;">
+          <select id="performance-group-filter" style="padding: 0.5rem; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text);">
+            <option value="">All Groups</option>
+            <option value="Ignite">Ignite</option>
+            <option value="Epsilon">Epsilon</option>
+            <option value="Lakshya">Lakshya</option>
+            <option value="Sankalp">Sankalp</option>
+            <option value="Prayas">Prayas</option>
+            <option value="Nerd Tutors">Nerd Tutors</option>
+          </select>
         </div>
       </div>
       
@@ -347,10 +356,7 @@
           <p class="subtitle">View and analyze marks across all exams.</p>
         </div>
         <div style="margin-top: 1rem;">
-          <button class="btn btn-primary" id="export-excel-btn" style="padding: 0.5rem 1rem; border-radius: 8px; margin-right: 1rem;">Export to Excel</button>`n          <select id="performance-group-filter" style="padding: 0.5rem; border-radius: 8px;">
-            <option value="">All Groups</option>
-            <option value="Ignite">Ignite</option><option value="Epsilon">Epsilon</option><option value="Lakshya">Lakshya</option><option value="Sankalp">Sankalp</option><option value="Prayas">Prayas</option><option value="Nerd Tutors">Nerd Tutors</option>
-          </select>
+          <button class="btn btn-primary" id="export-excel-btn" style="padding: 0.5rem 1rem; border-radius: 8px;">Export to Excel</button>
         </div>
       </div>
       
@@ -384,8 +390,8 @@
         </div>
         <div class="form-row">
           <div class="form-group" style="flex: 1.5;">
-            <label for="analytics-student">Select Student</label>
-            <select id="analytics-student">
+            <label for="analytics-student">Select Student (up to 4, Ctrl+Click)</label>
+            <select id="analytics-student" multiple size="4" style="height: auto; padding: 0.5rem; overflow-y: auto;">
               <option value="">-- Class Average --</option>
             </select>
           </div>
@@ -410,7 +416,9 @@
       <!-- Chart Container -->
       <div style="background: var(--surface-card); border-radius: 12px; border: 1px solid var(--border); padding: 1.5rem; margin-top: 2rem; box-shadow: var(--shadow);">
         <h3 id="chart-title" style="margin-bottom: 1rem; color: var(--text);">Class Average Performance</h3>
-        <canvas id="performance-chart" height="100"></canvas>
+        <div style="position: relative; max-height: 350px; width: 100%;">
+          <canvas id="performance-chart"></canvas>
+        </div>
       </div>
 
       <!-- Students Requiring Attention -->

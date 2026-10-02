@@ -269,10 +269,15 @@ if (notifForm) {
     btn.textContent = "Sending...";
 
     try {
+      const checkedInstitutes = Array.from(document.querySelectorAll("#notif-institutes-container input:checked")).map(cb => cb.value);
+      if (checkedInstitutes.length === 0) {
+        throw new Error("Please select at least one institute.");
+      }
+      
       await createNote({
         title: document.getElementById("notif-message").value.trim(),
         grade: "NOTIFICATION",
-        subject: document.getElementById("notif-institute").value,
+        subject: checkedInstitutes.join(", "),
         link: document.getElementById("notif-link").value.trim() || "#",
       });
 
@@ -505,17 +510,21 @@ function renderPerformanceTable(exams, marks, students) {
   globalMarksByStudent = marksByStudent;
   
   // Render Chart
-  const selectedStudentId = document.getElementById("analytics-student")?.value || null;
-  renderChart(exams, marksByStudent, selectedStudentId);
+  const studentSelectEl = document.getElementById("analytics-student");
+  const selectedStudentIds = studentSelectEl ? Array.from(studentSelectEl.selectedOptions).map(o => o.value).filter(v => v !== "") : [];
+  renderChart(exams, marksByStudent, selectedStudentIds);
 }
 
-function renderChart(exams, marksByStudent, studentId = null) {
+function renderChart(exams, marksByStudent, studentIds = []) {
+  if (!Array.isArray(studentIds)) {
+    studentIds = studentIds ? [studentIds] : [];
+  }
+  
   const ctx = document.getElementById('performance-chart');
   if (!ctx) return;
   
   const labels = [];
   const classAvgData = [];
-  const studentData = [];
   
   exams.forEach(ex => {
     labels.push(ex.name);
@@ -531,24 +540,15 @@ function renderChart(exams, marksByStudent, studentId = null) {
     });
     const avg = studentCount > 0 ? (totalMarks / studentCount) : 0;
     classAvgData.push(avg.toFixed(1));
-
-    // Calculate Individual Student if selected
-    if (studentId) {
-      const studentMarks = marksByStudent[studentId] || {};
-      if (studentMarks[ex.id] !== undefined) {
-        const perc = (studentMarks[ex.id] / ex.total_marks) * 100;
-        studentData.push(perc.toFixed(1));
-      } else {
-        studentData.push(null);
-      }
-    }
   });
 
   const chartTitle = document.getElementById("chart-title");
   if (chartTitle) {
-    if (studentId) {
-      const studentObj = globalStudents.find(s => s.id === studentId);
+    if (studentIds.length === 1) {
+      const studentObj = globalStudents.find(s => s.id === studentIds[0]);
       chartTitle.textContent = studentObj ? `${studentObj.name}'s Performance vs Class` : 'Student Performance vs Class';
+    } else if (studentIds.length > 1) {
+      chartTitle.textContent = 'Students Performance Comparison';
     } else {
       chartTitle.textContent = 'Class Performance Trend';
     }
@@ -562,42 +562,64 @@ function renderChart(exams, marksByStudent, studentId = null) {
 
   // Always show Class Average (as a line)
   datasets.push({
+    type: 'line',
     label: 'Class Average (%)',
     data: classAvgData,
     backgroundColor: 'rgba(139, 92, 246, 0.1)',
     borderColor: 'rgba(139, 92, 246, 1)',
     borderWidth: 2,
     tension: 0.3,
-    borderDash: studentId ? [5, 5] : [], // Dashed if comparing with student
-    fill: !studentId,
+    borderDash: studentIds.length > 0 ? [5, 5] : [], // Dashed if comparing with student
+    fill: studentIds.length === 0,
     pointBackgroundColor: 'rgba(139, 92, 246, 1)',
   });
 
-  // If a student is selected, add their dataset
-  if (studentId) {
-    datasets.push({
-      label: 'Student Performance (%)',
-      data: studentData,
-      backgroundColor: 'rgba(5, 150, 105, 0.2)',
-      borderColor: 'rgba(5, 150, 105, 1)',
-      borderWidth: 3,
-      tension: 0.3,
-      fill: true,
-      pointBackgroundColor: 'rgba(5, 150, 105, 1)',
-    });
-    
-    // Also update overall average in the UI
-    const overallAvgContainer = document.getElementById("student-overall-avg-container");
-    const overallAvgEl = document.getElementById("student-overall-avg");
-    if (overallAvgContainer && overallAvgEl) {
-      const validMarks = studentData.filter(m => m !== null);
-      if (validMarks.length > 0) {
-        const sum = validMarks.reduce((a, b) => parseFloat(a) + parseFloat(b), 0);
-        overallAvgEl.textContent = (sum / validMarks.length).toFixed(1) + "%";
-        overallAvgContainer.style.display = "block";
+  const colors = [
+    { bg: 'rgba(5, 150, 105, 0.6)', border: 'rgba(5, 150, 105, 1)' }, // Green
+    { bg: 'rgba(239, 68, 68, 0.6)', border: 'rgba(239, 68, 68, 1)' },   // Red
+    { bg: 'rgba(59, 130, 246, 0.6)', border: 'rgba(59, 130, 246, 1)' }, // Blue
+    { bg: 'rgba(245, 158, 11, 0.6)', border: 'rgba(245, 158, 11, 1)' }  // Yellow
+  ];
+
+  // If students are selected, add their dataset as histograms
+  studentIds.forEach((sId, index) => {
+    const studentData = [];
+    exams.forEach(ex => {
+      const studentMarks = marksByStudent[sId] || {};
+      if (studentMarks[ex.id] !== undefined) {
+        const perc = (studentMarks[ex.id] / ex.total_marks) * 100;
+        studentData.push(perc.toFixed(1));
       } else {
-        overallAvgContainer.style.display = "none";
+        studentData.push(null);
       }
+    });
+
+    const studentObj = globalStudents.find(s => s.id === sId);
+    const color = colors[index % colors.length];
+
+    datasets.push({
+      type: 'bar',
+      label: studentObj ? `${studentObj.name} (%)` : 'Student (%)',
+      data: studentData,
+      backgroundColor: color.bg,
+      borderColor: color.border,
+      borderWidth: 1,
+    });
+  });
+
+  // Also update overall average in the UI (only if exactly 1 student is selected)
+  const overallAvgContainer = document.getElementById("student-overall-avg-container");
+  const overallAvgEl = document.getElementById("student-overall-avg");
+  if (studentIds.length === 1 && overallAvgContainer && overallAvgEl) {
+    const sId = studentIds[0];
+    const studentData = datasets[1].data; // the bar dataset for the student
+    const validMarks = studentData.filter(m => m !== null);
+    if (validMarks.length > 0) {
+      const sum = validMarks.reduce((a, b) => parseFloat(a) + parseFloat(b), 0);
+      overallAvgEl.textContent = (sum / validMarks.length).toFixed(1) + "%";
+      overallAvgContainer.style.display = "block";
+    } else {
+      overallAvgContainer.style.display = "none";
     }
   } else {
     // Hide overall average container if no student selected
@@ -643,7 +665,7 @@ function updateAnalyticsDropdowns(studentsToUse = globalStudents) {
   if (!studentSelect || !exam1Select || !exam2Select) return;
   
   // Save current values to restore them
-  const currStudent = studentSelect.value;
+  const currStudents = Array.from(studentSelect.selectedOptions).map(o => o.value);
   const currEx1 = exam1Select.value;
   const currEx2 = exam2Select.value;
 
@@ -653,7 +675,13 @@ function updateAnalyticsDropdowns(studentsToUse = globalStudents) {
     studentHtml += `<option value="${escapeHtml(s.id)}">${escapeHtml(s.name)}</option>`;
   });
   studentSelect.innerHTML = studentHtml;
-  studentSelect.value = currStudent;
+  
+  // Restore selected options
+  Array.from(studentSelect.options).forEach(opt => {
+    if (currStudents.includes(opt.value)) {
+      opt.selected = true;
+    }
+  });
 
   // Populate exams
   let examHtml = `<option value="">Select Exam...</option>`;
@@ -667,7 +695,8 @@ function updateAnalyticsDropdowns(studentsToUse = globalStudents) {
   exam2Select.value = currEx2;
   
   // Enable/Disable exam dropdowns based on student selection
-  const isStudentSelected = !!studentSelect.value;
+  const selectedVals = Array.from(studentSelect.selectedOptions).map(o => o.value).filter(v => v !== "");
+  const isStudentSelected = selectedVals.length === 1; // Only allow comparison if exactly 1 student is selected
   exam1Select.disabled = !isStudentSelected;
   exam2Select.disabled = !isStudentSelected;
 }
@@ -729,15 +758,28 @@ document.addEventListener("DOMContentLoaded", () => {
   
   if (studentSelect) {
     studentSelect.addEventListener("change", () => {
-      exam1Select.disabled = !studentSelect.value;
-      exam2Select.disabled = !studentSelect.value;
+      const selectedVals = Array.from(studentSelect.selectedOptions).map(o => o.value).filter(v => v !== "");
       
-      if (!studentSelect.value) {
+      // Limit to 4 selections
+      if (selectedVals.length > 4) {
+        alert("You can select a maximum of 4 students.");
+        // Unselect the last clicked one by just ignoring it and resetting
+        Array.from(studentSelect.options).forEach(opt => {
+          if (!selectedVals.slice(0, 4).includes(opt.value)) opt.selected = false;
+        });
+      }
+      
+      const finalVals = Array.from(studentSelect.selectedOptions).map(o => o.value).filter(v => v !== "");
+      const isStudentSelected = finalVals.length === 1;
+      exam1Select.disabled = !isStudentSelected;
+      exam2Select.disabled = !isStudentSelected;
+      
+      if (!isStudentSelected) {
         exam1Select.value = "";
         exam2Select.value = "";
       }
       
-      renderChart(globalExams, globalMarksByStudent, studentSelect.value);
+      renderChart(globalExams, globalMarksByStudent, finalVals);
       updateComparison();
     });
   }
@@ -908,12 +950,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 // --- ADVANCED ANALYTICS COMPUTATIONS ---
-function calculateClassStats(exams, marksByStudent) {
+function calculateClassStats(exams, marksByStudent, validStudentIds = null) {
   let allPercentages = [];
   let d90 = 0, d75 = 0, d50 = 0, dBelow = 0;
   
   // Calculate average for each student over all exams they took
-  Object.values(marksByStudent).forEach(studentMarks => {
+  Object.entries(marksByStudent).forEach(([studentId, studentMarks]) => {
+    if (validStudentIds && !validStudentIds.has(studentId)) return;
+    
     let studentTotalMax = 0;
     let studentTotalObtained = 0;
     
@@ -1146,7 +1190,7 @@ function applyGroupFilterAndRender() {
   updateAnalyticsDropdowns(filteredStudents);
   if (typeof updateEditMarksDropdowns === "function") updateEditMarksDropdowns(filteredStudents);
   
-  calculateClassStats(globalExams, globalMarksByStudent);
+  calculateClassStats(globalExams, globalMarksByStudent, validStudentIds);
   renderAttentionList(globalExams, globalMarksByStudent, filteredStudents);
 }
 
