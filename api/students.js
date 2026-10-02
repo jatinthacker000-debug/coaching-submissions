@@ -101,5 +101,29 @@ export default async function handler(req, res) {
     return sendJson(res, { success: true });
   }
 
+  if (req.method === "PUT") {
+    if (!await isCoachAuthorized(req)) return coachUnauthorized(res);
+    const body = req.body || {};
+    if (!body.id) return sendError(res, "Student ID is required.", 400);
+
+    const updates = {};
+    if (body.name !== undefined) updates.name = body.name.trim().replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    if (body.student_id_alias !== undefined) updates.student_id_alias = body.student_id_alias.trim() || null;
+    if (body.password !== undefined) updates.password = body.password.trim() || null;
+    if (body.group_name !== undefined) updates.group_name = body.group_name.trim() || null;
+
+    if (Object.keys(updates).length > 0) {
+      const { data, error } = await supabase
+        .from("students")
+        .update(updates)
+        .eq("id", body.id)
+        .select()
+        .single();
+      if (error) return sendError(res, error.message, 500);
+      return sendJson(res, { student: data });
+    }
+    return sendJson(res, { success: true });
+  }
+
   return sendError(res, "Method not allowed.", 405);
 }

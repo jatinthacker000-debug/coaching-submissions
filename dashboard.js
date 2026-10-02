@@ -1361,15 +1361,74 @@ document.addEventListener("DOMContentLoaded", () => {
             <td style="padding: 0.75rem;">${escapeHtml(s.group_name || "-")}</td>
             <td style="padding: 0.75rem;">${escapeHtml(s.student_id_alias || "-")}</td>
             <td style="padding: 0.75rem; font-family: monospace;">${escapeHtml(s.password || "-")}</td>
+            <td style="padding: 0.75rem;">
+              <button class="btn btn-primary" onclick="editStudent('${s.id}')" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; margin-right: 0.5rem;">Edit</button>
+              <button class="btn btn-danger" onclick="deleteStudent('${s.id}')" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">Delete</button>
+            </td>
           `;
           credTableBody.appendChild(tr);
         });
       }
     } catch (e) {
-      credTableBody.innerHTML = `<tr><td colspan="4" style="color:red; text-align:center;">Failed to load credentials</td></tr>`;
+      credTableBody.innerHTML = `<tr><td colspan="5" style="color:red; text-align:center;">Failed to load credentials</td></tr>`;
     }
   };
   
+  window.deleteStudent = async function(id) {
+    if (!confirm("Are you sure you want to delete this student? All their marks will also be deleted.")) return;
+    try {
+      const res = await fetch(`/api/students?id=${id}`, {
+        method: "DELETE",
+        headers: { "Authorization": `Bearer ${getCoachPassword()}` }
+      });
+      if (res.ok) {
+        window.loadCredentialsTable();
+        loadExamData(); // reload dashboard data
+      } else {
+        const d = await res.json();
+        alert(d.error || "Failed to delete");
+      }
+    } catch (e) { alert(e.message); }
+  };
+
+  window.editStudent = async function(id) {
+    const student = globalStudents.find(s => s.id === id);
+    if (!student) return;
+    
+    const newName = prompt("Enter new Name:", student.name);
+    if (newName === null) return;
+    const newAlias = prompt("Enter new Student ID (Alias):", student.student_id_alias);
+    if (newAlias === null) return;
+    const newPass = prompt("Enter new Password:", student.password);
+    if (newPass === null) return;
+    const newGroup = prompt("Enter new Group Name (Ignite, Epsilon, etc):", student.group_name);
+    if (newGroup === null) return;
+    
+    try {
+      const res = await fetch("/api/students", {
+        method: "PUT",
+        headers: { 
+          "Authorization": `Bearer ${getCoachPassword()}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          id: id,
+          name: newName,
+          student_id_alias: newAlias,
+          password: newPass,
+          group_name: newGroup
+        })
+      });
+      if (res.ok) {
+        window.loadCredentialsTable();
+        loadExamData(); // reload dashboard data
+      } else {
+        const d = await res.json();
+        alert(d.error || "Failed to update");
+      }
+    } catch (e) { alert(e.message); }
+  };
+
   if (hasCoachPassword()) {
     window.loadCredentialsTable();
   }
