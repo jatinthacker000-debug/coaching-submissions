@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
   <link rel="stylesheet" href="styles.css">
   <!-- Vercel Web Analytics -->
   <script>
@@ -384,34 +385,23 @@
       </div>
       
       <div class="submit-card wide-card" style="margin-bottom: 2rem;">
-        <div style="margin-bottom: 1.5rem; display: none;" id="student-overall-avg-container">
-          <span style="color: var(--text-muted); font-size: 0.9rem;">Overall Average: </span>
-          <strong id="student-overall-avg" style="font-size: 1.2rem; color: var(--primary);">&mdash;</strong>
-        </div>
         <div class="form-row">
-          <div class="form-group" style="flex: 1.5;">
+          <div class="form-group" style="flex: 1;">
             <label for="analytics-student">Select Student (up to 4, Ctrl+Click)</label>
-            <select id="analytics-student" multiple size="4" style="height: auto; padding: 0.5rem; overflow-y: auto;">
+            <select id="analytics-student" multiple size="5" style="height: auto; padding: 0.5rem; overflow-y: auto;">
               <option value="">-- Class Average --</option>
             </select>
           </div>
           <div class="form-group" style="flex: 1;">
-            <label for="analytics-exam1">Compare Exam 1</label>
-            <select id="analytics-exam1" disabled>
-              <option value="">Select Exam 1...</option>
+            <label for="analytics-exams">Select Exams (Filter, Ctrl+Click)</label>
+            <select id="analytics-exams" multiple size="5" style="height: auto; padding: 0.5rem; overflow-y: auto;">
             </select>
           </div>
-          <div class="form-group" style="flex: 1;">
-            <label for="analytics-exam2">Compare Exam 2</label>
-            <select id="analytics-exam2" disabled>
-              <option value="">Select Exam 2...</option>
-            </select>
-          </div>
-        </div>
-        
-        <div id="comparison-result" style="margin-top: 1.5rem; padding: 1rem; border-radius: 8px; background: var(--bg); border: 1px solid var(--border); display: none;">
         </div>
       </div>
+
+      <!-- Chart Summary Data Table -->
+      <div id="chart-summary-container" style="margin-top: 1rem;"></div>
 
       <!-- Chart Container -->
       <div style="background: var(--surface-card); border-radius: 12px; border: 1px solid var(--border); padding: 1.5rem; margin-top: 2rem; box-shadow: var(--shadow);">

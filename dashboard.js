@@ -604,28 +604,69 @@ function renderChart(exams, marksByStudent, studentIds = []) {
       backgroundColor: color.bg,
       borderColor: color.border,
       borderWidth: 1,
+      datalabels: {
+        display: true,
+        align: 'end',
+        anchor: 'end',
+        color: color.border,
+        font: { weight: 'bold', size: 11 },
+        formatter: (value) => value ? `${studentObj ? studentObj.name.split(' ')[0] : ''}\n${value}%` : ''
+      }
     });
   });
 
-  // Also update overall average in the UI (only if exactly 1 student is selected)
-  const overallAvgContainer = document.getElementById("student-overall-avg-container");
-  const overallAvgEl = document.getElementById("student-overall-avg");
-  if (studentIds.length === 1 && overallAvgContainer && overallAvgEl) {
-    const sId = studentIds[0];
-    const studentData = datasets[1].data; // the bar dataset for the student
-    const validMarks = studentData.filter(m => m !== null);
-    if (validMarks.length > 0) {
-      const sum = validMarks.reduce((a, b) => parseFloat(a) + parseFloat(b), 0);
-      overallAvgEl.textContent = (sum / validMarks.length).toFixed(1) + "%";
-      overallAvgContainer.style.display = "block";
+  // Build Chart Summary Data Table
+  const summaryContainer = document.getElementById("chart-summary-container");
+  if (summaryContainer) {
+    if (studentIds.length > 0) {
+      let tableHtml = `<table style="width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; font-size: 0.9rem;">
+        <thead>
+          <tr style="background: var(--surface-card); border-bottom: 1px solid var(--border);">
+            <th style="padding: 0.75rem; text-align: left;">Student Name</th>`;
+      
+      exams.forEach(ex => {
+        tableHtml += `<th style="padding: 0.75rem; text-align: center;">${escapeHtml(ex.name)}</th>`;
+      });
+      tableHtml += `<th style="padding: 0.75rem; text-align: center;">Overall Average</th></tr></thead><tbody>`;
+
+      studentIds.forEach(sId => {
+        const studentObj = globalStudents.find(s => s.id === sId);
+        let studentTotalMax = 0;
+        let studentTotalObtained = 0;
+        let rowHtml = `<tr style="border-bottom: 1px solid var(--border);">
+          <td style="padding: 0.75rem; font-weight: 500;">${studentObj ? escapeHtml(studentObj.name) : 'Unknown'}</td>`;
+        
+        exams.forEach(ex => {
+          const studentMarks = marksByStudent[sId] || {};
+          if (studentMarks[ex.id] !== undefined) {
+            const marks = studentMarks[ex.id];
+            const max = ex.total_marks;
+            const perc = (marks / max) * 100;
+            studentTotalMax += max;
+            studentTotalObtained += marks;
+            rowHtml += `<td style="padding: 0.75rem; text-align: center;">${marks}/${max} <br><span style="color: var(--text-muted); font-size: 0.8rem;">(${perc.toFixed(1)}%)</span></td>`;
+          } else {
+            rowHtml += `<td style="padding: 0.75rem; text-align: center; color: var(--text-muted);">N/A</td>`;
+          }
+        });
+
+        const overallPerc = studentTotalMax > 0 ? ((studentTotalObtained / studentTotalMax) * 100).toFixed(1) : 'N/A';
+        rowHtml += `<td style="padding: 0.75rem; text-align: center; font-weight: bold; color: var(--primary);">${overallPerc}%</td></tr>`;
+        tableHtml += rowHtml;
+      });
+
+      tableHtml += `</tbody></table>`;
+      summaryContainer.innerHTML = tableHtml;
+      summaryContainer.style.display = "block";
     } else {
-      overallAvgContainer.style.display = "none";
+      summaryContainer.style.display = "none";
+      summaryContainer.innerHTML = "";
     }
-  } else {
-    // Hide overall average container if no student selected
-    const overallAvgContainer = document.getElementById("student-overall-avg-container");
-    if (overallAvgContainer) overallAvgContainer.style.display = "none";
   }
+
+  // Hide old overall average container
+  const oldAvgContainer = document.getElementById("student-overall-avg-container");
+  if (oldAvgContainer) oldAvgContainer.style.display = "none";
 
   window.performanceChartInstance = new Chart(ctx, {
     type: 'line',
@@ -633,6 +674,7 @@ function renderChart(exams, marksByStudent, studentIds = []) {
       labels: labels,
       datasets: datasets
     },
+    plugins: [ChartDataLabels],
     options: {
       responsive: true,
       scales: {
@@ -659,15 +701,13 @@ function renderChart(exams, marksByStudent, studentIds = []) {
 // --- ANALYTICS FEATURE ---
 function updateAnalyticsDropdowns(studentsToUse = globalStudents) {
   const studentSelect = document.getElementById("analytics-student");
-  const exam1Select = document.getElementById("analytics-exam1");
-  const exam2Select = document.getElementById("analytics-exam2");
+  const examsSelect = document.getElementById("analytics-exams");
   
-  if (!studentSelect || !exam1Select || !exam2Select) return;
+  if (!studentSelect || !examsSelect) return;
   
   // Save current values to restore them
   const currStudents = Array.from(studentSelect.selectedOptions).map(o => o.value);
-  const currEx1 = exam1Select.value;
-  const currEx2 = exam2Select.value;
+  const currExams = Array.from(examsSelect.selectedOptions).map(o => o.value);
 
   // Populate students
   let studentHtml = `<option value="">-- Class Average --</option>`;
@@ -684,76 +724,31 @@ function updateAnalyticsDropdowns(studentsToUse = globalStudents) {
   });
 
   // Populate exams
-  let examHtml = `<option value="">Select Exam...</option>`;
+  let examHtml = ``;
   globalExams.forEach(ex => {
     examHtml += `<option value="${escapeHtml(ex.id)}">${escapeHtml(ex.name)}</option>`;
   });
-  exam1Select.innerHTML = examHtml;
-  exam2Select.innerHTML = examHtml;
+  examsSelect.innerHTML = examHtml;
   
-  exam1Select.value = currEx1;
-  exam2Select.value = currEx2;
-  
-  // Enable/Disable exam dropdowns based on student selection
-  const selectedVals = Array.from(studentSelect.selectedOptions).map(o => o.value).filter(v => v !== "");
-  const isStudentSelected = selectedVals.length === 1; // Only allow comparison if exactly 1 student is selected
-  exam1Select.disabled = !isStudentSelected;
-  exam2Select.disabled = !isStudentSelected;
+  Array.from(examsSelect.options).forEach(opt => {
+    if (currExams.includes(opt.value)) opt.selected = true;
+  });
 }
 
 // Add event listeners when DOM loads
 document.addEventListener("DOMContentLoaded", () => {
   const studentSelect = document.getElementById("analytics-student");
-  const exam1Select = document.getElementById("analytics-exam1");
-  const exam2Select = document.getElementById("analytics-exam2");
-  const resultDiv = document.getElementById("comparison-result");
-  
-  function updateComparison() {
-    if (!studentSelect.value || !exam1Select.value || !exam2Select.value) {
-      resultDiv.style.display = "none";
-      return;
+  const examsSelect = document.getElementById("analytics-exams");
+  function refreshChartDisplay() {
+    const finalStudentVals = Array.from(studentSelect.selectedOptions).map(o => o.value).filter(v => v !== "");
+    const selectedExams = Array.from(examsSelect.selectedOptions).map(o => o.value).filter(v => v !== "");
+    
+    let examsToRender = globalExams;
+    if (selectedExams.length > 0) {
+      examsToRender = globalExams.filter(ex => selectedExams.includes(ex.id));
     }
     
-    const sId = studentSelect.value;
-    const e1Id = exam1Select.value;
-    const e2Id = exam2Select.value;
-    
-    const ex1 = globalExams.find(e => e.id === e1Id);
-    const ex2 = globalExams.find(e => e.id === e2Id);
-    
-    const marksEx1 = globalMarksByStudent[sId]?.[e1Id];
-    const marksEx2 = globalMarksByStudent[sId]?.[e2Id];
-    
-    if (marksEx1 === undefined || marksEx2 === undefined) {
-      resultDiv.style.display = "block";
-      resultDiv.innerHTML = `<p class="muted-text text-center">Student has not taken one or both of these exams.</p>`;
-      return;
-    }
-    
-    const perc1 = (marksEx1 / ex1.total_marks) * 100;
-    const perc2 = (marksEx2 / ex2.total_marks) * 100;
-    
-    const diff = perc2 - perc1;
-    let growthHtml = "";
-    if (diff > 0) {
-      growthHtml = `<strong style="color: #059669;">&#8593; Growth of +${diff.toFixed(1)}%</strong>`;
-    } else if (diff < 0) {
-      growthHtml = `<strong style="color: #dc2626;">&#8595; Downfall of ${diff.toFixed(1)}%</strong>`;
-    } else {
-      growthHtml = `<strong>No change in performance</strong>`;
-    }
-    
-    resultDiv.style.display = "block";
-    resultDiv.innerHTML = `
-      <h4 style="margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
-        <span>Performance Comparison</span>
-        ${growthHtml}
-      </h4>
-      <div style="display: flex; gap: 2rem; color: var(--text-muted); font-size: 0.9rem;">
-        <div><strong>${escapeHtml(ex1.name)}:</strong> ${marksEx1}/${ex1.total_marks} (${perc1.toFixed(1)}%)</div>
-        <div><strong>${escapeHtml(ex2.name)}:</strong> ${marksEx2}/${ex2.total_marks} (${perc2.toFixed(1)}%)</div>
-      </div>
-    `;
+    renderChart(examsToRender, globalMarksByStudent, finalStudentVals);
   }
   
   if (studentSelect) {
@@ -769,23 +764,15 @@ document.addEventListener("DOMContentLoaded", () => {
         });
       }
       
-      const finalVals = Array.from(studentSelect.selectedOptions).map(o => o.value).filter(v => v !== "");
-      const isStudentSelected = finalVals.length === 1;
-      exam1Select.disabled = !isStudentSelected;
-      exam2Select.disabled = !isStudentSelected;
-      
-      if (!isStudentSelected) {
-        exam1Select.value = "";
-        exam2Select.value = "";
-      }
-      
-      renderChart(globalExams, globalMarksByStudent, finalVals);
-      updateComparison();
+      refreshChartDisplay();
     });
   }
   
-  if (exam1Select) exam1Select.addEventListener("change", updateComparison);
-  if (exam2Select) exam2Select.addEventListener("change", updateComparison);
+  if (examsSelect) {
+    examsSelect.addEventListener("change", () => {
+      refreshChartDisplay();
+    });
+  }
 });
 
 // --- EDIT OR DELETE MARKS FEATURE ---
@@ -1607,3 +1594,5 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
+
+if (typeof ChartDataLabels !== 'undefined') Chart.register(ChartDataLabels);
