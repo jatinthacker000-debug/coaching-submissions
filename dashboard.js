@@ -1,4 +1,4 @@
-const loginScreen = document.getElementById("login-screen");
+﻿const loginScreen = document.getElementById("login-screen");
 const dashboardMain = document.getElementById("dashboard-main");
 const loginForm = document.getElementById("login-form");
 const loginError = document.getElementById("login-error");
@@ -1105,7 +1105,7 @@ function renderAttentionList(exams, marksByStudent, studentsToUse = globalStuden
   attentionStudents.sort((a, b) => b.drop - a.drop);
   
   if (attentionStudents.length === 0) {
-    attentionList.innerHTML = `<li style="color: #059669; text-align: center; padding: 1rem; font-weight: 500;">ÃƒÂ°Ã…Â¸Ã…Â½Ã¢â‚¬Â° Great job! No students currently require immediate attention.</li>`;
+    attentionList.innerHTML = `<li style="color: #059669; text-align: center; padding: 1rem; font-weight: 500;">&#127881; Great job! No students currently require immediate attention.</li>`;
     return;
   }
   
@@ -1834,6 +1834,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupAccordion('insights-header', 'insights-content', 'insights-toggle-icon', 'grid');
   setupAccordion('analytics-header', 'analytics-content', 'analytics-toggle-icon', 'block');
   setupAccordion('exams-header', 'exams-content', 'exams-toggle-icon', 'block');
+  setupAccordion('credentials-header', 'credentials-content', 'credentials-toggle-icon', 'block');
 });
 
 // HOMEWORK LINKS LOADING AND DELETION

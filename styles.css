@@ -1,4 +1,4 @@
-*,
+﻿*,
 *::before,
 *::after {
   box-sizing: border-box;
@@ -658,6 +658,11 @@ input:focus, select:focus, textarea:focus {
   font-size: 0.8rem;
   white-space: nowrap;
   transition: all 0.2s;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
 }
 .notif-tab.active {
   background: var(--primary-light);

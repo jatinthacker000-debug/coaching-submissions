@@ -284,22 +284,29 @@
       </div>
 
       <!-- Student Credentials View -->
-      <div class="panel-header" style="margin-top: 3rem;"><div><h1>Student Credentials</h1><p class="subtitle">View current student IDs and passwords.</p></div></div>
-      <div class="submit-card wide-card" style="margin-bottom: 3rem; overflow-x: auto;">
-        <table style="width: 100%; border-collapse: collapse; text-align: left;">
-          <thead style="border-bottom: 1px solid var(--border);">
-            <tr>
-              <th style="padding: 0.75rem; color: var(--text-muted);">Name</th>
-              <th style="padding: 0.75rem; color: var(--text-muted);">Group</th>
-              <th style="padding: 0.75rem; color: var(--text-muted);">Student ID</th>
-              <th style="padding: 0.75rem; color: var(--text-muted);">Password</th>
-              <th style="padding: 0.75rem; color: var(--text-muted);">Action</th>
-            </tr>
-          </thead>
-          <tbody id="credentials-table-body">
-            <tr><td colspan="4" style="padding: 1rem; color: var(--text-muted); text-align: center;">Loading...</td></tr>
-          </tbody>
-        </table>
+      <div class="panel-header" id="credentials-header" style="margin-top: 3rem; display: flex; justify-content: space-between; align-items: flex-end; cursor: pointer; user-select: none;">
+        <div>
+          <h1 style="display: flex; align-items: center;">Student Credentials <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="accordion-icon" id="credentials-toggle-icon" style="transform: rotate(0deg);"><polyline points="6 9 12 15 18 9"></polyline></svg></h1>
+          <p class="subtitle">View current student IDs and passwords.</p>
+        </div>
+      </div>
+      <div id="credentials-content" style="display: none;">
+        <div class="submit-card wide-card" style="margin-bottom: 3rem; overflow-x: auto; max-height: 400px; overflow-y: auto;">
+          <table style="width: 100%; border-collapse: collapse; text-align: left;">
+            <thead style="border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--surface-card); z-index: 10;">
+              <tr>
+                <th style="padding: 0.75rem; color: var(--text-muted);">Name</th>
+                <th style="padding: 0.75rem; color: var(--text-muted);">Group</th>
+                <th style="padding: 0.75rem; color: var(--text-muted);">Student ID</th>
+                <th style="padding: 0.75rem; color: var(--text-muted);">Password</th>
+                <th style="padding: 0.75rem; color: var(--text-muted);">Action</th>
+              </tr>
+            </thead>
+            <tbody id="credentials-table-body">
+              <tr><td colspan="4" style="padding: 1rem; color: var(--text-muted); text-align: center;">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <button class="btn btn-danger" id="delete-all-students-btn" style="margin-bottom: 3rem;">Delete All Students</button>
