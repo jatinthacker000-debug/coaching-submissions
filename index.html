@@ -74,11 +74,18 @@
       <h2 style="margin: 0 0 1rem 0; font-size: 1.25rem; color: var(--text); text-align: center;">📊 My Performance Report</h2>
       
       <div style="display: flex; flex-direction: column; gap: 1rem; align-items: center;">
-        <p class="muted-text" style="margin: 0; text-align: center;">Select your name to view your exam scores.</p>
+        <p class="muted-text" style="margin: 0; text-align: center;">Select your group and name to view your exam scores.</p>
+        
         <div class="custom-select-wrapper" style="width: 100%; max-width: 300px;">
-          <select id="student-report-select" class="custom-select" style="width: 100%;">
+          <select id="student-report-group-select" class="custom-select" style="width: 100%;">
+            <option value="">Select your group...</option>
+            <option value="loading">Loading groups...</option>
+          </select>
+        </div>
+
+        <div class="custom-select-wrapper" style="width: 100%; max-width: 300px;">
+          <select id="student-report-select" class="custom-select" style="width: 100%;" disabled>
             <option value="">Select your name...</option>
-            <option value="loading">Loading students...</option>
           </select>
         </div>
         

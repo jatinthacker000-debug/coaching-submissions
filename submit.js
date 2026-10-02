@@ -616,36 +616,61 @@ let publicMarks = [];
 let studentReportChart = null;
 
 async function initStudentReport() {
-  const selectEl = document.getElementById("student-report-select");
-  if (!selectEl) return;
+  const groupSelectEl = document.getElementById("student-report-group-select");
+  const studentSelectEl = document.getElementById("student-report-select");
+  
+  if (!studentSelectEl || !groupSelectEl) return;
   
   try {
-    // Fetch data using the existing api-client methods
-    // Since we updated marks to not require coach auth for GET, these should work
     const [studentsRes, examsRes, marksRes] = await Promise.all([
       fetchStudents(),
       fetchExams(),
-      fetchMarks() // Public now!
+      fetchMarks()
     ]);
     
     publicStudents = studentsRes.students || [];
     publicExams = examsRes.exams || [];
     publicMarks = marksRes.marks || [];
     
-    // Sort exams chronologically
     publicExams.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
     
-    // Populate select
-    let html = `<option value="">Select your name...</option>`;
-    publicStudents.forEach(s => {
-      html += `<option value="${escapeHtml(s.id)}">${escapeHtml(s.name)}</option>`;
-    });
-    selectEl.innerHTML = html;
+    // Extract unique groups
+    const uniqueGroups = [...new Set(publicStudents.map(s => s.group_name || 'Unassigned'))].sort();
     
-    selectEl.addEventListener("change", renderStudentReportContent);
+    // Populate group dropdown
+    let groupHtml = `<option value="">Select your group...</option>`;
+    uniqueGroups.forEach(g => {
+      groupHtml += `<option value="${escapeHtml(g)}">${escapeHtml(g)}</option>`;
+    });
+    groupSelectEl.innerHTML = groupHtml;
+    
+    // Group change listener
+    groupSelectEl.addEventListener("change", (e) => {
+      const selectedGroup = e.target.value;
+      
+      document.getElementById("student-report-content").style.display = "none";
+      
+      if (!selectedGroup) {
+        studentSelectEl.disabled = true;
+        studentSelectEl.innerHTML = `<option value="">Select your name...</option>`;
+        return;
+      }
+      
+      studentSelectEl.disabled = false;
+      let studentHtml = `<option value="">Select your name...</option>`;
+      
+      const filteredStudents = publicStudents.filter(s => (s.group_name || 'Unassigned') === selectedGroup);
+      filteredStudents.sort((a,b) => a.name.localeCompare(b.name)).forEach(s => {
+        studentHtml += `<option value="${escapeHtml(s.id)}">${escapeHtml(s.name)}</option>`;
+      });
+      studentSelectEl.innerHTML = studentHtml;
+    });
+    
+    studentSelectEl.addEventListener("change", renderStudentReportContent);
   } catch (err) {
     console.error("Error loading student report data:", err);
-    selectEl.innerHTML = `<option value="">Error loading data.</option>`;
+    groupSelectEl.innerHTML = `<option value="">Error loading data.</option>`;
+    studentSelectEl.innerHTML = `<option value="">Error loading data.</option>`;
   }
 }
 
