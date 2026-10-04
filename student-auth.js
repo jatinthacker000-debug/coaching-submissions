@@ -51,6 +51,7 @@ document.addEventListener("DOMContentLoaded", () => {
             <input type="password" id="login-password" placeholder="Password" style="width: 100%;">
           </div>
           <button id="student-login-btn" class="btn btn-primary" style="width: 100%;">Log In</button>
+          <a href="index.html" style="display: inline-block; margin-top: 1.25rem; color: var(--text-muted); text-decoration: none; font-size: 0.95rem; font-weight: 500; transition: color 0.2s;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--text-muted)'">&larr; Back to Home</a>
           <p id="student-login-error" style="color: red; margin-top: 1rem; display: none;"></p>
         </div>
       </div>
@@ -91,6 +92,11 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById("student-login-modal").remove();
         if (mainContent) mainContent.style.display = "block";
         setupLogout();
+        
+        // Re-initialize the student performance report now that we have credentials
+        if (typeof initStudentReport === "function") {
+          initStudentReport();
+        }
       } catch (e) {
         errEl.textContent = e.message;
         errEl.style.display = "block";
