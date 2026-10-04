@@ -652,7 +652,10 @@ async function initStudentReport() {
     if (!studentSelectEl || !groupSelectEl) return;
     
     // Extract unique groups
-    const uniqueGroups = [...new Set(publicStudents.map(s => s.group_name || 'Unassigned'))].sort();
+    let uniqueGroups = [...new Set(publicStudents.map(s => s.group_name || 'Unassigned'))].sort();
+    
+    // Filter out Nerd Tutors from the public dropdown
+    uniqueGroups = uniqueGroups.filter(g => g !== "Nerd Tutors");
     
     // Populate group dropdown
     let groupHtml = `<option value="">Select your group...</option>`;
