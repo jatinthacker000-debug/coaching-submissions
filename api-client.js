@@ -1,4 +1,4 @@
-const COACH_KEY = "coach_password";
+﻿const COACH_KEY = "coach_password";
 
 function getCoachPassword() {
   return sessionStorage.getItem(COACH_KEY) || "";
@@ -25,7 +25,7 @@ async function parseResponse(response) {
 }
 
 async function fetchQuestionPapers() {
-  const response = await fetch("/api/question-papers");
+  const response = await fetch("/api/question-papers", { cache: "no-store" });
   return parseResponse(response);
 }
 
@@ -53,7 +53,7 @@ async function deleteQuestionPaper(id) {
 
 async function fetchSubmissions(questionPaperId) {
   const query = questionPaperId ? `?questionPaperId=${encodeURIComponent(questionPaperId)}` : "";
-  const response = await fetch(`/api/submissions${query}`, {
+  const response = await fetch(`/api/submissions${query}`, { cache: "no-store",
     headers: {
       Authorization: `Bearer ${getCoachPassword()}`,
     },
@@ -203,7 +203,7 @@ async function uploadManyImages(files, folder, coachAuth = false, onProgress) {
 }
 
 async function fetchNotes() {
-  const response = await fetch("/api/notes");
+  const response = await fetch("/api/notes", { cache: "no-store" });
   return parseResponse(response);
 }
 
@@ -244,7 +244,7 @@ async function submitMarks(payload) {
 
 // --- STUDENTS ---
 async function fetchStudents() {
-  const response = await fetch("/api/students");
+  const response = await fetch("/api/students", { cache: "no-store" });
   return parseResponse(response);
 }
 
@@ -262,7 +262,7 @@ async function createStudent(payload) {
 
 // --- EXAMS ---
 async function fetchExams() {
-  const response = await fetch("/api/exams");
+  const response = await fetch("/api/exams", { cache: "no-store" });
   return parseResponse(response);
 }
 
@@ -290,9 +290,7 @@ async function deleteExam(id) {
 
 // --- MARKS ---
 async function fetchMarks() {
-  const response = await fetch("/api/marks", {
-    headers: {
-      Authorization: `Bearer ${getCoachPassword()}`,
+  const response = await fetch("/api/marks", { cache: "no-store", headers: { Authorization: `Bearer ${getCoachPassword()}`,
     },
   });
   return parseResponse(response);

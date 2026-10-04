@@ -1,4 +1,4 @@
-﻿const loginScreen = document.getElementById("login-screen");
+const loginScreen = document.getElementById("login-screen");
 const dashboardMain = document.getElementById("dashboard-main");
 const loginForm = document.getElementById("login-form");
 const loginError = document.getElementById("login-error");
@@ -1379,7 +1379,7 @@ document.addEventListener("DOMContentLoaded", () => {
         
         if (typeof populateGroupManager === "function") await populateGroupManager();
         if (typeof loadExamData === "function") await loadExamData();
-        if (typeof loadCredentialsTable === "function") await loadCredentialsTable();
+        if (typeof window.loadCredentialsTable === "function") await window.loadCredentialsTable();
       } catch (err) {
         statusEl.textContent = "Error: " + err.message;
         statusEl.style.color = "red";
@@ -1397,6 +1397,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!credTableBody) return;
     try {
       const res = await fetch("/api/students", {
+        cache: "no-store",
         headers: { "Authorization": `Bearer ${getCoachPassword()}` }
       });
       const data = await res.json();
@@ -1689,10 +1690,8 @@ if (bulkSaveBtn) {
       bulkSaveStatus.textContent = "Marks saved successfully!";
       bulkSaveStatus.style.color = "#059669";
       
-      // Refresh marks list if needed
-      if (typeof fetchAndRenderPerformance === 'function') {
-        fetchAndRenderPerformance();
-      }
+      // Refresh marks list
+      await loadExamData();
       
       setTimeout(() => {
         bulkSaveStatus.textContent = "";
@@ -1843,6 +1842,7 @@ async function loadHomeworkLinks() {
   if (!tbody) return;
   try {
     const res = await fetch('/api/homework-links', {
+      cache: 'no-store',
       headers: { 'Authorization': 'Bearer ' + getCoachPassword() }
     });
     const data = await res.json();
