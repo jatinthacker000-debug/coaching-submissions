@@ -3,6 +3,34 @@ document.addEventListener("DOMContentLoaded", () => {
     return Boolean(localStorage.getItem("student_token"));
   };
 
+  const setupLogout = () => {
+    if (document.getElementById("student-logout-btn")) return;
+    const headerActions = document.querySelector(".header-right-actions");
+    if (headerActions) {
+      const logoutBtn = document.createElement("button");
+      logoutBtn.id = "student-logout-btn";
+      logoutBtn.textContent = "Log Out";
+      logoutBtn.style.cssText = "background: none; border: 1px solid var(--danger); border-radius: 99px; padding: 0.4rem 0.8rem; cursor: pointer; color: var(--danger); font-weight: 500; font-size: 0.9rem; margin-left: 0.5rem; transition: background 0.2s;";
+      
+      logoutBtn.addEventListener("mouseover", () => {
+         logoutBtn.style.background = "var(--danger)";
+         logoutBtn.style.color = "white";
+      });
+      logoutBtn.addEventListener("mouseout", () => {
+         logoutBtn.style.background = "none";
+         logoutBtn.style.color = "var(--danger)";
+      });
+      
+      logoutBtn.addEventListener("click", () => {
+        localStorage.removeItem("student_token");
+        localStorage.removeItem("student_info");
+        window.location.reload();
+      });
+      
+      headerActions.appendChild(logoutBtn);
+    }
+  };
+
   if (!isStudentLoggedIn()) {
     // Hide main content
     const mainContent = document.querySelector(".main-content");
@@ -62,6 +90,7 @@ document.addEventListener("DOMContentLoaded", () => {
         // Remove modal and show content
         document.getElementById("student-login-modal").remove();
         if (mainContent) mainContent.style.display = "block";
+        setupLogout();
       } catch (e) {
         errEl.textContent = e.message;
         errEl.style.display = "block";
@@ -69,5 +98,7 @@ document.addEventListener("DOMContentLoaded", () => {
         loginBtn.textContent = "Log In";
       }
     });
+  } else {
+    setupLogout();
   }
 });
