@@ -616,10 +616,12 @@ let publicMarks = [];
 let studentReportChart = null;
 
 async function initStudentReport() {
+  const container = document.getElementById("student-report-content");
+  if (!container) return; // report section not on page
+  
   const groupSelectEl = document.getElementById("student-report-group-select");
   const studentSelectEl = document.getElementById("student-report-select");
-  
-  if (!studentSelectEl || !groupSelectEl) return;
+  const studentInfoStr = localStorage.getItem("student_info");
   
   try {
     const [studentsRes, examsRes, marksRes] = await Promise.all([
@@ -633,6 +635,21 @@ async function initStudentReport() {
     publicMarks = marksRes.marks || [];
     
     publicExams.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+
+    if (studentInfoStr) {
+      // Auto-load for logged in student
+      const studentInfo = JSON.parse(studentInfoStr);
+      if (groupSelectEl) groupSelectEl.parentElement.style.display = "none";
+      if (studentSelectEl) studentSelectEl.parentElement.style.display = "none";
+      
+      const p = container.parentElement.querySelector("p.muted-text");
+      if(p) p.style.display = "none";
+
+      renderStudentReportContent(studentInfo.id);
+      return;
+    }
+
+    if (!studentSelectEl || !groupSelectEl) return;
     
     // Extract unique groups
     const uniqueGroups = [...new Set(publicStudents.map(s => s.group_name || 'Unassigned'))].sort();
@@ -666,21 +683,29 @@ async function initStudentReport() {
       studentSelectEl.innerHTML = studentHtml;
     });
     
-    studentSelectEl.addEventListener("change", renderStudentReportContent);
+    studentSelectEl.addEventListener("change", () => renderStudentReportContent());
   } catch (err) {
     console.error("Error loading student report data:", err);
-    groupSelectEl.innerHTML = `<option value="">Error loading data.</option>`;
-    studentSelectEl.innerHTML = `<option value="">Error loading data.</option>`;
+    if (groupSelectEl) groupSelectEl.innerHTML = `<option value="">Error loading data.</option>`;
+    if (studentSelectEl) studentSelectEl.innerHTML = `<option value="">Error loading data.</option>`;
   }
 }
 
-function renderStudentReportContent() {
-  const selectEl = document.getElementById("student-report-select");
+function renderStudentReportContent(forcedStudentId = null) {
   const container = document.getElementById("student-report-content");
+  if (!container) return;
   
-  if (!selectEl || !container) return;
+  let studentId = forcedStudentId;
+  if (typeof forcedStudentId === 'object') {
+     studentId = null;
+  }
+
+  if (!studentId) {
+    const selectEl = document.getElementById("student-report-select");
+    if (!selectEl) return;
+    studentId = selectEl.value;
+  }
   
-  const studentId = selectEl.value;
   if (!studentId) {
     container.style.display = "none";
     return;
@@ -712,7 +737,7 @@ function renderStudentReportContent() {
       const maxMarks = ex.total_marks;
       const perc = (marksObtained / maxMarks) * 100;
       
-      let changeText = "�";
+      let changeText = "NA";
       let changeColor = "var(--text-muted)";
       if (prevPercentage !== null) {
         const diff = perc - prevPercentage;
@@ -741,7 +766,64 @@ function renderStudentReportContent() {
     html += `<tr><td colspan="4" style="padding: 1rem; text-align: center; color: var(--text-muted);">No exam records found.</td></tr>`;
   }
 
-  html += `</tbody></table></div>`;
+  html += `</tbody></table>`;
+
+  if (hasExams && publicExams.length > 0) {
+    const stats = [];
+    publicExams.forEach(ex => {
+      const markObj = studentMarks.find(m => m.exam_id === ex.id);
+      if (markObj) {
+        stats.push({ name: ex.name, perc: (markObj.marks_obtained / ex.total_marks) * 100 });
+      }
+    });
+
+    if (stats.length > 0) {
+      const firstExam = stats[0];
+      const lastExam = stats[stats.length - 1];
+      const overallChange = lastExam.perc - firstExam.perc;
+      const averagePerc = stats.reduce((acc, curr) => acc + curr.perc, 0) / stats.length;
+      
+      const highestExam = stats.reduce((prev, curr) => (prev.perc > curr.perc) ? prev : curr);
+      const lowestExam = stats.reduce((prev, curr) => (prev.perc < curr.perc) ? prev : curr);
+
+      let trendHtml = '';
+      if (stats.length >= 2) {
+          if (overallChange > 0) trendHtml = `<span style="color: #059669; font-weight: bold;">Improving (&#8593; ${overallChange.toFixed(1)}%)</span>`;
+          else if (overallChange < 0) trendHtml = `<span style="color: #dc2626; font-weight: bold;">Declining (&#8595; ${Math.abs(overallChange).toFixed(1)}%)</span>`;
+          else trendHtml = `<span style="color: var(--text-muted); font-weight: bold;">Stable</span>`;
+      } else {
+          trendHtml = `<span style="color: var(--text-muted);">Need more exams</span>`;
+      }
+
+      html += `
+      <div style="border-top: 1px solid var(--border); padding: 1.5rem; background: var(--bg);">
+        <h3 style="margin-top: 0; color: var(--text); border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; font-size: 1.1rem;">Insights & Analysis</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem; margin-top: 1rem;">
+            <div>
+                <p style="margin: 0.5rem 0; color: var(--text-muted); font-size: 0.9rem;">Average</p>
+                <p style="margin: 0; font-size: 1.25rem; font-weight: bold; color: var(--primary);">${averagePerc.toFixed(1)}%</p>
+            </div>
+            <div>
+                <p style="margin: 0.5rem 0; color: var(--text-muted); font-size: 0.9rem;">Overall Trend</p>
+                <p style="margin: 0; font-size: 1.1rem;">${trendHtml}</p>
+            </div>
+            <div>
+                <p style="margin: 0.5rem 0; color: var(--text-muted); font-size: 0.9rem;">Highest Score</p>
+                <p style="margin: 0; font-size: 1.1rem; font-weight: 500;">${highestExam.perc.toFixed(1)}%</p>
+                <p style="margin: 0.2rem 0 0 0; font-size: 0.8rem; color: var(--text-muted);">${escapeHtml(highestExam.name)}</p>
+            </div>
+            <div>
+                <p style="margin: 0.5rem 0; color: var(--text-muted); font-size: 0.9rem;">Lowest Score</p>
+                <p style="margin: 0; font-size: 1.1rem; font-weight: 500;">${lowestExam.perc.toFixed(1)}%</p>
+                <p style="margin: 0.2rem 0 0 0; font-size: 0.8rem; color: var(--text-muted);">${escapeHtml(lowestExam.name)}</p>
+            </div>
+        </div>
+      </div>
+      `;
+    }
+  }
+
+  html += `</div>`;
   container.innerHTML = html;
 }
 
