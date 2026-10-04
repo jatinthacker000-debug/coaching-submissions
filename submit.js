@@ -654,8 +654,8 @@ async function initStudentReport() {
     // Extract unique groups
     let uniqueGroups = [...new Set(publicStudents.map(s => s.group_name || 'Unassigned'))].sort();
     
-    // Filter out Nerd Tutors from the public dropdown
-    uniqueGroups = uniqueGroups.filter(g => g !== "Nerd Tutors");
+    // Filter out Nerd Tutors groups from the public dropdown
+    uniqueGroups = uniqueGroups.filter(g => !g.startsWith("Nerd Tutors"));
     
     // Populate group dropdown
     let groupHtml = `<option value="">Select your group...</option>`;
