@@ -138,8 +138,8 @@
       <form id="note-form" class="submit-card wide-card">
         <div class="form-row">
           <div class="form-group" style="flex: 0 0 110px;">
-            <label for="note-chapter">Ch. Number</label>
-            <input type="text" id="note-chapter" placeholder="e.g. 1" required style="text-align: center;">
+            <label for="note-chapter">Ch. / Sl. No</label>
+            <input type="text" id="note-chapter" placeholder="Optional" style="text-align: center;">
           </div>
 
           <div class="form-group">
@@ -291,6 +291,9 @@
         </div>
       </div>
       <div id="credentials-content" style="display: none;">
+        <div style="margin-bottom: 1rem; display: flex; justify-content: flex-end;">
+          <input type="text" id="credentials-search" placeholder="Search by name, group, or ID..." style="padding: 0.5rem; border-radius: 6px; border: 1px solid var(--border); width: 300px; background: var(--surface-card); color: var(--text);">
+        </div>
         <div class="submit-card wide-card" style="margin-bottom: 3rem; overflow-x: auto; max-height: 400px; overflow-y: auto;">
           <table style="width: 100%; border-collapse: collapse; text-align: left;">
             <thead style="border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--surface-card); z-index: 10;">

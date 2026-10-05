@@ -22,16 +22,18 @@ function showLogin() {
   dashboardMain.classList.add("hidden");
 }
 
-// Helper to parse "[Ch X] Title" format
+// Helper to parse "[Ch X]" or "[Sl X]" Title format
 function parseResourceTitle(rawTitle) {
-  const match = (rawTitle || "").match(/^\[Ch\s+([^\]]+)\]\s*(.*)$/i);
+  const match = (rawTitle || "").match(/^\[(Ch|Sl)\s*([^\]]+)\]\s*(.*)$/i);
   if (match) {
     return {
-      chapter: match[1].trim(),
-      cleanTitle: match[2].trim()
+      prefix: match[1].trim(),
+      chapter: match[2].trim(),
+      cleanTitle: match[3].trim()
     };
   }
   return {
+    prefix: null,
     chapter: null,
     cleanTitle: rawTitle
   };
@@ -42,7 +44,12 @@ function getChapterSortValue(resource) {
   const parsed = parseResourceTitle(resource.title || "");
   if (parsed.chapter) {
     const num = parseFloat(parsed.chapter);
-    return isNaN(num) ? 999999 : num;
+    if (!isNaN(num)) {
+      if (parsed.prefix && parsed.prefix.toLowerCase() === 'sl') {
+        return 10000 + num;
+      }
+      return num;
+    }
   }
   return 999999;
 }
@@ -130,7 +137,12 @@ async function renderNotes() {
       }
       
       const parsed = parseResourceTitle(note.title);
-      const chapterBadge = parsed.chapter ? `<span class="note-chapter-tag">Ch ${escapeHtml(parsed.chapter)}</span> ` : "";
+      let badgeText = "";
+      if (parsed.chapter) {
+          const prefix = parsed.prefix && parsed.prefix.toLowerCase() === "sl" ? "Sl No." : "Ch";
+          badgeText = `${prefix} ${escapeHtml(parsed.chapter)}`;
+      }
+      const chapterBadge = badgeText ? `<span class="note-chapter-tag">${badgeText}</span> ` : "";
 
       const card = document.createElement("article");
       card.className = "paper-card";
@@ -209,8 +221,29 @@ if (noteForm) {
     noteSubmitBtn.disabled = true;
     noteSubmitBtn.textContent = "Adding...";
 
-    // Format title to prepend chapter info: "[Ch X] Title"
-    const formattedTitle = `[Ch ${noteChapter.value.trim()}] ${noteTitle.value.trim()}`;
+    const chapterVal = noteChapter.value.trim();
+    let formattedTitle = "";
+
+    if (chapterVal === "") {
+      try {
+        const { notes } = await fetchNotes();
+        let maxSl = 0;
+        const sameTypeNotes = (notes || []).filter(n => n.grade === noteType.value);
+        sameTypeNotes.forEach(n => {
+          const parsed = parseResourceTitle(n.title);
+          if (parsed.prefix && parsed.prefix.toLowerCase() === "sl") {
+            const num = parseInt(parsed.chapter, 10);
+            if (!isNaN(num) && num > maxSl) maxSl = num;
+          }
+        });
+        formattedTitle = `[Sl ${maxSl + 1}] ${noteTitle.value.trim()}`;
+      } catch (err) {
+        console.error(err);
+        formattedTitle = `[Sl 1] ${noteTitle.value.trim()}`;
+      }
+    } else {
+      formattedTitle = `[Ch ${chapterVal}] ${noteTitle.value.trim()}`;
+    }
 
     try {
       await createNote({
@@ -617,9 +650,7 @@ function renderChart(exams, marksByStudent, studentIds = []) {
       borderWidth: 1,
       datalabels: {
         display: true,
-        align: 'end',
-        anchor: 'end',
-        color: color.border,
+        align: 'center', anchor: 'center', color: '#ffffff', backgroundColor: color.border, borderRadius: 4, padding: 4,
         font: { weight: 'bold', size: 11 },
         formatter: (value) => value ? `${studentObj ? studentObj.name.split(' ')[0] : ''}\n${value}%` : ''
       }
@@ -1392,7 +1423,24 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // Credentials table logic
-  const credTableBody = document.getElementById("credentials-table-body");
+    const credTableBody = document.getElementById("credentials-table-body");
+  const credSearch = document.getElementById("credentials-search");
+
+  if (credSearch) {
+    credSearch.addEventListener("input", (e) => {
+      const term = e.target.value.toLowerCase();
+      if (!credTableBody) return;
+      const rows = credTableBody.querySelectorAll("tr");
+      rows.forEach(row => {
+        // Skip the "Loading" or "Failed" rows if they have colspan=5 or 4
+        if (row.children.length > 1) {
+          const text = row.textContent.toLowerCase();
+          row.style.display = text.includes(term) ? "" : "none";
+        }
+      });
+    });
+  }
+
   window.loadCredentialsTable = async function() {
     if (!credTableBody) return;
     try {
@@ -1417,6 +1465,10 @@ document.addEventListener("DOMContentLoaded", () => {
           `;
           credTableBody.appendChild(tr);
         });
+
+        if (credSearch && credSearch.value) {
+          credSearch.dispatchEvent(new Event("input"));
+        }
       }
     } catch (e) {
       credTableBody.innerHTML = `<tr><td colspan="5" style="color:red; text-align:center;">Failed to load credentials</td></tr>`;

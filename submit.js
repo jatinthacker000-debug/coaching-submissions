@@ -4,16 +4,18 @@ function isOfflineFileMode() {
   return window.location.protocol === "file:";
 }
 
-// Parses "[Ch X] Chapter Title" format
+// Parses "[Ch X]" or "[Sl X]" Chapter Title format
 function parseResourceTitle(rawTitle) {
-  const match = (rawTitle || "").match(/^\[Ch\s+([^\]]+)\]\s*(.*)$/i);
+  const match = (rawTitle || "").match(/^\[(Ch|Sl)\s*([^\]]+)\]\s*(.*)$/i);
   if (match) {
     return {
-      chapter: match[1].trim(),
-      cleanTitle: match[2].trim()
+      prefix: match[1].trim(),
+      chapter: match[2].trim(),
+      cleanTitle: match[3].trim()
     };
   }
   return {
+    prefix: null,
     chapter: null,
     cleanTitle: rawTitle
   };
@@ -24,7 +26,12 @@ function getChapterSortValue(resource) {
   const parsed = parseResourceTitle(resource.title || "");
   if (parsed.chapter) {
     const num = parseFloat(parsed.chapter);
-    return isNaN(num) ? 999999 : num;
+    if (!isNaN(num)) {
+      if (parsed.prefix && parsed.prefix.toLowerCase() === 'sl') {
+        return 10000 + num;
+      }
+      return num;
+    }
   }
   return 999999;
 }
@@ -96,7 +103,7 @@ async function loadPDFNotes() {
           if (target) {
             const li = document.createElement("li");
             const parsed = parseResourceTitle(resource.title);
-            const chapterBadge = parsed.chapter ? `<span class="note-chapter-tag">Ch ${escapeHtml(parsed.chapter)}</span> ` : "";
+            let badgeText = ""; if (parsed.chapter) { const prefix = parsed.prefix && parsed.prefix.toLowerCase() === "sl" ? "Sl No." : "Ch"; badgeText = `${prefix} ${escapeHtml(parsed.chapter)}`; } const chapterBadge = badgeText ? `<span class="note-chapter-tag">${badgeText}</span> ` : "";
             if (resource.grade === "X-Other") {
               if (target.otherList) {
                 li.innerHTML = `<a href="${escapeHtml(resource.link)}" target="_blank" rel="noopener noreferrer" class="note-link">📚📁 ${chapterBadge}${escapeHtml(parsed.cleanTitle)}</a>`;
@@ -246,7 +253,7 @@ async function loadPDFNotes() {
           if (target) {
             const li = document.createElement("li");
             const parsed = parseResourceTitle(resource.title);
-            const chapterBadge = parsed.chapter ? `<span class="note-chapter-tag">Ch ${escapeHtml(parsed.chapter)}</span> ` : "";
+            let badgeText = ""; if (parsed.chapter) { const prefix = parsed.prefix && parsed.prefix.toLowerCase() === "sl" ? "Sl No." : "Ch"; badgeText = `${prefix} ${escapeHtml(parsed.chapter)}`; } const chapterBadge = badgeText ? `<span class="note-chapter-tag">${badgeText}</span> ` : "";
             if (resource.grade === "XII-Other") {
               if (target.otherList) {
                 li.innerHTML = `<a href="${escapeHtml(resource.link)}" target="_blank" rel="noopener noreferrer" class="note-link">📚📁 ${chapterBadge}${escapeHtml(parsed.cleanTitle)}</a>`;
@@ -900,6 +907,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 });
+
 
 
 

@@ -54,13 +54,13 @@ document.addEventListener("DOMContentLoaded", () => {
     const daysOfWeek = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
     
     // Outer horizontally scrollable container for mobile
-    let html = `<div style="width: 100%; overflow-x: auto; padding-bottom: 1rem;">`;
+    let html = `<div style="width: 100%; padding-bottom: 1rem;">`;
     
     // Inner flex container (forced side-by-side)
-    html += `<div style="display: flex; flex-direction: row; flex-wrap: nowrap; gap: 2rem; justify-content: flex-start; align-items: flex-start; min-width: 780px; margin: 0 auto;">`;
+    html += `<div style="display: flex; flex-direction: row; flex-wrap: wrap; gap: 2rem; justify-content: center; align-items: flex-start; margin: 0 auto;">`;
     
     // 1. Calendar Grid (fixed minimum width so days don't get squished)
-    html += `<div style="flex: 0 0 450px; display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align: center;">`;
+    html += `<div style="flex: 1 1 100%; max-width: 450px; display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align: center;">`;
     
     // Headers
     daysOfWeek.forEach(d => {
@@ -114,7 +114,7 @@ document.addEventListener("DOMContentLoaded", () => {
     
     // 2. Holiday Legend (fixed minimum width so text is readable)
     html += `
-      <div style="flex: 0 0 310px; background: var(--surface-card); padding: 1.5rem; border-radius: 8px; box-shadow: var(--shadow); margin-top: 0;">
+      <div style="flex: 1 1 100%; max-width: 350px; background: var(--surface-card); padding: 1.5rem; border-radius: 8px; box-shadow: var(--shadow); margin-top: 0;">
         <h4 style="background: #fcd116; color: black; padding: 0.5rem; border-radius: 4px; margin-bottom: 1rem; text-align: center;">Holidays of the Month</h4>
         <ul style="list-style: none; padding: 0; display: flex; flex-direction: column; gap: 0.75rem;">
           <li style="display: flex; gap: 1rem; align-items: center;"><span style="background: #fee2e2; color: #991b1b; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 4px; font-weight: bold;">2</span> Mahatma Gandhi's Birthday (G)</li>
