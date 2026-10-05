@@ -52,7 +52,15 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const daysOfWeek = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
-    let html = `<div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; max-width: 600px; margin: 0 auto; text-align: center;">`;
+    
+    // Outer horizontally scrollable container for mobile
+    let html = `<div style="width: 100%; overflow-x: auto; padding-bottom: 1rem;">`;
+    
+    // Inner flex container (forced side-by-side)
+    html += `<div style="display: flex; flex-direction: row; flex-wrap: nowrap; gap: 2rem; justify-content: flex-start; align-items: flex-start; min-width: 780px; margin: 0 auto;">`;
+    
+    // 1. Calendar Grid (fixed minimum width so days don't get squished)
+    html += `<div style="flex: 0 0 450px; display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align: center;">`;
     
     // Headers
     daysOfWeek.forEach(d => {
@@ -71,20 +79,28 @@ document.addEventListener("DOMContentLoaded", () => {
       let bgColor = "var(--surface-card)";
       let color = "var(--text)";
       
-      // Holidays
+      const isSunday = (blanks + day - 1) % 7 === 0;
+
+      // Assign colors based on holidays and Sundays
       if (day === 2 || day === 20) {
-        bgColor = "#da291c"; // Red
-        color = "white";
+        bgColor = "#fee2e2"; // Light Red
+        color = "#991b1b"; // Dark Red
       } else if (day === 18 || day === 19 || day === 26 || day === 29) {
-        bgColor = "#23883a"; // Green
-        color = "white";
+        bgColor = "#dcfce7"; // Light Green
+        color = "#166534"; // Dark Green
+      } else if (isSunday) {
+        bgColor = "#fef3c7"; // Light Amber
+        color = "#92400e"; // Dark Amber
       }
 
       const dateStr = `2026-10-${day.toString().padStart(2, '0')}`;
       const hasHomework = linksMap[dateStr] ? true : false;
       const cursor = hasHomework ? "pointer" : "default";
 
-      html += `<div class="cal-day" data-date="${dateStr}" data-group="${groupName}" data-link="${hasHomework ? linksMap[dateStr] : ''}" style="padding: 1rem; background: ${bgColor}; color: ${color}; border-radius: 4px; cursor: ${cursor}; font-weight: bold; transition: transform 0.1s;">${day}</div>`;
+      // Homework highlight indicator (blue inner border)
+      const highlightStyle = hasHomework ? "box-shadow: inset 0 0 0 3px #3b82f6;" : "";
+
+      html += `<div class="cal-day" data-date="${dateStr}" data-group="${groupName}" data-link="${hasHomework ? linksMap[dateStr] : ''}" style="padding: 1rem; background: ${bgColor}; color: ${color}; border-radius: 4px; cursor: ${cursor}; font-weight: bold; transition: transform 0.1s; ${highlightStyle}">${day}</div>`;
     }
     
     // Remaining days to fill grid
@@ -94,21 +110,33 @@ document.addEventListener("DOMContentLoaded", () => {
       html += `<div style="padding: 1rem; color: #ccc; background: var(--surface-card); border-radius: 4px;">${i}</div>`;
     }
 
-    html += `</div>`;
+    html += `</div>`; // Close grid container
     
-    // Holiday Legend
+    // 2. Holiday Legend (fixed minimum width so text is readable)
     html += `
-      <div style="max-width: 600px; margin: 2rem auto; background: var(--surface-card); padding: 1rem; border-radius: 8px;">
-        <h4 style="background: #fcd116; color: black; padding: 0.5rem; border-radius: 4px; margin-bottom: 1rem;">Holidays of the Month</h4>
-        <ul style="list-style: none; padding: 0; display: flex; flex-direction: column; gap: 0.5rem;">
-          <li style="display: flex; gap: 1rem; align-items: center;"><span style="background: #da291c; color: white; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 4px;">2</span> Mahatma Gandhi's Birthday (G)</li>
-          <li style="display: flex; gap: 1rem; align-items: center;"><span style="background: #23883a; color: white; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 4px;">18</span> Dusshera (Saptami) (R)</li>
-          <li style="display: flex; gap: 1rem; align-items: center;"><span style="background: #23883a; color: white; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 4px;">19</span> Dussehra (Mahashtami) (R)</li>
-          <li style="display: flex; gap: 1rem; align-items: center;"><span style="background: #da291c; color: white; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 4px;">20</span> Dussehra (G) / (Mahanavmi) (R)</li>
-          <li style="display: flex; gap: 1rem; align-items: center;"><span style="background: #23883a; color: white; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 4px;">26</span> Maharishi Valmiki's Birthday (R)</li>
-          <li style="display: flex; gap: 1rem; align-items: center;"><span style="background: #23883a; color: white; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 4px;">29</span> Karaka Chaturthi (Karwa Chouth) (R)</li>
+      <div style="flex: 0 0 310px; background: var(--surface-card); padding: 1.5rem; border-radius: 8px; box-shadow: var(--shadow); margin-top: 0;">
+        <h4 style="background: #fcd116; color: black; padding: 0.5rem; border-radius: 4px; margin-bottom: 1rem; text-align: center;">Holidays of the Month</h4>
+        <ul style="list-style: none; padding: 0; display: flex; flex-direction: column; gap: 0.75rem;">
+          <li style="display: flex; gap: 1rem; align-items: center;"><span style="background: #fee2e2; color: #991b1b; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 4px; font-weight: bold;">2</span> Mahatma Gandhi's Birthday (G)</li>
+          <li style="display: flex; gap: 1rem; align-items: center;"><span style="background: #dcfce7; color: #166534; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 4px; font-weight: bold;">18</span> Dusshera (Saptami) (R)</li>
+          <li style="display: flex; gap: 1rem; align-items: center;"><span style="background: #dcfce7; color: #166534; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 4px; font-weight: bold;">19</span> Dussehra (Mahashtami) (R)</li>
+          <li style="display: flex; gap: 1rem; align-items: center;"><span style="background: #fee2e2; color: #991b1b; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 4px; font-weight: bold;">20</span> Dussehra (G) / (Mahanavmi) (R)</li>
+          <li style="display: flex; gap: 1rem; align-items: center;"><span style="background: #dcfce7; color: #166534; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 4px; font-weight: bold;">26</span> Maharishi Valmiki's Birthday (R)</li>
+          <li style="display: flex; gap: 1rem; align-items: center;"><span style="background: #dcfce7; color: #166534; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 4px; font-weight: bold;">29</span> Karaka Chaturthi (Karwa Chouth) (R)</li>
         </ul>
+        
+        <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+            <div style="display: flex; align-items: center; gap: 1rem; font-size: 0.9rem; color: var(--text);">
+                <div style="width: 20px; height: 20px; box-shadow: inset 0 0 0 3px #3b82f6; border-radius: 4px;"></div>
+                <span>Homework Uploaded</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 1rem; font-size: 0.9rem; color: var(--text); margin-top: 0.5rem;">
+                <div style="width: 20px; height: 20px; background: #fef3c7; border-radius: 4px;"></div>
+                <span>Sunday</span>
+            </div>
+        </div>
       </div>
+    </div></div>
     `;
 
     container.innerHTML = html;

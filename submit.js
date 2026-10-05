@@ -827,7 +827,56 @@ function renderStudentReportContent(forcedStudentId = null) {
   }
 
   html += `</div>`;
+  html += `<div id="hw-report-container"></div>`;
   container.innerHTML = html;
+
+  // Fetch and render homework status
+  fetch(`/api/homework-status?student_id=${studentId}`)
+    .then(res => res.json())
+    .then(data => {
+      if (data.statuses && data.statuses.length > 0) {
+        let hwHtml = `
+        <div style="margin-top: 2rem;">
+          <h3 style="margin-bottom: 1rem; color: var(--text);">Homework Record</h3>
+          <div class="submit-card" style="padding: 0; overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; text-align: left; background: var(--surface);">
+              <thead>
+                <tr style="border-bottom: 2px solid var(--border);">
+                  <th style="padding: 1rem; color: var(--text-muted); font-weight: 600;">Date</th>
+                  <th style="padding: 1rem; color: var(--text-muted); font-weight: 600;">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+        `;
+        
+        data.statuses.forEach(st => {
+          let badgeColor = "#059669";
+          let badgeBg = "#dcfce7";
+          if (st.status === 'Partial') {
+            badgeColor = "#d97706";
+            badgeBg = "#fef3c7";
+          } else if (st.status === 'Incomplete') {
+            badgeColor = "#dc2626";
+            badgeBg = "#fee2e2";
+          }
+          
+          hwHtml += `
+            <tr style="border-bottom: 1px solid var(--border);">
+              <td style="padding: 1rem; font-weight: 500;">${st.homework_date}</td>
+              <td style="padding: 1rem;">
+                <span style="background: ${badgeBg}; color: ${badgeColor}; padding: 0.25rem 0.75rem; border-radius: 9999px; font-weight: 600; font-size: 0.85rem;">
+                  ${escapeHtml(st.status)}
+                </span>
+              </td>
+            </tr>
+          `;
+        });
+        
+        hwHtml += `</tbody></table></div></div>`;
+        document.getElementById("hw-report-container").innerHTML = hwHtml;
+      }
+    })
+    .catch(err => console.error("Failed to load homework tracking:", err));
 }
 
 // Initialize when DOM is ready

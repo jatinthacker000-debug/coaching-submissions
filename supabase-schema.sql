@@ -79,3 +79,14 @@ CREATE TABLE IF NOT EXISTS homework_links (
 );
 
 ALTER TABLE exams ADD COLUMN IF NOT EXISTS target_groups TEXT[] DEFAULT '{}';
+
+
+-- NEW HOMEWORK TRACKING TABLE
+CREATE TABLE IF NOT EXISTS homework_status (
+  id uuid primary key default gen_random_uuid(),
+  homework_date date not null,
+  student_id uuid not null references students(id) on delete cascade,
+  status text not null default 'Done', -- 'Done', 'Incomplete', 'Partial'
+  created_at timestamptz not null default now(),
+  unique(homework_date, student_id)
+);

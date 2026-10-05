@@ -1902,3 +1902,126 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 });
+
+
+// --- HOMEWORK TRACKING ---
+const hwTrackDateInput = document.getElementById("hw-track-date");
+const hwTrackGroupSelect = document.getElementById("hw-track-group");
+const hwTrackLoadBtn = document.getElementById("hw-track-load-btn");
+const hwTrackContainer = document.getElementById("hw-track-container");
+const hwTrackBody = document.getElementById("hw-track-body");
+const hwTrackSaveBtn = document.getElementById("hw-track-save-btn");
+const hwTrackSaveStatus = document.getElementById("hw-track-save-status");
+
+if (hwTrackLoadBtn) {
+  let currentHwTrackingData = [];
+  
+  hwTrackLoadBtn.addEventListener("click", async () => {
+    const date = hwTrackDateInput.value;
+    const group = hwTrackGroupSelect.value;
+    
+    if (!date || !group) {
+      return alert("Please select both a date and a group.");
+    }
+    
+    hwTrackLoadBtn.disabled = true;
+    hwTrackLoadBtn.textContent = "Loading...";
+    
+    try {
+      const res = await fetch(`/api/homework-status?homework_date=${date}&group_name=${encodeURIComponent(group)}`, {
+        headers: { "Authorization": `Bearer ${getCoachPassword()}` }
+      });
+      const data = await res.json();
+      
+      if (res.ok) {
+        currentHwTrackingData = data.students || [];
+        const existingStatuses = data.statuses || [];
+        
+        let bodyHtml = "";
+        currentHwTrackingData.forEach((st, idx) => {
+          const existingRecord = existingStatuses.find(s => s.student_id === st.id);
+          const statusVal = existingRecord ? existingRecord.status : "Done";
+          
+          bodyHtml += `<tr>
+            <td style="text-align: center; padding: 0.5rem;">${idx + 1}</td>
+            <td style="font-weight: 500; padding: 0.5rem;">${escapeHtml(st.name)}</td>
+            <td style="padding: 0.5rem;">
+              <select class="hw-status-select" data-student-id="${st.id}" style="padding: 0.5rem; border-radius: 4px; border: 1px solid var(--border); background: var(--surface);">
+                <option value="Done" ${statusVal === 'Done' ? 'selected' : ''}>Done</option>
+                <option value="Partial" ${statusVal === 'Partial' ? 'selected' : ''}>Partial</option>
+                <option value="Incomplete" ${statusVal === 'Incomplete' ? 'selected' : ''}>Incomplete</option>
+              </select>
+            </td>
+          </tr>`;
+        });
+        
+        if (currentHwTrackingData.length === 0) {
+          bodyHtml = `<tr><td colspan="3" style="text-align: center; padding: 1.5rem; color: var(--text-muted);">No students found in this group.</td></tr>`;
+          hwTrackSaveBtn.style.display = "none";
+        } else {
+          hwTrackSaveBtn.style.display = "inline-block";
+        }
+        
+        hwTrackBody.innerHTML = bodyHtml;
+        hwTrackContainer.style.display = "block";
+      } else {
+        alert(data.error || "Failed to load students.");
+      }
+    } catch (e) {
+      alert("Error loading homework tracking data.");
+    }
+    
+    hwTrackLoadBtn.disabled = false;
+    hwTrackLoadBtn.textContent = "Load Students";
+  });
+  
+  if (hwTrackSaveBtn) {
+    hwTrackSaveBtn.addEventListener("click", async () => {
+      const date = hwTrackDateInput.value;
+      if (!date) return alert("Please select a date.");
+      
+      const selects = document.querySelectorAll(".hw-status-select");
+      const updates = [];
+      selects.forEach(sel => {
+        updates.push({
+          homework_date: date,
+          student_id: sel.dataset.studentId,
+          status: sel.value
+        });
+      });
+      
+      if (updates.length === 0) return;
+      
+      hwTrackSaveBtn.disabled = true;
+      hwTrackSaveBtn.textContent = "Saving...";
+      hwTrackSaveStatus.textContent = "Saving...";
+      
+      try {
+        const res = await fetch("/api/homework-status", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${getCoachPassword()}`
+          },
+          body: JSON.stringify({ updates })
+        });
+        
+        const data = await res.json();
+        if (res.ok) {
+          hwTrackSaveStatus.textContent = "Saved successfully!";
+          hwTrackSaveStatus.style.color = "#059669";
+          setTimeout(() => { hwTrackSaveStatus.textContent = ""; }, 3000);
+        } else {
+          hwTrackSaveStatus.textContent = data.error || "Failed to save.";
+          hwTrackSaveStatus.style.color = "#ef4444";
+        }
+      } catch (e) {
+        hwTrackSaveStatus.textContent = "Error saving data.";
+        hwTrackSaveStatus.style.color = "#ef4444";
+      }
+      
+      hwTrackSaveBtn.disabled = false;
+      hwTrackSaveBtn.textContent = "Save Homework Status";
+    });
+  }
+}

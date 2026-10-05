@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -535,6 +535,50 @@
           <div style="margin-top: 1.5rem; text-align: right;">
             <span id="bulk-save-status" style="margin-right: 1rem; font-weight: 500;"></span>
             <button id="bulk-save-btn" class="btn btn-primary" style="background: #059669;">Save All Marks</button>
+          </div>
+        </div>
+      </div>
+      <!-- Homework Tracking Section -->
+      <div class="panel-header" style="margin-top: 3rem;">
+        <div>
+          <h1>Homework Tracking</h1>
+          <p class="subtitle">Select a group and date to track student homework.</p>
+        </div>
+      </div>
+      <div class="submit-card" style="padding: 1.5rem;">
+        <div style="margin-bottom: 1.5rem; display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap;">
+          <div class="form-group" style="flex: 1; min-width: 200px;">
+            <label for="hw-track-date">Select Date</label>
+            <input type="date" id="hw-track-date">
+          </div>
+          <div class="form-group" style="flex: 1; min-width: 200px;">
+            <label for="hw-track-group">Select Group</label>
+            <select id="hw-track-group">
+              <option value="">Choose a group...</option>
+              <option value="NEPS">NEPS</option><option value="NEGS">NEGS</option><option value="Nalanda">Nalanda</option>
+              <option value="Lakshya">Lakshya</option>
+              <option value="Sankalp">Sankalp</option>
+              <option value="Prayas">Prayas</option>
+              <option value="Nerd Tutors">Nerd Tutors</option><option value="Nerd Tutors Nalanda">Nerd Tutors Nalanda</option>
+            </select>
+          </div>
+          <button id="hw-track-load-btn" class="btn btn-primary" style="width: auto; padding: 0.75rem 2rem;">Load Students</button>
+        </div>
+        
+        <div id="hw-track-container" style="display: none; overflow-x: auto;">
+          <table class="grid-table" style="width: 100%; border-collapse: collapse; text-align: left;">
+            <thead>
+              <tr>
+                <th style="width: 50px; text-align: center; padding: 0.5rem;">Sl no</th>
+                <th style="min-width: 150px; padding: 0.5rem;">Name of the student</th>
+                <th style="padding: 0.5rem;">Homework Status</th>
+              </tr>
+            </thead>
+            <tbody id="hw-track-body"></tbody>
+          </table>
+          <div style="margin-top: 1.5rem; text-align: right;">
+            <span id="hw-track-save-status" style="margin-right: 1rem; font-weight: 500;"></span>
+            <button id="hw-track-save-btn" class="btn btn-primary" style="background: #059669;">Save Homework Status</button>
           </div>
         </div>
       </div>
