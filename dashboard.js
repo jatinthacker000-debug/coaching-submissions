@@ -516,7 +516,7 @@ function renderPerformanceTable(exams, marks, students) {
     return 0;
   });
 
-  tableData.forEach(row => {
+    tableData.forEach(row => {
     let rowHtml = `<td style="padding: 1rem; border-bottom: 1px solid var(--border);">${escapeHtml(row.student.name)}</td>`;
     
     exams.forEach(ex => {
@@ -528,7 +528,24 @@ function renderPerformanceTable(exams, marks, students) {
       }
     });
     
-    rowHtml += `<td style="padding: 1rem; border-bottom: 1px solid var(--border); text-align: right; font-weight: 600;">${row.percentageStr}</td>`;
+    let trendHtml = '';
+    const validExams = exams.filter(ex => row.examScores[ex.id] !== null);
+    if (validExams.length >= 2) {
+       const lastExam = validExams[validExams.length - 1];
+       const prevExam = validExams[validExams.length - 2];
+       const lastPerc = (row.examScores[lastExam.id] / lastExam.total_marks) * 100;
+       const prevPerc = (row.examScores[prevExam.id] / prevExam.total_marks) * 100;
+       const diff = lastPerc - prevPerc;
+       if (diff > 0) {
+          trendHtml = `<span style="color: #10b981; font-size: 0.85rem; margin-left: 0.5rem;" title="Up ${diff.toFixed(1)}% since last exam">&#9650;</span>`;
+       } else if (diff < 0) {
+          trendHtml = `<span style="color: #ef4444; font-size: 0.85rem; margin-left: 0.5rem;" title="Down ${Math.abs(diff).toFixed(1)}% since last exam">&#9660;</span>`;
+       } else {
+          trendHtml = `<span style="color: #6b7280; font-size: 0.85rem; margin-left: 0.5rem;" title="No change">&#9644;</span>`;
+       }
+    }
+
+    rowHtml += `<td style="padding: 1rem; border-bottom: 1px solid var(--border); text-align: right; font-weight: 600;">${row.percentageStr}${trendHtml}</td>`;
     
     rowHtml += `<td style="padding: 1rem; border-bottom: 1px solid var(--border); text-align: right;">
       <button class="btn btn-danger small-btn delete-student-btn" data-id="${escapeHtml(row.student.id)}" data-name="${escapeHtml(row.student.name)}">Delete</button>
@@ -538,6 +555,37 @@ function renderPerformanceTable(exams, marks, students) {
     tr.innerHTML = rowHtml;
     tbody.appendChild(tr);
   });
+
+  const tfoot = document.getElementById("performance-table-foot");
+  if (tfoot) {
+    let footHtml = `<tr><th style="padding: 1rem; font-weight: 700; color: var(--text); border-top: 2px solid var(--border);">Group Average</th>`;
+    let overallObtained = 0;
+    let overallMax = 0;
+
+    exams.forEach(ex => {
+      let sum = 0;
+      let count = 0;
+      tableData.forEach(row => {
+        if (row.examScores[ex.id] !== null) {
+          sum += row.examScores[ex.id];
+          count++;
+          overallObtained += row.examScores[ex.id];
+          overallMax += ex.total_marks;
+        }
+      });
+      if (count > 0) {
+        let avg = sum / count;
+        footHtml += `<th style="padding: 1rem; font-weight: 700; color: var(--primary); text-align: center; border-top: 2px solid var(--border);">${avg.toFixed(1)}</th>`;
+      } else {
+        footHtml += `<th style="padding: 1rem; font-weight: 700; color: var(--text-muted); text-align: center; border-top: 2px solid var(--border);">&mdash;</th>`;
+      }
+    });
+
+    let overallPerc = overallMax > 0 ? ((overallObtained / overallMax) * 100).toFixed(1) + "%" : "&mdash;";
+    footHtml += `<th style="padding: 1rem; font-weight: 700; color: var(--text); text-align: right; border-top: 2px solid var(--border);">${overallPerc}</th>`;
+    footHtml += `<th style="padding: 1rem; border-top: 2px solid var(--border);"></th></tr>`;
+    tfoot.innerHTML = footHtml;
+  }
   
   // Attach event listeners for delete buttons
   document.querySelectorAll(".delete-student-btn").forEach(btn => {
