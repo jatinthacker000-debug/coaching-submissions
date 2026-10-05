@@ -1,4 +1,4 @@
-﻿*,
+*,
 *::before,
 *::after {
   box-sizing: border-box;
@@ -738,4 +738,74 @@ input:focus, select:focus, textarea:focus {
   transition: transform 0.3s ease;
   display: inline-block;
   vertical-align: middle;
+}
+
+/* Milestone Banner */
+#milestone-banner {
+  position: fixed;
+  bottom: 20px;
+  right: -400px;
+  width: calc(100% - 40px);
+  max-width: 320px;
+  background: var(--surface);
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+  padding: 20px;
+  z-index: 9999;
+  transition: right 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275), transform 0.3s ease, opacity 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border: 1px solid var(--border);
+}
+
+#milestone-banner.show {
+  right: 20px;
+}
+
+@media (max-width: 400px) {
+  #milestone-banner {
+    right: -100%;
+  }
+  #milestone-banner.show {
+    right: 20px;
+  }
+}
+
+#milestone-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: var(--text-muted);
+  line-height: 1;
+  padding: 0;
+  transition: color 0.2s;
+}
+
+#milestone-close:hover {
+  color: var(--danger);
+}
+
+#milestone-btn {
+  display: inline-block;
+  background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+  color: white;
+  text-align: center;
+  padding: 10px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin-top: 4px;
+  box-shadow: 0 4px 6px rgba(220, 39, 67, 0.2);
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+#milestone-btn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
 }

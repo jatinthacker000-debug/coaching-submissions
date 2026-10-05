@@ -920,3 +920,38 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 
+
+// --- Milestone Celebration Banner ---
+document.addEventListener("DOMContentLoaded", () => {
+  if (localStorage.getItem('milestone_banner_dismissed')) return;
+
+  const banner = document.createElement("div");
+  banner.id = "milestone-banner";
+  banner.innerHTML = `
+    <button id="milestone-close">&times;</button>
+    <h3 style="margin: 0; font-size: 1.15rem; color: var(--text); font-weight: 700; padding-right: 20px;">🎉 A quick note of gratitude!</h3>
+    <p style="margin: 0; font-size: 0.95rem; color: var(--text-muted); line-height: 1.5;">We just crossed 1,000 visitors, and we couldn't have reached this milestone without you. If you enjoy our content and want regular updates, connect with us on Instagram!</p>
+    <a id="milestone-btn" href="https://www.instagram.com/nerd_tutors/" target="_blank">Follow Us on Instagram</a>
+  `;
+  document.body.appendChild(banner);
+
+  const closeBtn = document.getElementById("milestone-close");
+  const instaBtn = document.getElementById("milestone-btn");
+
+  const dismissBanner = () => {
+    localStorage.setItem('milestone_banner_dismissed', 'true');
+    banner.style.opacity = '0';
+    banner.style.transform = 'translateY(20px)';
+    setTimeout(() => {
+      if (banner.parentNode) banner.parentNode.removeChild(banner);
+    }, 300);
+  };
+
+  closeBtn.addEventListener("click", dismissBanner);
+  instaBtn.addEventListener("click", dismissBanner);
+
+  // Slide in smoothly 2 seconds after page load
+  setTimeout(() => {
+    banner.classList.add("show");
+  }, 2000);
+});
