@@ -98,7 +98,10 @@ document.addEventListener("DOMContentLoaded", () => {
       const cursor = hasHomework ? "pointer" : "default";
 
       // Homework highlight indicator (blue inner border)
-      const highlightStyle = hasHomework ? "box-shadow: inset 0 0 0 3px #3b82f6;" : "";
+            let readHomeworks = {};
+      try { readHomeworks = JSON.parse(localStorage.getItem('readHomeworks') || '{}'); } catch(e){}
+      const isRead = readHomeworks[`${groupName}-${dateStr}`];
+      const highlightStyle = (hasHomework && !isRead) ? "box-shadow: inset 0 0 0 3px #3b82f6;" : "";
 
       html += `<div class="cal-day" data-date="${dateStr}" data-group="${groupName}" data-link="${hasHomework ? linksMap[dateStr] : ''}" style="padding: 1rem; background: ${bgColor}; color: ${color}; border-radius: 4px; cursor: ${cursor}; font-weight: bold; transition: transform 0.1s; ${highlightStyle}">${day}</div>`;
     }
@@ -147,6 +150,7 @@ document.addEventListener("DOMContentLoaded", () => {
       dayEl.addEventListener("click", () => {
         const link = dayEl.getAttribute("data-link");
         const date = dayEl.getAttribute("data-date");
+        const group = dayEl.getAttribute("data-group");
         const modal = document.getElementById("calendar-modal");
         const modalDate = document.getElementById("calendar-modal-date");
         const modalText = document.getElementById("calendar-modal-text");
@@ -158,6 +162,7 @@ document.addEventListener("DOMContentLoaded", () => {
           modalText.textContent = "Click below to open your homework.";
           modalLink.href = link;
           modalLink.style.display = "inline-block";
+          modalLink.onclick = () => { let hw = {}; try { hw = JSON.parse(localStorage.getItem("readHomeworks") || "{}"); } catch(e){} hw[group + "-" + date] = true; localStorage.setItem("readHomeworks", JSON.stringify(hw)); dayEl.style.boxShadow = ""; };
         } else {
           // Placeholder message if no link is configured
           modalText.textContent = "No homework link has been set for this date yet. Check back later!";

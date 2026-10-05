@@ -454,56 +454,84 @@ function renderPerformanceTable(exams, marks, students) {
   const tbody = document.getElementById("performance-table-body");
   if (!thead || !tbody) return;
   
-  // Build Header
-  let headerHtml = `<th style="padding: 1rem; font-weight: 600; color: var(--text-muted);">Student</th>`;
+  let headerHtml = `<th style="padding: 1rem; font-weight: 600; color: var(--text-muted); cursor: pointer;" onclick="setOverviewSort('name')">Student${getSortIcon('name')}</th>`;
   exams.forEach(ex => {
-    headerHtml += `<th style="padding: 1rem; font-weight: 600; color: var(--text-muted); text-align: center;">${escapeHtml(ex.name)}<br><small style="font-weight:400; opacity:0.8;">(${ex.total_marks})</small></th>`;
+    headerHtml += `<th style="padding: 1rem; font-weight: 600; color: var(--text-muted); text-align: center; cursor: pointer;" onclick="setOverviewSort('exam_${ex.id}')">${escapeHtml(ex.name)}${getSortIcon('exam_'+ex.id)}<br><small style="font-weight:400; opacity:0.8;">(${ex.total_marks})</small></th>`;
   });
-  headerHtml += `<th style="padding: 1rem; font-weight: 600; color: var(--text-muted); text-align: right;">Total %</th>`;
+  headerHtml += `<th style="padding: 1rem; font-weight: 600; color: var(--text-muted); text-align: right; cursor: pointer;" onclick="setOverviewSort('total')">Total %${getSortIcon('total')}</th>`;
   headerHtml += `<th style="padding: 1rem; font-weight: 600; color: var(--text-muted); text-align: right;">Action</th>`;
   thead.innerHTML = headerHtml;
   
-  // Build Rows
   tbody.innerHTML = "";
   if (!students || students.length === 0) {
     tbody.innerHTML = `<tr><td colspan="100%" class="text-center" style="padding: 2rem; color: var(--text-muted);">No students yet.</td></tr>`;
     return;
   }
   
-  // Group marks by student_id
   const marksByStudent = {};
   (marks || []).forEach(m => {
     if (!marksByStudent[m.student_id]) marksByStudent[m.student_id] = {};
     marksByStudent[m.student_id][m.exam_id] = m.marks_obtained;
   });
   
-  students.forEach(student => {
+  let tableData = students.map(student => {
     const studentMarks = marksByStudent[student.id] || {};
-    let rowHtml = `<td style="padding: 1rem; border-bottom: 1px solid var(--border);">${escapeHtml(student.name)}</td>`;
-    
     let studentTotalObtained = 0;
     let studentTotalMax = 0;
+    let examScores = {};
     
     exams.forEach(ex => {
       const mark = studentMarks[ex.id];
       if (mark !== undefined) {
-        rowHtml += `<td style="padding: 1rem; border-bottom: 1px solid var(--border); text-align: center; color: var(--primary); font-weight: 500;">${mark}</td>`;
+        examScores[ex.id] = mark;
         studentTotalObtained += mark;
         studentTotalMax += ex.total_marks;
+      } else {
+        examScores[ex.id] = null;
+      }
+    });
+    
+    let percentageNum = studentTotalMax > 0 ? ((studentTotalObtained / studentTotalMax) * 100) : -1;
+    let percentageStr = studentTotalMax > 0 ? percentageNum.toFixed(1) + "%" : "&mdash;";
+    
+    return { student, examScores, percentageNum, percentageStr };
+  });
+
+  tableData.sort((a, b) => {
+    let valA, valB;
+    if (window.overviewSort.key === 'name') {
+      valA = a.student.name.toLowerCase();
+      valB = b.student.name.toLowerCase();
+    } else if (window.overviewSort.key === 'total') {
+      valA = a.percentageNum;
+      valB = b.percentageNum;
+    } else if (window.overviewSort.key.startsWith('exam_')) {
+      const examId = window.overviewSort.key.split('_')[1];
+      valA = a.examScores[examId] !== null ? a.examScores[examId] : -1;
+      valB = b.examScores[examId] !== null ? b.examScores[examId] : -1;
+    }
+    
+    if (valA < valB) return window.overviewSort.asc ? -1 : 1;
+    if (valA > valB) return window.overviewSort.asc ? 1 : -1;
+    return 0;
+  });
+
+  tableData.forEach(row => {
+    let rowHtml = `<td style="padding: 1rem; border-bottom: 1px solid var(--border);">${escapeHtml(row.student.name)}</td>`;
+    
+    exams.forEach(ex => {
+      const mark = row.examScores[ex.id];
+      if (mark !== null) {
+        rowHtml += `<td style="padding: 1rem; border-bottom: 1px solid var(--border); text-align: center; color: var(--primary); font-weight: 500;">${mark}</td>`;
       } else {
         rowHtml += `<td style="padding: 1rem; border-bottom: 1px solid var(--border); text-align: center; color: var(--text-muted);">&mdash;</td>`;
       }
     });
     
-    let percentage = "&mdash;";
-    if (studentTotalMax > 0) {
-      percentage = ((studentTotalObtained / studentTotalMax) * 100).toFixed(1) + "%";
-    }
-    
-    rowHtml += `<td style="padding: 1rem; border-bottom: 1px solid var(--border); text-align: right; font-weight: 600;">${percentage}</td>`;
+    rowHtml += `<td style="padding: 1rem; border-bottom: 1px solid var(--border); text-align: right; font-weight: 600;">${row.percentageStr}</td>`;
     
     rowHtml += `<td style="padding: 1rem; border-bottom: 1px solid var(--border); text-align: right;">
-      <button class="btn btn-danger small-btn delete-student-btn" data-id="${escapeHtml(student.id)}" data-name="${escapeHtml(student.name)}">Delete</button>
+      <button class="btn btn-danger small-btn delete-student-btn" data-id="${escapeHtml(row.student.id)}" data-name="${escapeHtml(row.student.name)}">Delete</button>
     </td>`;
     
     const tr = document.createElement("tr");
@@ -1242,6 +1270,8 @@ function getFilteredStudents(filterEl) {
 
 if (perfGroupFilter) perfGroupFilter.addEventListener("change", renderClassStatsSection);
 if (overviewGroupFilter) overviewGroupFilter.addEventListener("change", renderOverviewTableSection);
+  const overviewSearch = document.getElementById("overview-search");
+  if (overviewSearch) overviewSearch.addEventListener("input", renderOverviewTableSection);
 if (analyticsGroupFilter) analyticsGroupFilter.addEventListener("change", renderAnalyticsSection);
 if (attentionGroupFilter) attentionGroupFilter.addEventListener("change", renderAttentionAndGrowthSection);
 
@@ -1260,9 +1290,33 @@ function renderClassStatsSection() {
   calculateClassStats(groupExams, globalMarksByStudent, validStudentIds);
 }
 
+  // NEW SORT STATE
+  window.overviewSort = { key: 'name', asc: true };
+
+  window.setOverviewSort = function(key) {
+    if (window.overviewSort.key === key) {
+      window.overviewSort.asc = !window.overviewSort.asc;
+    } else {
+      window.overviewSort.key = key;
+      window.overviewSort.asc = (key === 'name'); // default asc for name, desc for scores
+    }
+    renderOverviewTableSection();
+  };
+
+  window.getSortIcon = function(key) {
+    if (window.overviewSort.key !== key) return '';
+    return window.overviewSort.asc ? ' &#9650;' : ' &#9660;';
+  }
 function renderOverviewTableSection() {
   if (!globalStudents || !globalExams) return;
-  const filteredStudents = getFilteredStudents(overviewGroupFilter);
+  let filteredStudents = getFilteredStudents(overviewGroupFilter);
+  
+  const searchInput = document.getElementById("overview-search");
+  if (searchInput && searchInput.value.trim() !== "") {
+    const term = searchInput.value.trim().toLowerCase();
+    filteredStudents = filteredStudents.filter(s => s.name.toLowerCase().includes(term) || (s.student_id_alias && s.student_id_alias.toLowerCase().includes(term)));
+  }
+
   const validStudentIds = new Set(filteredStudents.map(s => s.id));
   const filteredMarks = globalMarks.filter(m => validStudentIds.has(m.student_id));
   
