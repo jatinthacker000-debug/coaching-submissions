@@ -831,7 +831,7 @@ function renderStudentReportContent(forcedStudentId = null) {
   container.innerHTML = html;
 
   // Fetch and render homework status
-  fetch(`/api/homework-status?student_id=${studentId}`)
+  fetch(`/api/homework?student_id=${studentId}`)
     .then(res => res.json())
     .then(data => {
       if (data.statuses && data.statuses.length > 0) {

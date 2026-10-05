@@ -74,7 +74,7 @@ document.addEventListener("DOMContentLoaded", () => {
       loginBtn.textContent = "Logging in...";
       
       try {
-        const res = await fetch("/api/student-login", {
+        const res = await fetch("/api/auth", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ student_id_alias: idAlias, password: pwd })

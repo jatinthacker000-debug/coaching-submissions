@@ -40,7 +40,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Fetch links for the group
     let linksMap = {};
     try {
-      const res = await fetch(`/api/homework-links?group_name=${encodeURIComponent(groupName)}`);
+      const res = await fetch(`/api/homework?group_name=${encodeURIComponent(groupName)}`);
       const data = await res.json();
       if (data.links) {
         data.links.forEach(l => {

@@ -53,7 +53,7 @@ loginForm.addEventListener("submit", async (e) => {
   const password = document.getElementById("coach-password").value;
 
   try {
-    const res = await fetch("/api/login", {
+    const res = await fetch("/api/auth", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ password })
@@ -1724,7 +1724,7 @@ document.addEventListener('DOMContentLoaded', () => {
       hwBtn.disabled = true;
       hwBtn.textContent = 'Saving...';
       try {
-        const res = await fetch('/api/homework-links', {
+        const res = await fetch('/api/homework', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getCoachPassword() },
           body: JSON.stringify({ homework_date: date, group_name: group, link })
@@ -1841,7 +1841,7 @@ async function loadHomeworkLinks() {
   const tbody = document.getElementById('hw-links-tbody');
   if (!tbody) return;
   try {
-    const res = await fetch('/api/homework-links', {
+    const res = await fetch('/api/homework', {
       cache: 'no-store',
       headers: { 'Authorization': 'Bearer ' + getCoachPassword() }
     });
@@ -1875,7 +1875,7 @@ async function loadHomeworkLinks() {
 window.deleteHomeworkLink = async function(id) {
   if (!confirm('Are you sure you want to delete this homework link?')) return;
   try {
-    const res = await fetch('/api/homework-links?id=' + id, {
+    const res = await fetch('/api/homework?id=' + id, {
       method: 'DELETE',
       headers: { 'Authorization': 'Bearer ' + getCoachPassword() }
     });
@@ -1928,7 +1928,7 @@ if (hwTrackLoadBtn) {
     hwTrackLoadBtn.textContent = "Loading...";
     
     try {
-      const res = await fetch(`/api/homework-status?homework_date=${date}&group_name=${encodeURIComponent(group)}`, {
+      const res = await fetch(`/api/homework?homework_date=${date}&group_name=${encodeURIComponent(group)}`, {
         headers: { "Authorization": `Bearer ${getCoachPassword()}` }
       });
       const data = await res.json();
@@ -1997,7 +1997,7 @@ if (hwTrackLoadBtn) {
       hwTrackSaveStatus.textContent = "Saving...";
       
       try {
-        const res = await fetch("/api/homework-status", {
+        const res = await fetch("/api/homework", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
