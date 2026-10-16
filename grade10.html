@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -53,6 +53,38 @@
       <div class="search-input-wrapper">
         <span class="search-icon">🔍</span>
         <input type="text" id="search-input" placeholder="Search for a chapter..." class="search-input" autocomplete="off">
+      </div>
+    </div>
+
+    <!-- IGNITE, VELOCITY, AND EPSILON SECTIONS -->
+    <div class="tabs-container" style="display: flex; gap: 1rem; justify-content: center; margin-bottom: 2rem; flex-wrap: wrap;">
+      <button id="tab-ignite" class="btn btn-primary" style="flex: 1; max-width: 180px;">Ignite</button>
+      <button id="tab-velocity" class="btn" style="background: var(--surface-card); color: var(--text); border: 1px solid var(--border); flex: 1; max-width: 180px;">Velocity</button>
+      <button id="tab-epsilon" class="btn" style="background: var(--surface-card); color: var(--text); border: 1px solid var(--border); flex: 1; max-width: 180px;">Epsilon</button>
+    </div>
+
+    <div id="section-ignite" style="margin-bottom: 3rem; display: block;">
+      <h2 style="text-align: center; margin-bottom: 1rem; color: var(--text);">Ignite Homework Calendar</h2>
+      <div id="calendar-ignite" class="calendar-container"></div>
+    </div>
+    
+    <div id="section-velocity" style="margin-bottom: 3rem; display: none;">
+      <h2 style="text-align: center; margin-bottom: 1rem; color: var(--text);">Velocity Homework Calendar</h2>
+      <div id="calendar-velocity" class="calendar-container"></div>
+    </div>
+
+    <div id="section-epsilon" style="margin-bottom: 3rem; display: none;">
+      <h2 style="text-align: center; margin-bottom: 1rem; color: var(--text);">Epsilon Homework Calendar</h2>
+      <div id="calendar-epsilon" class="calendar-container"></div>
+    </div>
+
+    <!-- CALENDAR MODAL -->
+    <div id="calendar-modal" class="modal-overlay hidden">
+      <div class="modal-content" style="max-width: 400px; text-align: center; padding: 2rem;">
+        <button id="calendar-modal-close" style="position: absolute; top: 1rem; right: 1rem; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text);">&times;</button>
+        <h3 id="calendar-modal-date" style="margin-bottom: 1rem; color: var(--text);">Date</h3>
+        <p id="calendar-modal-text" style="color: var(--text-muted); margin-bottom: 1.5rem;">Loading homework link...</p>
+        <a id="calendar-modal-link" href="#" target="_blank" class="btn btn-primary" style="display: none; width: 100%;">Open Homework</a>
       </div>
     </div>
     
@@ -184,6 +216,7 @@
   </div>
 
   <script src="api-client.js"></script>
+  <script src="calendar.js"></script>
   <script src="submit.js"></script>
 </body>
 </html>

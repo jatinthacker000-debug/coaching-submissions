@@ -378,10 +378,13 @@ if (examForm) {
     examSubmitBtn.textContent = "Creating...";
     try {
       const checkedGroups = Array.from(document.querySelectorAll("#exam-groups-container input:checked")).map(cb => cb.value);
+      const examSubjectInput = document.getElementById("exam-subject");
+      const subject = examSubjectInput ? examSubjectInput.value : "";
       await createExam({
         name: examNameInput.value.trim(),
         total_marks: examTotalInput.value,
-        target_groups: checkedGroups
+        target_groups: checkedGroups,
+        subject: subject
       });
       examForm.reset();
       await loadExamData();
@@ -431,9 +434,10 @@ function renderExamsList(exams) {
   exams.forEach(ex => {
     const li = document.createElement("li");
     li.className = "paper-card";
+    const subjPill = ex.subject ? `<span class="score-pill" style="background: rgba(139, 92, 246, 0.15); color: #7c3aed; font-size: 0.8rem; margin-left: 0.5rem;">${escapeHtml(ex.subject)}</span>` : "";
     li.innerHTML = `
       <div>
-        <h3>${escapeHtml(ex.name)} <span class="score-pill">Total: ${ex.total_marks}</span></h3>
+        <h3>${escapeHtml(ex.name)} <span class="score-pill">Total: ${ex.total_marks}</span>${subjPill}</h3>
       </div>
       <button class="btn btn-danger small-btn" data-id="${ex.id}">Delete</button>
     `;
@@ -454,9 +458,15 @@ function renderPerformanceTable(exams, marks, students) {
   const tbody = document.getElementById("performance-table-body");
   if (!thead || !tbody) return;
   
+  const isNerdGroupView = (students || []).some(s => s.group_name && s.group_name.startsWith("Nerd Tutors"));
+
   let headerHtml = `<th style="padding: 1rem; font-weight: 600; color: var(--text-muted); cursor: pointer;" onclick="setOverviewSort('name')">Student${getSortIcon('name')}</th>`;
+  if (isNerdGroupView) {
+    headerHtml += `<th style="padding: 1rem; font-weight: 600; color: var(--text-muted);">Subjects</th>`;
+  }
   exams.forEach(ex => {
-    headerHtml += `<th style="padding: 1rem; font-weight: 600; color: var(--text-muted); text-align: center; cursor: pointer;" onclick="setOverviewSort('exam_${ex.id}')">${escapeHtml(ex.name)}${getSortIcon('exam_'+ex.id)}<br><small style="font-weight:400; opacity:0.8;">(${ex.total_marks})</small></th>`;
+    const subjSub = ex.subject ? `<br><small style="font-weight:600; color:#6366f1;">${escapeHtml(ex.subject)}</small>` : '';
+    headerHtml += `<th style="padding: 1rem; font-weight: 600; color: var(--text-muted); text-align: center; cursor: pointer;" onclick="setOverviewSort('exam_${ex.id}')">${escapeHtml(ex.name)}${getSortIcon('exam_'+ex.id)}${subjSub}<br><small style="font-weight:400; opacity:0.8;">(${ex.total_marks})</small></th>`;
   });
   headerHtml += `<th style="padding: 1rem; font-weight: 600; color: var(--text-muted); text-align: right; cursor: pointer;" onclick="setOverviewSort('total')">Total %${getSortIcon('total')}</th>`;
   headerHtml += `<th style="padding: 1rem; font-weight: 600; color: var(--text-muted); text-align: right;">Action</th>`;
@@ -480,21 +490,32 @@ function renderPerformanceTable(exams, marks, students) {
     let studentTotalMax = 0;
     let examScores = {};
     
+    const isStudentNerd = student.group_name && student.group_name.startsWith("Nerd Tutors");
+    const studentSubjs = Array.isArray(student.subjects) && student.subjects.length > 0
+      ? student.subjects
+      : (isStudentNerd ? ["Accountancy", "Economics", "Business Studies"] : []);
+
     exams.forEach(ex => {
-      const mark = studentMarks[ex.id];
-      if (mark !== undefined) {
-        examScores[ex.id] = mark;
-        studentTotalObtained += mark;
-        studentTotalMax += ex.total_marks;
+      const isOpted = !isStudentNerd || !ex.subject || studentSubjs.includes(ex.subject);
+      if (isOpted) {
+        const mark = studentMarks[ex.id];
+        if (mark !== undefined) {
+          examScores[ex.id] = mark;
+          studentTotalObtained += mark;
+          studentTotalMax += ex.total_marks;
+        } else {
+          examScores[ex.id] = null;
+          studentTotalMax += ex.total_marks;
+        }
       } else {
-        examScores[ex.id] = null;
+        examScores[ex.id] = "NOT_OPTED";
       }
     });
     
     let percentageNum = studentTotalMax > 0 ? ((studentTotalObtained / studentTotalMax) * 100) : -1;
     let percentageStr = studentTotalMax > 0 ? percentageNum.toFixed(1) + "%" : "&mdash;";
     
-    return { student, examScores, percentageNum, percentageStr };
+    return { student, examScores, percentageNum, percentageStr, studentSubjs, isStudentNerd };
   });
 
   tableData.sort((a, b) => {
@@ -507,8 +528,8 @@ function renderPerformanceTable(exams, marks, students) {
       valB = b.percentageNum;
     } else if (window.overviewSort.key.startsWith('exam_')) {
       const examId = window.overviewSort.key.split('_')[1];
-      valA = a.examScores[examId] !== null ? a.examScores[examId] : -1;
-      valB = b.examScores[examId] !== null ? b.examScores[examId] : -1;
+      valA = (a.examScores[examId] !== null && a.examScores[examId] !== "NOT_OPTED") ? a.examScores[examId] : -1;
+      valB = (b.examScores[examId] !== null && b.examScores[examId] !== "NOT_OPTED") ? b.examScores[examId] : -1;
     }
     
     if (valA < valB) return window.overviewSort.asc ? -1 : 1;
@@ -516,12 +537,19 @@ function renderPerformanceTable(exams, marks, students) {
     return 0;
   });
 
-    tableData.forEach(row => {
-    let rowHtml = `<td style="padding: 1rem; border-bottom: 1px solid var(--border);">${escapeHtml(row.student.name)}</td>`;
+  tableData.forEach(row => {
+    let rowHtml = `<td style="padding: 1rem; border-bottom: 1px solid var(--border); font-weight: 500;">${escapeHtml(row.student.name)}</td>`;
     
+    if (isNerdGroupView) {
+      const badges = row.studentSubjs.map(sb => `<span class="score-pill" style="font-size: 0.72rem; padding: 0.15rem 0.35rem; background: rgba(59, 130, 246, 0.12); color: #2563eb; margin: 1px;">${escapeHtml(sb)}</span>`).join(" ");
+      rowHtml += `<td style="padding: 1rem; border-bottom: 1px solid var(--border);">${badges || "-"}</td>`;
+    }
+
     exams.forEach(ex => {
       const mark = row.examScores[ex.id];
-      if (mark !== null) {
+      if (mark === "NOT_OPTED") {
+        rowHtml += `<td style="padding: 1rem; border-bottom: 1px solid var(--border); text-align: center; color: var(--text-muted); opacity: 0.4;" title="Not opted for ${escapeHtml(ex.subject || 'this subject')}">&mdash;</td>`;
+      } else if (mark !== null) {
         rowHtml += `<td style="padding: 1rem; border-bottom: 1px solid var(--border); text-align: center; color: var(--primary); font-weight: 500;">${mark}</td>`;
       } else {
         rowHtml += `<td style="padding: 1rem; border-bottom: 1px solid var(--border); text-align: center; color: var(--text-muted);">&mdash;</td>`;
@@ -529,7 +557,7 @@ function renderPerformanceTable(exams, marks, students) {
     });
     
     let trendHtml = '';
-    const validExams = exams.filter(ex => row.examScores[ex.id] !== null);
+    const validExams = exams.filter(ex => row.examScores[ex.id] !== null && row.examScores[ex.id] !== "NOT_OPTED");
     if (validExams.length >= 2) {
        const lastExam = validExams[validExams.length - 1];
        const prevExam = validExams[validExams.length - 2];
@@ -559,6 +587,9 @@ function renderPerformanceTable(exams, marks, students) {
   const tfoot = document.getElementById("performance-table-foot");
   if (tfoot) {
     let footHtml = `<tr><th style="padding: 1rem; font-weight: 700; color: var(--text); border-top: 2px solid var(--border);">Group Average</th>`;
+    if (isNerdGroupView) {
+      footHtml += `<th style="padding: 1rem; border-top: 2px solid var(--border);"></th>`;
+    }
     let overallObtained = 0;
     let overallMax = 0;
 
@@ -566,7 +597,7 @@ function renderPerformanceTable(exams, marks, students) {
       let sum = 0;
       let count = 0;
       tableData.forEach(row => {
-        if (row.examScores[ex.id] !== null) {
+        if (row.examScores[ex.id] !== null && row.examScores[ex.id] !== "NOT_OPTED") {
           sum += row.examScores[ex.id];
           count++;
           overallObtained += row.examScores[ex.id];
@@ -636,7 +667,8 @@ function renderChart(exams, marksByStudent, studentIds = []) {
   const classAvgData = [];
   
   exams.forEach(ex => {
-    labels.push(ex.name);
+    const label = ex.subject ? `${ex.name} [${ex.subject}]` : ex.name;
+    labels.push(label);
     
     // Calculate Class Average for this exam
     let totalMarks = 0;
@@ -843,15 +875,17 @@ function updateAnalyticsDropdowns(studentsToUse = globalStudents) {
 
   // Populate exams
   const selectedGrp = analyticsGroupFilter ? analyticsGroupFilter.value : "";
+  const selectedSubj = document.getElementById("analytics-subject-filter") ? document.getElementById("analytics-subject-filter").value : "";
   const groupExams = globalExams.filter(ex => {
-    if (!selectedGrp) return true;
-    if (!ex.target_groups || ex.target_groups.length === 0) return true;
-    return ex.target_groups.includes(selectedGrp);
+    if (selectedGrp && ex.target_groups && ex.target_groups.length > 0 && !ex.target_groups.includes(selectedGrp)) return false;
+    if (selectedSubj && ex.subject && ex.subject !== selectedSubj) return false;
+    return true;
   });
 
   let examHtml = ``;
   groupExams.forEach(ex => {
-    examHtml += `<option value="${escapeHtml(ex.id)}">${escapeHtml(ex.name)}</option>`;
+    const subjTag = ex.subject ? ` [${ex.subject}]` : '';
+    examHtml += `<option value="${escapeHtml(ex.id)}">${escapeHtml(ex.name)}${subjTag}</option>`;
   });
   examsSelect.innerHTML = examHtml;
   
@@ -869,10 +903,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const selectedExams = Array.from(examsSelect.selectedOptions).map(o => o.value).filter(v => v !== "");
     
     const selectedGrp = analyticsGroupFilter ? analyticsGroupFilter.value : "";
+    const selectedSubj = document.getElementById("analytics-subject-filter") ? document.getElementById("analytics-subject-filter").value : "";
     const groupExams = globalExams.filter(ex => {
-      if (!selectedGrp) return true;
-      if (!ex.target_groups || ex.target_groups.length === 0) return true;
-      return ex.target_groups.includes(selectedGrp);
+      if (selectedGrp && ex.target_groups && ex.target_groups.length > 0 && !ex.target_groups.includes(selectedGrp)) return false;
+      if (selectedSubj && ex.subject && ex.subject !== selectedSubj) return false;
+      return true;
     });
 
     let examsToRender = groupExams;
@@ -1167,6 +1202,17 @@ function renderAttentionList(exams, marksByStudent, studentsToUse = globalStuden
   const attentionStudents = [];
   
   studentsToUse.forEach(student => {
+    const isStudentNerd = student.group_name && student.group_name.startsWith("Nerd Tutors");
+    const studentSubjs = Array.isArray(student.subjects) && student.subjects.length > 0
+      ? student.subjects
+      : (isStudentNerd ? ["Accountancy", "Economics", "Business Studies"] : []);
+
+    const studentExams = exams.filter(ex => !isStudentNerd || !ex.subject || studentSubjs.includes(ex.subject));
+    if (studentExams.length === 0) return;
+
+    const latestExam = studentExams[studentExams.length - 1];
+    const previousExam = studentExams.length > 1 ? studentExams[studentExams.length - 2] : null;
+
     const sm = marksByStudent[student.id] || {};
     
     const latestMark = sm[latestExam.id];
@@ -1178,7 +1224,7 @@ function renderAttentionList(exams, marksByStudent, studentsToUse = globalStuden
       latestPerc = (latestMark / latestExam.total_marks) * 100;
       if (latestPerc < 50) {
         needsAttention = true;
-        reason = "Scored below 50% in the latest exam.";
+        reason = `Scored below 50% in ${latestExam.name}${latestExam.subject ? ` (${latestExam.subject})` : ''}.`;
       }
     }
     
@@ -1301,11 +1347,15 @@ if (manageGroupUpdateBtn) {
 
 document.addEventListener("DOMContentLoaded", populateGroupManager);
 
-// GROUP FILTER LOGIC FOR SECTIONS
+// GROUP & SUBJECT FILTER LOGIC FOR SECTIONS
 const perfGroupFilter = document.getElementById("performance-group-filter");
+const perfSubjectFilter = document.getElementById("performance-subject-filter");
 const overviewGroupFilter = document.getElementById("overview-table-group-filter");
+const overviewSubjectFilter = document.getElementById("overview-subject-filter");
 const analyticsGroupFilter = document.getElementById("analytics-group-filter");
+const analyticsSubjectFilter = document.getElementById("analytics-subject-filter");
 const attentionGroupFilter = document.getElementById("attention-group-filter");
+const attentionSubjectFilter = document.getElementById("attention-subject-filter");
 
 function getFilteredStudents(filterEl) {
   if (!globalStudents) return [];
@@ -1317,11 +1367,15 @@ function getFilteredStudents(filterEl) {
 }
 
 if (perfGroupFilter) perfGroupFilter.addEventListener("change", renderClassStatsSection);
+if (perfSubjectFilter) perfSubjectFilter.addEventListener("change", renderClassStatsSection);
 if (overviewGroupFilter) overviewGroupFilter.addEventListener("change", renderOverviewTableSection);
-  const overviewSearch = document.getElementById("overview-search");
-  if (overviewSearch) overviewSearch.addEventListener("input", renderOverviewTableSection);
+if (overviewSubjectFilter) overviewSubjectFilter.addEventListener("change", renderOverviewTableSection);
+const overviewSearch = document.getElementById("overview-search");
+if (overviewSearch) overviewSearch.addEventListener("input", renderOverviewTableSection);
 if (analyticsGroupFilter) analyticsGroupFilter.addEventListener("change", renderAnalyticsSection);
+if (analyticsSubjectFilter) analyticsSubjectFilter.addEventListener("change", renderAnalyticsSection);
 if (attentionGroupFilter) attentionGroupFilter.addEventListener("change", renderAttentionAndGrowthSection);
+if (attentionSubjectFilter) attentionSubjectFilter.addEventListener("change", renderAttentionAndGrowthSection);
 
 function renderClassStatsSection() {
   if (!globalStudents || !globalExams) return;
@@ -1329,10 +1383,11 @@ function renderClassStatsSection() {
   const validStudentIds = new Set(filteredStudents.map(s => s.id));
   
   const selectedGrp = perfGroupFilter ? perfGroupFilter.value : "";
+  const selectedSubj = perfSubjectFilter ? perfSubjectFilter.value : "";
   const groupExams = globalExams.filter(ex => {
-    if (!selectedGrp) return true;
-    if (!ex.target_groups || ex.target_groups.length === 0) return true;
-    return ex.target_groups.includes(selectedGrp);
+    if (selectedGrp && ex.target_groups && ex.target_groups.length > 0 && !ex.target_groups.includes(selectedGrp)) return false;
+    if (selectedSubj && ex.subject && ex.subject !== selectedSubj) return false;
+    return true;
   });
 
   calculateClassStats(groupExams, globalMarksByStudent, validStudentIds);
@@ -1369,10 +1424,11 @@ function renderOverviewTableSection() {
   const filteredMarks = globalMarks.filter(m => validStudentIds.has(m.student_id));
   
   const selectedGrp = overviewGroupFilter ? overviewGroupFilter.value : "";
+  const selectedSubj = overviewSubjectFilter ? overviewSubjectFilter.value : "";
   const groupExams = globalExams.filter(ex => {
-    if (!selectedGrp) return true;
-    if (!ex.target_groups || ex.target_groups.length === 0) return true;
-    return ex.target_groups.includes(selectedGrp);
+    if (selectedGrp && ex.target_groups && ex.target_groups.length > 0 && !ex.target_groups.includes(selectedGrp)) return false;
+    if (selectedSubj && ex.subject && ex.subject !== selectedSubj) return false;
+    return true;
   });
 
   renderPerformanceTable(groupExams, filteredMarks, filteredStudents);
@@ -1394,10 +1450,11 @@ function renderAttentionAndGrowthSection() {
   const filteredStudents = getFilteredStudents(attentionGroupFilter);
   
   const selectedGrp = attentionGroupFilter ? attentionGroupFilter.value : "";
+  const selectedSubj = attentionSubjectFilter ? attentionSubjectFilter.value : "";
   const groupExams = globalExams.filter(ex => {
-    if (!selectedGrp) return true;
-    if (!ex.target_groups || ex.target_groups.length === 0) return true;
-    return ex.target_groups.includes(selectedGrp);
+    if (selectedGrp && ex.target_groups && ex.target_groups.length > 0 && !ex.target_groups.includes(selectedGrp)) return false;
+    if (selectedSubj && ex.subject && ex.subject !== selectedSubj) return false;
+    return true;
   });
 
   renderAttentionList(groupExams, globalMarksByStudent, filteredStudents);
@@ -1482,6 +1539,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // ADD NEW STUDENT
 document.addEventListener("DOMContentLoaded", () => {
+  const addStudentGroupEl = document.getElementById("add-student-group");
+  const addStudentSubjWrapper = document.getElementById("add-student-subjects-wrapper");
+  if (addStudentGroupEl && addStudentSubjWrapper) {
+    addStudentGroupEl.addEventListener("change", () => {
+      const val = addStudentGroupEl.value;
+      if (val && val.startsWith("Nerd Tutors")) {
+        addStudentSubjWrapper.style.display = "block";
+      } else {
+        addStudentSubjWrapper.style.display = "none";
+      }
+    });
+  }
+
   const addStudentBtn = document.getElementById("add-student-btn");
   if (addStudentBtn) {
     addStudentBtn.addEventListener("click", async () => {
@@ -1497,11 +1567,21 @@ document.addEventListener("DOMContentLoaded", () => {
       const password = passwordEl ? passwordEl.value.trim() : "";
       
       if (!name) return alert("Please enter student name.");
+
+      let subjects = [];
+      if (group_name && group_name.startsWith("Nerd Tutors")) {
+        if (document.getElementById("add-subj-acc")?.checked) subjects.push("Accountancy");
+        if (document.getElementById("add-subj-eco")?.checked) subjects.push("Economics");
+        if (document.getElementById("add-subj-bst")?.checked) subjects.push("Business Studies");
+        if (subjects.length === 0) {
+          return alert("Please select at least one opted subject for Nerd Tutors.");
+        }
+      }
       
       addStudentBtn.disabled = true;
       addStudentBtn.textContent = "Adding...";
       try {
-        await createStudent({ name, group_name, student_id_alias, password });
+        await createStudent({ name, group_name, student_id_alias, password, subjects });
         statusEl.textContent = "Student added/updated successfully!";
         statusEl.style.color = "green";
         statusEl.style.display = "block";
@@ -1509,6 +1589,7 @@ document.addEventListener("DOMContentLoaded", () => {
         groupEl.value = "";
         if (idAliasEl) idAliasEl.value = "";
         if (passwordEl) passwordEl.value = "";
+        if (addStudentSubjWrapper) addStudentSubjWrapper.style.display = "none";
         
         if (typeof populateGroupManager === "function") await populateGroupManager();
         if (typeof loadExamData === "function") await loadExamData();
@@ -1525,7 +1606,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // Credentials table logic
-    const credTableBody = document.getElementById("credentials-table-body");
+  const credTableBody = document.getElementById("credentials-table-body");
   const credSearch = document.getElementById("credentials-search");
 
   if (credSearch) {
@@ -1534,7 +1615,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!credTableBody) return;
       const rows = credTableBody.querySelectorAll("tr");
       rows.forEach(row => {
-        // Skip the "Loading" or "Failed" rows if they have colspan=5 or 4
+        // Skip the "Loading" or "Failed" rows if they have single cell
         if (row.children.length > 1) {
           const text = row.textContent.toLowerCase();
           row.style.display = text.includes(term) ? "" : "none";
@@ -1554,10 +1635,19 @@ document.addEventListener("DOMContentLoaded", () => {
       if (data.students) {
         credTableBody.innerHTML = "";
         data.students.forEach(s => {
+          const isNerd = s.group_name && s.group_name.startsWith("Nerd Tutors");
+          const subjs = Array.isArray(s.subjects) && s.subjects.length > 0 
+            ? s.subjects 
+            : (isNerd ? ["Accountancy", "Economics", "Business Studies"] : []);
+          const subjsHtml = subjs.length > 0 
+            ? subjs.map(sb => `<span class="score-pill" style="font-size: 0.72rem; padding: 0.15rem 0.35rem; background: rgba(59, 130, 246, 0.12); color: #2563eb; margin: 1px;">${escapeHtml(sb)}</span>`).join(" ")
+            : (isNerd ? `<span style="color: var(--text-muted); font-size: 0.8rem;">All</span>` : `<span style="color: var(--text-muted); font-size: 0.8rem;">-</span>`);
+
           const tr = document.createElement("tr");
           tr.innerHTML = `
             <td style="padding: 0.75rem;">${escapeHtml(s.name)}</td>
             <td style="padding: 0.75rem;">${escapeHtml(s.group_name || "-")}</td>
+            <td style="padding: 0.75rem;">${subjsHtml}</td>
             <td style="padding: 0.75rem;">${escapeHtml(s.student_id_alias || "-")}</td>
             <td style="padding: 0.75rem; font-family: monospace;">${escapeHtml(s.password || "-")}</td>
             <td style="padding: 0.75rem;">
@@ -1573,7 +1663,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
     } catch (e) {
-      credTableBody.innerHTML = `<tr><td colspan="5" style="color:red; text-align:center;">Failed to load credentials</td></tr>`;
+      credTableBody.innerHTML = `<tr><td colspan="6" style="color:red; text-align:center;">Failed to load credentials</td></tr>`;
     }
   };
   
@@ -1606,6 +1696,16 @@ document.addEventListener("DOMContentLoaded", () => {
     if (newPass === null) return;
     const newGroup = prompt("Enter new Group Name:", student.group_name);
     if (newGroup === null) return;
+
+    let newSubjects = student.subjects || [];
+    if ((newGroup && newGroup.startsWith("Nerd Tutors")) || (student.group_name && student.group_name.startsWith("Nerd Tutors"))) {
+      const currentSubjs = Array.isArray(student.subjects) && student.subjects.length > 0
+        ? student.subjects.join(", ")
+        : "Accountancy, Economics, Business Studies";
+      const subjsStr = prompt("Enter Opted Subjects (comma-separated: Accountancy, Economics, Business Studies):", currentSubjs);
+      if (subjsStr === null) return;
+      newSubjects = subjsStr.split(",").map(x => x.trim()).filter(Boolean);
+    }
     
     try {
       const res = await fetch("/api/students", {
@@ -1619,7 +1719,8 @@ document.addEventListener("DOMContentLoaded", () => {
           name: newName,
           student_id_alias: newAlias,
           password: newPass,
-          group_name: newGroup
+          group_name: newGroup,
+          subjects: newSubjects
         })
       });
       if (res.ok) {
@@ -1753,8 +1854,9 @@ function renderBulkGrid() {
   bulkSaveBtn.style.display = "inline-block";
 
   bulkExams.forEach((ex, idx) => {
+    const subjBadge = ex.subject ? `<br><span style="font-size: 0.75rem; color: #3b82f6; font-weight: 600;">${escapeHtml(ex.subject)}</span>` : '';
     headHtml += `<th title="${ex.name} (Max: ${ex.total_marks})" style="text-align: center; min-width: 100px; padding: 0.5rem;">
-      ${ex.name}<br>
+      ${ex.name}${subjBadge}<br>
       <small style="font-weight:normal; color: var(--text-muted);">Max: ${ex.total_marks}</small>
     </th>`;
   });
@@ -1764,11 +1866,22 @@ function renderBulkGrid() {
   // Body
   let bodyHtml = "";
   bulkStudents.forEach((st, sIdx) => {
+    const isStudentNerd = st.group_name && st.group_name.startsWith("Nerd Tutors");
+    const studentSubjs = Array.isArray(st.subjects) && st.subjects.length > 0
+      ? st.subjects
+      : (isStudentNerd ? ["Accountancy", "Economics", "Business Studies"] : []);
+
     bodyHtml += `<tr>
       <td style="text-align: center; padding: 0.5rem;">${sIdx + 1}</td>
       <td style="font-weight: 500; padding: 0.5rem;">${escapeHtml(st.name)}</td>`;
     
     bulkExams.forEach(ex => {
+      const isOpted = !isStudentNerd || !ex.subject || studentSubjs.includes(ex.subject);
+      if (!isOpted) {
+        bodyHtml += `<td style="text-align: center; padding: 0.5rem; color: var(--text-muted); opacity: 0.5; font-size: 0.85rem;" title="Not opted for ${escapeHtml(ex.subject || '')}">&mdash;</td>`;
+        return;
+      }
+
       // Find existing mark
       const existing = bulkExistingMarks.find(m => m.student_id === st.id && m.exam_id === ex.id);
       const val = existing && existing.marks_obtained !== null ? existing.marks_obtained : "";
@@ -1865,6 +1978,12 @@ if (bulkSaveBtn) {
 
 // HOMEWORK LINK MANAGER
 document.addEventListener('DOMContentLoaded', () => {
+  const todayStr = new Date().toISOString().split('T')[0];
+  const hwDateInput = document.getElementById('hw-date');
+  if (hwDateInput && !hwDateInput.value) hwDateInput.value = todayStr;
+  const hwTrackDateInput = document.getElementById('hw-track-date');
+  if (hwTrackDateInput && !hwTrackDateInput.value) hwTrackDateInput.value = todayStr;
+
   const hwBtn = document.getElementById('hw-submit-btn');
   if (hwBtn) {
     hwBtn.addEventListener('click', async () => {
@@ -1909,18 +2028,21 @@ if (typeof ChartDataLabels !== 'undefined') Chart.register(ChartDataLabels);
 function renderGrowthList(exams, marksByStudent, studentsToUse = globalStudents) {
   const growthList = document.getElementById('growth-list');
   if (!growthList) return;
-  
-  if (exams.length < 2) {
-    growthList.innerHTML = `<li style="color: var(--text-muted); text-align: center; padding: 1rem;">Not enough exams to compare growth.</li>`;
-    return;
-  }
-  
-  const latestExam = exams[exams.length - 1];
-  const previousExam = exams[exams.length - 2];
-  
+
   const growthStudents = [];
   
   studentsToUse.forEach(student => {
+    const isStudentNerd = student.group_name && student.group_name.startsWith("Nerd Tutors");
+    const studentSubjs = Array.isArray(student.subjects) && student.subjects.length > 0
+      ? student.subjects
+      : (isStudentNerd ? ["Accountancy", "Economics", "Business Studies"] : []);
+
+    const studentExams = exams.filter(ex => !isStudentNerd || !ex.subject || studentSubjs.includes(ex.subject));
+    if (studentExams.length < 2) return;
+
+    const latestExam = studentExams[studentExams.length - 1];
+    const previousExam = studentExams[studentExams.length - 2];
+
     const sm = marksByStudent[student.id] || {};
     const latestMark = sm[latestExam.id];
     const previousMark = sm[previousExam.id];

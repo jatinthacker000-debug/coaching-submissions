@@ -90,3 +90,8 @@ CREATE TABLE IF NOT EXISTS homework_status (
   created_at timestamptz not null default now(),
   unique(homework_date, student_id)
 );
+
+-- MULTI-SUBJECT COLUMNS FOR NERD TUTORS & EXAMS
+ALTER TABLE students ADD COLUMN IF NOT EXISTS subjects TEXT[] DEFAULT '{}';
+ALTER TABLE exams ADD COLUMN IF NOT EXISTS subject TEXT DEFAULT '';
+

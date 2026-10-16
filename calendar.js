@@ -1,43 +1,16 @@
 document.addEventListener("DOMContentLoaded", () => {
-  const tabOsem = document.getElementById("tab-osem");
-  const tabNalanda = document.getElementById("tab-nalanda");
-  const sectionOsem = document.getElementById("section-osem");
-  const sectionNalanda = document.getElementById("section-nalanda");
+  // Calendar state store per container { year, month }
+  const now = new Date();
+  const calendarStates = {};
+  const linksCache = {};
 
-  if (tabOsem && tabNalanda) {
-    tabOsem.addEventListener("click", () => {
-      tabOsem.className = "btn btn-primary";
-      tabOsem.style.background = "";
-      tabOsem.style.color = "";
-      
-      tabNalanda.className = "btn";
-      tabNalanda.style.background = "var(--surface-card)";
-      tabNalanda.style.color = "var(--text)";
-      
-      sectionOsem.style.display = "block";
-      sectionNalanda.style.display = "none";
-    });
+  const monthNames = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
 
-    tabNalanda.addEventListener("click", () => {
-      tabNalanda.className = "btn btn-primary";
-      tabNalanda.style.background = "";
-      tabNalanda.style.color = "";
-      
-      tabOsem.className = "btn";
-      tabOsem.style.background = "var(--surface-card)";
-      tabOsem.style.color = "var(--text)";
-      
-      sectionNalanda.style.display = "block";
-      sectionOsem.style.display = "none";
-    });
-  }
-
-  // Calendar rendering for October 2026
-  const renderCalendar = async (containerId, groupName) => {
-    const container = document.getElementById(containerId);
-    if (!container) return;
-
-    // Fetch links for the group
+  const getHomeworkLinks = async (groupName) => {
+    if (linksCache[groupName]) return linksCache[groupName];
     let linksMap = {};
     try {
       const res = await fetch(`/api/homework?group_name=${encodeURIComponent(groupName)}`);
@@ -48,103 +21,163 @@ document.addEventListener("DOMContentLoaded", () => {
         });
       }
     } catch (e) {
-      console.error("Failed to load homework links", e);
+      console.error("Failed to load homework links for " + groupName, e);
     }
+    linksCache[groupName] = linksMap;
+    return linksMap;
+  };
+
+  // Generic Tab Handler
+  const setupTabs = (tabConfig) => {
+    tabConfig.forEach(({ tabId, sectionId, containerId, groupName }) => {
+      const tabEl = document.getElementById(tabId);
+      if (!tabEl) return;
+      tabEl.addEventListener("click", () => {
+        tabConfig.forEach(item => {
+          const t = document.getElementById(item.tabId);
+          const s = document.getElementById(item.sectionId);
+          if (!t || !s) return;
+          if (item.tabId === tabId) {
+            t.className = "btn btn-primary";
+            t.style.background = "";
+            t.style.color = "";
+            s.style.display = "block";
+            renderCalendar(item.containerId, item.groupName);
+          } else {
+            t.className = "btn";
+            t.style.background = "var(--surface-card)";
+            t.style.color = "var(--text)";
+            s.style.display = "none";
+          }
+        });
+      });
+    });
+  };
+
+  // Dynamic Calendar rendering
+  const renderCalendar = async (containerId, groupName) => {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    if (!calendarStates[containerId]) {
+      calendarStates[containerId] = {
+        year: now.getFullYear(),
+        month: now.getMonth()
+      };
+    }
+
+    const { year, month } = calendarStates[containerId];
+    const linksMap = await getHomeworkLinks(groupName);
 
     const daysOfWeek = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
-    
-    // Outer horizontally scrollable container for mobile
-    let html = `<div style="width: 100%; padding-bottom: 1rem;">`;
-    
-    // Inner flex container (forced side-by-side)
-    html += `<div style="display: flex; flex-direction: row; flex-wrap: wrap; gap: 2rem; justify-content: center; align-items: flex-start; margin: 0 auto;">`;
-    
-    // 1. Calendar Grid (fixed minimum width so days don't get squished)
-    html += `<div style="flex: 1 1 100%; max-width: 450px; display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align: center;">`;
-    
-    // Headers
+    const firstDayIndex = new Date(year, month, 1).getDay(); // 0 = Sun
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const daysInPrevMonth = new Date(year, month, 0).getDate();
+
+    let html = `<div style="width: 100%; max-width: 460px; margin: 0 auto; padding-bottom: 1rem;">`;
+
+    // Month Navigation Header
+    html += `
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; width: 100%;">
+        <button class="cal-prev-btn btn" style="padding: 0.35rem 0.85rem; font-size: 0.85rem; background: var(--surface-card); color: var(--text); border: 1px solid var(--border); border-radius: 6px; cursor: pointer;">‹ Prev</button>
+        <h3 style="margin: 0; font-size: 1.25rem; font-weight: 700; color: var(--text);">${monthNames[month]} ${year}</h3>
+        <button class="cal-next-btn btn" style="padding: 0.35rem 0.85rem; font-size: 0.85rem; background: var(--surface-card); color: var(--text); border: 1px solid var(--border); border-radius: 6px; cursor: pointer;">Next ›</button>
+      </div>
+    `;
+
+    // Calendar Grid
+    html += `<div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align: center;">`;
+
+    // Days of week header
     daysOfWeek.forEach(d => {
-      html += `<div style="background: #2b70a0; color: white; padding: 0.5rem; font-weight: bold; border-radius: 4px;">${d}</div>`;
+      html += `<div style="background: #2b70a0; color: white; padding: 0.5rem; font-weight: bold; border-radius: 4px; font-size: 0.85rem;">${d}</div>`;
     });
 
-    // October 2026 starts on Thursday
-    const blanks = 4;
-    let prevDays = 30 - blanks + 1; // September has 30 days
-    for (let i = 0; i < blanks; i++) {
-      html += `<div style="padding: 1rem; color: #ccc; background: var(--surface-card); border-radius: 4px;">${prevDays++}</div>`;
+    // Blanks from previous month
+    let prevDays = daysInPrevMonth - firstDayIndex + 1;
+    for (let i = 0; i < firstDayIndex; i++) {
+      html += `<div style="padding: 0.85rem 0.5rem; color: #9ca3af; background: var(--surface-card); opacity: 0.5; border-radius: 4px; font-size: 0.9rem;">${prevDays++}</div>`;
     }
 
-    // Days in Oct
-    for (let day = 1; day <= 31; day++) {
-      let bgColor = "var(--surface-card)";
-      let color = "var(--text)";
-      
-      const isSunday = (blanks + day - 1) % 7 === 0;
+    // Days in current month
+    let readHomeworks = {};
+    try { readHomeworks = JSON.parse(localStorage.getItem('readHomeworks') || '{}'); } catch(e){}
 
-      // Assign colors based on holidays and Sundays
-      if (day === 2 || day === 20) {
-        bgColor = "#fee2e2"; // Light Red
-        color = "#991b1b"; // Dark Red
-      } else if (day === 18 || day === 19 || day === 26 || day === 29) {
-        bgColor = "#dcfce7"; // Light Green
-        color = "#166534"; // Dark Green
-      } else if (isSunday) {
-        bgColor = "#fef3c7"; // Light Amber
-        color = "#92400e"; // Dark Amber
-      }
+    for (let day = 1; day <= daysInMonth; day++) {
+      const isSunday = (firstDayIndex + day - 1) % 7 === 0;
+      let bgColor = isSunday ? "#fef3c7" : "var(--surface-card)";
+      let color = isSunday ? "#92400e" : "var(--text)";
 
-      const dateStr = `2026-10-${day.toString().padStart(2, '0')}`;
-      const hasHomework = linksMap[dateStr] ? true : false;
+      const monthStr = String(month + 1).padStart(2, '0');
+      const dayStr = String(day).padStart(2, '0');
+      const dateStr = `${year}-${monthStr}-${dayStr}`;
+
+      const hasHomework = Boolean(linksMap[dateStr]);
       const cursor = hasHomework ? "pointer" : "default";
 
-      // Homework highlight indicator (blue inner border)
-            let readHomeworks = {};
-      try { readHomeworks = JSON.parse(localStorage.getItem('readHomeworks') || '{}'); } catch(e){}
       const isRead = readHomeworks[`${groupName}-${dateStr}`];
       const highlightStyle = (hasHomework && !isRead) ? "box-shadow: inset 0 0 0 3px #3b82f6;" : "";
 
-      html += `<div class="cal-day" data-date="${dateStr}" data-group="${groupName}" data-link="${hasHomework ? linksMap[dateStr] : ''}" style="padding: 1rem; background: ${bgColor}; color: ${color}; border-radius: 4px; cursor: ${cursor}; font-weight: bold; transition: transform 0.1s; ${highlightStyle}">${day}</div>`;
+      html += `<div class="cal-day" data-date="${dateStr}" data-group="${groupName}" data-link="${hasHomework ? linksMap[dateStr] : ''}" style="padding: 0.85rem 0.5rem; background: ${bgColor}; color: ${color}; border-radius: 4px; cursor: ${cursor}; font-weight: bold; transition: transform 0.1s; ${highlightStyle}">${day}</div>`;
     }
-    
+
     // Remaining days to fill grid
-    const totalCells = blanks + 31;
+    const totalCells = firstDayIndex + daysInMonth;
     const remaining = Math.ceil(totalCells / 7) * 7 - totalCells;
     for (let i = 1; i <= remaining; i++) {
-      html += `<div style="padding: 1rem; color: #ccc; background: var(--surface-card); border-radius: 4px;">${i}</div>`;
+      html += `<div style="padding: 0.85rem 0.5rem; color: #9ca3af; background: var(--surface-card); opacity: 0.5; border-radius: 4px; font-size: 0.9rem;">${i}</div>`;
     }
 
-    html += `</div>`; // Close grid container
-    
-    // 2. Holiday Legend (fixed minimum width so text is readable)
+    html += `</div>`; // Close grid
+
+    // Clean Legend (Holidays removed)
     html += `
-      <div style="flex: 1 1 100%; max-width: 350px; background: var(--surface-card); padding: 1.5rem; border-radius: 8px; box-shadow: var(--shadow); margin-top: 0;">
-        <h4 style="background: #fcd116; color: black; padding: 0.5rem; border-radius: 4px; margin-bottom: 1rem; text-align: center;">Holidays of the Month</h4>
-        <ul style="list-style: none; padding: 0; display: flex; flex-direction: column; gap: 0.75rem;">
-          <li style="display: flex; gap: 1rem; align-items: center;"><span style="background: #fee2e2; color: #991b1b; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 4px; font-weight: bold;">2</span> Mahatma Gandhi's Birthday (G)</li>
-          <li style="display: flex; gap: 1rem; align-items: center;"><span style="background: #dcfce7; color: #166534; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 4px; font-weight: bold;">18</span> Dusshera (Saptami) (R)</li>
-          <li style="display: flex; gap: 1rem; align-items: center;"><span style="background: #dcfce7; color: #166534; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 4px; font-weight: bold;">19</span> Dussehra (Mahashtami) (R)</li>
-          <li style="display: flex; gap: 1rem; align-items: center;"><span style="background: #fee2e2; color: #991b1b; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 4px; font-weight: bold;">20</span> Dussehra (G) / (Mahanavmi) (R)</li>
-          <li style="display: flex; gap: 1rem; align-items: center;"><span style="background: #dcfce7; color: #166534; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 4px; font-weight: bold;">26</span> Maharishi Valmiki's Birthday (R)</li>
-          <li style="display: flex; gap: 1rem; align-items: center;"><span style="background: #dcfce7; color: #166534; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 4px; font-weight: bold;">29</span> Karaka Chaturthi (Karwa Chouth) (R)</li>
-        </ul>
-        
-        <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border);">
-            <div style="display: flex; align-items: center; gap: 1rem; font-size: 0.9rem; color: var(--text);">
-                <div style="width: 20px; height: 20px; box-shadow: inset 0 0 0 3px #3b82f6; border-radius: 4px;"></div>
-                <span>Homework Uploaded</span>
-            </div>
-            <div style="display: flex; align-items: center; gap: 1rem; font-size: 0.9rem; color: var(--text); margin-top: 0.5rem;">
-                <div style="width: 20px; height: 20px; background: #fef3c7; border-radius: 4px;"></div>
-                <span>Sunday</span>
-            </div>
+      <div style="display: flex; gap: 1.5rem; justify-content: center; align-items: center; margin-top: 1.25rem; font-size: 0.85rem; color: var(--text-muted);">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <div style="width: 16px; height: 16px; box-shadow: inset 0 0 0 3px #3b82f6; border-radius: 4px; background: var(--surface-card);"></div>
+          <span>Homework Uploaded</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <div style="width: 16px; height: 16px; background: #fef3c7; border: 1px solid #fde68a; border-radius: 4px;"></div>
+          <span>Sunday</span>
         </div>
       </div>
-    </div></div>
     `;
 
+    html += `</div>`; // Close outer container
     container.innerHTML = html;
 
-    // Attach click listeners
+    // Attach navigation listeners
+    const prevBtn = container.querySelector(".cal-prev-btn");
+    const nextBtn = container.querySelector(".cal-next-btn");
+
+    if (prevBtn) {
+      prevBtn.addEventListener("click", () => {
+        let { year, month } = calendarStates[containerId];
+        month--;
+        if (month < 0) {
+          month = 11;
+          year--;
+        }
+        calendarStates[containerId] = { year, month };
+        renderCalendar(containerId, groupName);
+      });
+    }
+
+    if (nextBtn) {
+      nextBtn.addEventListener("click", () => {
+        let { year, month } = calendarStates[containerId];
+        month++;
+        if (month > 11) {
+          month = 0;
+          year++;
+        }
+        calendarStates[containerId] = { year, month };
+        renderCalendar(containerId, groupName);
+      });
+    }
+
+    // Attach click listeners to calendar days
     const days = container.querySelectorAll(".cal-day");
     days.forEach(dayEl => {
       dayEl.addEventListener("click", () => {
@@ -156,19 +189,26 @@ document.addEventListener("DOMContentLoaded", () => {
         const modalText = document.getElementById("calendar-modal-text");
         const modalLink = document.getElementById("calendar-modal-link");
 
+        if (!modal) return;
+
         modalDate.textContent = `Homework for ${date}`;
-        
+
         if (link) {
           modalText.textContent = "Click below to open your homework.";
           modalLink.href = link;
           modalLink.style.display = "inline-block";
-          modalLink.onclick = () => { let hw = {}; try { hw = JSON.parse(localStorage.getItem("readHomeworks") || "{}"); } catch(e){} hw[group + "-" + date] = true; localStorage.setItem("readHomeworks", JSON.stringify(hw)); dayEl.style.boxShadow = ""; };
+          modalLink.onclick = () => {
+            let hw = {};
+            try { hw = JSON.parse(localStorage.getItem("readHomeworks") || "{}"); } catch(e){}
+            hw[group + "-" + date] = true;
+            localStorage.setItem("readHomeworks", JSON.stringify(hw));
+            dayEl.style.boxShadow = "";
+          };
         } else {
-          // Placeholder message if no link is configured
           modalText.textContent = "No homework link has been set for this date yet. Check back later!";
           modalLink.style.display = "none";
         }
-        
+
         modal.classList.remove("hidden");
       });
     });
@@ -177,11 +217,37 @@ document.addEventListener("DOMContentLoaded", () => {
   const modalClose = document.getElementById("calendar-modal-close");
   if (modalClose) {
     modalClose.addEventListener("click", () => {
-      document.getElementById("calendar-modal").classList.add("hidden");
+      const modal = document.getElementById("calendar-modal");
+      if (modal) modal.classList.add("hidden");
     });
   }
 
-  // Render both calendars
-  renderCalendar("calendar-osem", "Osem");
-  renderCalendar("calendar-nalanda", "Nalanda");
+  // Close modal when clicking outside modal content
+  const modal = document.getElementById("calendar-modal");
+  if (modal) {
+    modal.addEventListener("click", (e) => {
+      if (e.target === modal) modal.classList.add("hidden");
+    });
+  }
+
+  // Initialize Grade 12 Calendars if present
+  const g12Tabs = [
+    { tabId: "tab-osem", sectionId: "section-osem", containerId: "calendar-osem", groupName: "Osem" },
+    { tabId: "tab-nalanda", sectionId: "section-nalanda", containerId: "calendar-nalanda", groupName: "Nalanda" }
+  ];
+  if (document.getElementById("tab-osem")) {
+    setupTabs(g12Tabs);
+    renderCalendar("calendar-osem", "Osem");
+  }
+
+  // Initialize Grade 10 Calendars if present
+  const g10Tabs = [
+    { tabId: "tab-ignite", sectionId: "section-ignite", containerId: "calendar-ignite", groupName: "Ignite" },
+    { tabId: "tab-velocity", sectionId: "section-velocity", containerId: "calendar-velocity", groupName: "Velocity" },
+    { tabId: "tab-epsilon", sectionId: "section-epsilon", containerId: "calendar-epsilon", groupName: "Epsilon" }
+  ];
+  if (document.getElementById("tab-ignite")) {
+    setupTabs(g10Tabs);
+    renderCalendar("calendar-ignite", "Ignite");
+  }
 });

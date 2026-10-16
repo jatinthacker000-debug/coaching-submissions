@@ -92,14 +92,21 @@
       <div class="submit-card wide-card" style="margin-bottom: 3rem;">
         <div class="form-row">
           <div class="form-group" style="flex: 1;">
-            <label for="hw-date">Select Date (Oct 2026)</label>
-            <input type="date" id="hw-date" value="2026-10-01" min="2026-10-01" max="2026-10-31">
+            <label for="hw-date">Select Date</label>
+            <input type="date" id="hw-date">
           </div>
           <div class="form-group" style="flex: 1;">
             <label for="hw-group">Select Group</label>
             <select id="hw-group">
-              <option value="Osem">Osem</option>
-              <option value="Nalanda">Nalanda</option>
+              <optgroup label="Grade 12">
+                <option value="Osem">Osem</option>
+                <option value="Nalanda">Nalanda</option>
+              </optgroup>
+              <optgroup label="Grade 10">
+                <option value="Ignite">Ignite</option>
+                <option value="Velocity">Velocity</option>
+                <option value="Epsilon">Epsilon</option>
+              </optgroup>
             </select>
           </div>
           <div class="form-group" style="flex: 2;">
@@ -245,6 +252,15 @@
             <label for="exam-total">Total Marks</label>
             <input type="number" id="exam-total" placeholder="e.g. 20" required min="1" step="0.5">
           </div>
+          <div class="form-group" style="flex: 1.5;">
+            <label for="exam-subject">Subject (Optional / Nerd Tutors)</label>
+            <select id="exam-subject">
+              <option value="">General / Single Subject</option>
+              <option value="Accountancy">Accountancy</option>
+              <option value="Economics">Economics</option>
+              <option value="Business Studies">Business Studies</option>
+            </select>
+          </div>
         </div>
         <button type="submit" class="btn btn-primary" id="exam-submit-btn" style="width: auto; min-width: 180px;">
           Create Exam
@@ -267,7 +283,7 @@
             <label for="add-student-password">Password</label>
             <input type="text" id="add-student-password" placeholder="First name...">
           </div>
-          <div class="form-group" style="flex: 1;">
+            <div class="form-group" style="flex: 1;">
             <label for="add-student-group">Select Group</label>
             <select id="add-student-group">
               <option value="">-- No Group --</option>
@@ -277,6 +293,14 @@
               <option value="Prayas">Prayas</option>
               <option value="Nerd Tutors">Nerd Tutors</option><option value="Nerd Tutors Nalanda">Nerd Tutors Nalanda</option>
             </select>
+          </div>
+        </div>
+        <div id="add-student-subjects-wrapper" style="display: none; margin-bottom: 1rem; padding: 0.75rem 1rem; background: var(--bg); border: 1px solid var(--border); border-radius: 8px;">
+          <label style="font-weight: 600; display: block; margin-bottom: 0.5rem; font-size: 0.9rem;">Opted Subjects (Select up to 3):</label>
+          <div style="display: flex; gap: 1.5rem; flex-wrap: wrap;">
+            <label style="display: flex; align-items: center; gap: 0.35rem; cursor: pointer;"><input type="checkbox" id="add-subj-acc" value="Accountancy" checked> Accountancy</label>
+            <label style="display: flex; align-items: center; gap: 0.35rem; cursor: pointer;"><input type="checkbox" id="add-subj-eco" value="Economics" checked> Economics</label>
+            <label style="display: flex; align-items: center; gap: 0.35rem; cursor: pointer;"><input type="checkbox" id="add-subj-bst" value="Business Studies" checked> Business Studies</label>
           </div>
         </div>
         <button class="btn btn-primary" id="add-student-btn">Add Student</button>
@@ -300,13 +324,14 @@
               <tr>
                 <th style="padding: 0.75rem; color: var(--text-muted);">Name</th>
                 <th style="padding: 0.75rem; color: var(--text-muted);">Group</th>
+                <th style="padding: 0.75rem; color: var(--text-muted);">Subjects</th>
                 <th style="padding: 0.75rem; color: var(--text-muted);">Student ID</th>
                 <th style="padding: 0.75rem; color: var(--text-muted);">Password</th>
                 <th style="padding: 0.75rem; color: var(--text-muted);">Action</th>
               </tr>
             </thead>
             <tbody id="credentials-table-body">
-              <tr><td colspan="4" style="padding: 1rem; color: var(--text-muted); text-align: center;">Loading...</td></tr>
+              <tr><td colspan="6" style="padding: 1rem; color: var(--text-muted); text-align: center;">Loading...</td></tr>
             </tbody>
           </table>
         </div>
@@ -320,7 +345,7 @@
           <h1>Class Performance Overview</h1>
           <p class="subtitle">Quick statistics and grade distribution across all exams.</p>
         </div>
-        <div style="margin-top: 1rem;">
+        <div style="margin-top: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
           <select id="performance-group-filter" style="padding: 0.5rem; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text);">
             <option value="">All Groups</option>
             <option value="NEPS">NEPS</option><option value="NEGS">NEGS</option><option value="Nalanda">Nalanda</option>
@@ -328,6 +353,12 @@
             <option value="Sankalp">Sankalp</option>
             <option value="Prayas">Prayas</option>
             <option value="Nerd Tutors">Nerd Tutors</option><option value="Nerd Tutors Nalanda">Nerd Tutors Nalanda</option>
+          </select>
+          <select id="performance-subject-filter" style="padding: 0.5rem; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text);">
+            <option value="">All Subjects</option>
+            <option value="Accountancy">Accountancy</option>
+            <option value="Economics">Economics</option>
+            <option value="Business Studies">Business Studies</option>
           </select>
         </div>
       </div>
@@ -383,14 +414,21 @@
           <h1 style="display: flex; align-items: center;">Student Performance Overview <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="accordion-icon" id="overview-toggle-icon" style="transform: rotate(0deg);"><polyline points="6 9 12 15 18 9"></polyline></svg></h1>
           <p class="subtitle">View and analyze marks across all exams.</p>
         </div>
-        <div style="margin-top: 1rem; display: flex; gap: 1rem; align-items: center;" onclick="event.stopPropagation();">
-          <input type="text" id="overview-search" placeholder="Search student name..." style="padding: 0.5rem; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text); min-width: 200px;"> <select id="overview-table-group-filter" style="padding: 0.5rem; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text);">
+        <div style="margin-top: 1rem; display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;" onclick="event.stopPropagation();">
+          <input type="text" id="overview-search" placeholder="Search student name..." style="padding: 0.5rem; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text); min-width: 200px;">
+          <select id="overview-table-group-filter" style="padding: 0.5rem; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text);">
             <option value="">All Groups</option>
             <option value="NEPS">NEPS</option><option value="NEGS">NEGS</option><option value="Nalanda">Nalanda</option>
             <option value="Lakshya">Lakshya</option>
             <option value="Sankalp">Sankalp</option>
             <option value="Prayas">Prayas</option>
             <option value="Nerd Tutors">Nerd Tutors</option><option value="Nerd Tutors Nalanda">Nerd Tutors Nalanda</option>
+          </select>
+          <select id="overview-subject-filter" style="padding: 0.5rem; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text);">
+            <option value="">All Subjects</option>
+            <option value="Accountancy">Accountancy</option>
+            <option value="Economics">Economics</option>
+            <option value="Business Studies">Business Studies</option>
           </select>
           <button class="btn btn-primary" id="export-excel-btn" style="padding: 0.5rem 1rem; border-radius: 8px;">Export to Excel</button>
         </div>
@@ -419,7 +457,7 @@
           <h1 style="display: flex; align-items: center;">Individual Student Analytics <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="accordion-icon" id="analytics-toggle-icon" style="transform: rotate(0deg);"><polyline points="6 9 12 15 18 9"></polyline></svg></h1>
           <p class="subtitle">Select a student to view their specific performance and compare exams.</p>
         </div>
-        <div style="margin-top: 1rem;" onclick="event.stopPropagation();">
+        <div style="margin-top: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;" onclick="event.stopPropagation();">
           <select id="analytics-group-filter" style="padding: 0.5rem; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text);">
             <option value="">All Groups</option>
             <option value="NEPS">NEPS</option><option value="NEGS">NEGS</option><option value="Nalanda">Nalanda</option>
@@ -427,6 +465,12 @@
             <option value="Sankalp">Sankalp</option>
             <option value="Prayas">Prayas</option>
             <option value="Nerd Tutors">Nerd Tutors</option><option value="Nerd Tutors Nalanda">Nerd Tutors Nalanda</option>
+          </select>
+          <select id="analytics-subject-filter" style="padding: 0.5rem; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text);">
+            <option value="">All Subjects</option>
+            <option value="Accountancy">Accountancy</option>
+            <option value="Economics">Economics</option>
+            <option value="Business Studies">Business Studies</option>
           </select>
         </div>
       </div>
@@ -466,7 +510,7 @@
           <h1 style="display: flex; align-items: center;">Performance Insights <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="accordion-icon" id="insights-toggle-icon" style="transform: rotate(0deg);"><polyline points="6 9 12 15 18 9"></polyline></svg></h1>
           <p class="subtitle">Quickly identify students who need help and those showing the most growth.</p>
         </div>
-        <div style="margin-top: 1rem;" onclick="event.stopPropagation();">
+        <div style="margin-top: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;" onclick="event.stopPropagation();">
           <select id="attention-group-filter" style="padding: 0.5rem; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text);">
             <option value="">All Groups</option>
             <option value="NEPS">NEPS</option><option value="NEGS">NEGS</option><option value="Nalanda">Nalanda</option>
@@ -474,6 +518,12 @@
             <option value="Sankalp">Sankalp</option>
             <option value="Prayas">Prayas</option>
             <option value="Nerd Tutors">Nerd Tutors</option><option value="Nerd Tutors Nalanda">Nerd Tutors Nalanda</option>
+          </select>
+          <select id="attention-subject-filter" style="padding: 0.5rem; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text);">
+            <option value="">All Subjects</option>
+            <option value="Accountancy">Accountancy</option>
+            <option value="Economics">Economics</option>
+            <option value="Business Studies">Business Studies</option>
           </select>
         </div>
       </div>

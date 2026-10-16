@@ -724,6 +724,17 @@ function renderStudentReportContent(forcedStudentId = null) {
   container.style.display = "block";
   
   const studentMarks = publicMarks.filter(m => m.student_id === studentId);
+  const studentObj = publicStudents.find(s => s.id === studentId);
+  const isNerdStudent = studentObj && studentObj.group_name && studentObj.group_name.startsWith("Nerd Tutors");
+  const studentSubjs = (isNerdStudent && Array.isArray(studentObj.subjects) && studentObj.subjects.length > 0)
+    ? studentObj.subjects
+    : (isNerdStudent ? ["Accountancy", "Economics", "Business Studies"] : null);
+
+  const applicableExams = publicExams.filter(ex => {
+    if (!isNerdStudent || !studentSubjs) return true;
+    if (!ex.subject) return true;
+    return studentSubjs.includes(ex.subject);
+  });
   
   let html = `<div class="submit-card" style="padding: 0; overflow-x: auto;"><table style="width: 100%; border-collapse: collapse; text-align: left; background: var(--surface);">
     <thead>
@@ -739,7 +750,7 @@ function renderStudentReportContent(forcedStudentId = null) {
   let prevPercentage = null;
   let hasExams = false;
 
-  publicExams.forEach(ex => {
+  applicableExams.forEach(ex => {
     const markObj = studentMarks.find(m => m.exam_id === ex.id);
     if (markObj) {
       hasExams = true;
@@ -763,8 +774,10 @@ function renderStudentReportContent(forcedStudentId = null) {
       }
       prevPercentage = perc;
 
+      const subjBadge = ex.subject ? ` <span style="font-size: 0.75rem; color: #2563eb; background: rgba(37,99,235,0.1); padding: 0.1rem 0.4rem; border-radius: 4px; font-weight: 600;">${escapeHtml(ex.subject)}</span>` : '';
+
       html += `<tr style="border-bottom: 1px solid var(--border);">
-        <td style="padding: 1rem;">${escapeHtml(ex.name)}</td>
+        <td style="padding: 1rem;">${escapeHtml(ex.name)}${subjBadge}</td>
         <td style="padding: 1rem; font-weight: 500;">${marksObtained}/${maxMarks}</td>
         <td style="padding: 1rem; color: var(--primary); font-weight: 600;">${perc.toFixed(1)}%</td>
         <td style="padding: 1rem; color: ${changeColor}; font-weight: 500;">${changeText}</td>
@@ -778,12 +791,12 @@ function renderStudentReportContent(forcedStudentId = null) {
 
   html += `</tbody></table>`;
 
-  if (hasExams && publicExams.length > 0) {
+  if (hasExams && applicableExams.length > 0) {
     const stats = [];
-    publicExams.forEach(ex => {
+    applicableExams.forEach(ex => {
       const markObj = studentMarks.find(m => m.exam_id === ex.id);
       if (markObj) {
-        stats.push({ name: ex.name, perc: (markObj.marks_obtained / ex.total_marks) * 100 });
+        stats.push({ name: ex.name, subject: ex.subject || "", perc: (markObj.marks_obtained / ex.total_marks) * 100 });
       }
     });
 
@@ -805,12 +818,28 @@ function renderStudentReportContent(forcedStudentId = null) {
           trendHtml = `<span style="color: var(--text-muted);">Need more exams</span>`;
       }
 
+      let subjectCardsHtml = '';
+      if (isNerdStudent && studentSubjs && studentSubjs.length > 0) {
+        studentSubjs.forEach(sb => {
+          const sbStats = stats.filter(st => st.subject === sb);
+          if (sbStats.length > 0) {
+            const sbAvg = sbStats.reduce((acc, curr) => acc + curr.perc, 0) / sbStats.length;
+            subjectCardsHtml += `
+              <div style="background: var(--surface-card); padding: 0.75rem 1rem; border-radius: 8px; border: 1px solid var(--border);">
+                <p style="margin: 0; color: var(--text-muted); font-size: 0.85rem;">${escapeHtml(sb)}</p>
+                <p style="margin: 0.25rem 0 0 0; font-size: 1.15rem; font-weight: bold; color: var(--primary);">${sbAvg.toFixed(1)}%</p>
+              </div>
+            `;
+          }
+        });
+      }
+
       html += `
       <div style="border-top: 1px solid var(--border); padding: 1.5rem; background: var(--bg);">
         <h3 style="margin-top: 0; color: var(--text); border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; font-size: 1.1rem;">Insights & Analysis</h3>
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem; margin-top: 1rem;">
             <div>
-                <p style="margin: 0.5rem 0; color: var(--text-muted); font-size: 0.9rem;">Average</p>
+                <p style="margin: 0.5rem 0; color: var(--text-muted); font-size: 0.9rem;">Overall Average</p>
                 <p style="margin: 0; font-size: 1.25rem; font-weight: bold; color: var(--primary);">${averagePerc.toFixed(1)}%</p>
             </div>
             <div>
@@ -828,6 +857,14 @@ function renderStudentReportContent(forcedStudentId = null) {
                 <p style="margin: 0.2rem 0 0 0; font-size: 0.8rem; color: var(--text-muted);">${escapeHtml(lowestExam.name)}</p>
             </div>
         </div>
+        ${subjectCardsHtml ? `
+        <div style="margin-top: 1.25rem; border-top: 1px solid var(--border); padding-top: 1rem;">
+          <p style="margin: 0 0 0.75rem 0; font-weight: 600; font-size: 0.95rem; color: var(--text);">Subject-wise Average</p>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.75rem;">
+            ${subjectCardsHtml}
+          </div>
+        </div>
+        ` : ''}
       </div>
       `;
     }
