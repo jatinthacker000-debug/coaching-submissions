@@ -434,13 +434,61 @@ function renderExamsList(exams) {
   exams.forEach(ex => {
     const li = document.createElement("li");
     li.className = "paper-card";
-    const subjPill = ex.subject ? `<span class="score-pill" style="background: rgba(139, 92, 246, 0.15); color: #7c3aed; font-size: 0.8rem; margin-left: 0.5rem;">${escapeHtml(ex.subject)}</span>` : "";
+    li.style.display = "flex";
+    li.style.justifyContent = "space-between";
+    li.style.alignItems = "center";
+    li.style.gap = "1rem";
+    li.style.flexWrap = "wrap";
+    
+    const currSubj = ex.subject || "";
+    
     li.innerHTML = `
-      <div>
-        <h3>${escapeHtml(ex.name)} <span class="score-pill">Total: ${ex.total_marks}</span>${subjPill}</h3>
+      <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; flex: 1;">
+        <h3 style="margin: 0;">${escapeHtml(ex.name)} <span class="score-pill">Total: ${ex.total_marks}</span></h3>
+        <div style="display: flex; align-items: center; gap: 0.4rem;">
+          <label style="font-size: 0.85rem; color: var(--text-muted); font-weight: 500;">Subject:</label>
+          <select class="exam-subject-edit" data-id="${escapeHtml(ex.id)}" style="padding: 0.25rem 0.5rem; border-radius: 6px; font-size: 0.85rem; border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer;">
+            <option value="" ${currSubj === '' ? 'selected' : ''}>General / None</option>
+            <option value="Economics" ${currSubj === 'Economics' ? 'selected' : ''}>Economics</option>
+            <option value="Accountancy" ${currSubj === 'Accountancy' ? 'selected' : ''}>Accountancy</option>
+            <option value="Business Studies" ${currSubj === 'Business Studies' ? 'selected' : ''}>Business Studies</option>
+            <option value="Social Science" ${currSubj === 'Social Science' ? 'selected' : ''}>Social Science</option>
+          </select>
+          <span class="exam-save-status" style="font-size: 0.8rem; color: #059669; font-weight: 600; display: none;">Saved!</span>
+        </div>
       </div>
       <button class="btn btn-danger small-btn" data-id="${ex.id}">Delete</button>
     `;
+
+    const selectEl = li.querySelector(".exam-subject-edit");
+    const saveStatus = li.querySelector(".exam-save-status");
+    if (selectEl) {
+      selectEl.addEventListener("change", async (e) => {
+        const newSubj = e.target.value;
+        selectEl.disabled = true;
+        try {
+          await updateExam(ex.id, { subject: newSubj });
+          ex.subject = newSubj;
+          if (saveStatus) {
+            saveStatus.textContent = "Saved!";
+            saveStatus.style.color = "#059669";
+            saveStatus.style.display = "inline";
+            setTimeout(() => { saveStatus.style.display = "none"; }, 2000);
+          }
+          applyGroupFilterAndRender();
+        } catch (err) {
+          if (saveStatus) {
+            saveStatus.textContent = "Failed";
+            saveStatus.style.color = "#dc2626";
+            saveStatus.style.display = "inline";
+          }
+          alert("Error updating exam subject: " + err.message);
+        } finally {
+          selectEl.disabled = false;
+        }
+      });
+    }
+
     li.querySelector("button").addEventListener("click", async () => {
       if (!confirm(`Delete exam "${ex.name}"? This will also delete all student marks for this exam!`)) return;
       try {

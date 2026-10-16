@@ -724,6 +724,15 @@ function renderStudentReportContent(forcedStudentId = null) {
   container.style.display = "block";
   
   const studentMarks = publicMarks.filter(m => m.student_id === studentId);
+  const reportSection = document.getElementById("student-report-section");
+  if (reportSection) {
+    if (studentMarks.length > 0) {
+      reportSection.open = true;
+    } else {
+      reportSection.open = false;
+    }
+  }
+
   const studentObj = publicStudents.find(s => s.id === studentId);
   const isNerdStudent = studentObj && studentObj.group_name && studentObj.group_name.startsWith("Nerd Tutors");
   const studentSubjs = (isNerdStudent && Array.isArray(studentObj.subjects) && studentObj.subjects.length > 0)

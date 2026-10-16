@@ -78,10 +78,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Month Navigation Header
     html += `
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; width: 100%;">
-        <button class="cal-prev-btn btn" style="padding: 0.35rem 0.85rem; font-size: 0.85rem; background: var(--surface-card); color: var(--text); border: 1px solid var(--border); border-radius: 6px; cursor: pointer;">‹ Prev</button>
-        <h3 style="margin: 0; font-size: 1.25rem; font-weight: 700; color: var(--text);">${monthNames[month]} ${year}</h3>
-        <button class="cal-next-btn btn" style="padding: 0.35rem 0.85rem; font-size: 0.85rem; background: var(--surface-card); color: var(--text); border: 1px solid var(--border); border-radius: 6px; cursor: pointer;">Next ›</button>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; width: 100%; gap: 0.5rem;">
+        <h3 style="margin: 0; font-size: 1.15rem; font-weight: 700; color: var(--text); white-space: nowrap;">${monthNames[month]} ${year}</h3>
+        <div style="display: flex; gap: 0.4rem; align-items: center;">
+          <button class="cal-prev-btn btn" style="padding: 0.35rem 0.75rem; font-size: 0.85rem; background: var(--surface-card); color: var(--text); border: 1px solid var(--border); border-radius: 6px; cursor: pointer;">‹ Prev</button>
+          <button class="cal-next-btn btn" style="padding: 0.35rem 0.75rem; font-size: 0.85rem; background: var(--surface-card); color: var(--text); border: 1px solid var(--border); border-radius: 6px; cursor: pointer;">Next ›</button>
+        </div>
       </div>
     `;
 

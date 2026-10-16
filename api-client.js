@@ -1,4 +1,4 @@
-﻿const COACH_KEY = "coach_password";
+const COACH_KEY = "coach_password";
 
 function getCoachPassword() {
   return sessionStorage.getItem(COACH_KEY) || "";
@@ -274,6 +274,18 @@ async function createExam(payload) {
       Authorization: `Bearer ${getCoachPassword()}`,
     },
     body: JSON.stringify(payload),
+  });
+  return parseResponse(response);
+}
+
+async function updateExam(id, payload) {
+  const response = await fetch("/api/exams", {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${getCoachPassword()}`,
+    },
+    body: JSON.stringify({ id, ...payload }),
   });
   return parseResponse(response);
 }
