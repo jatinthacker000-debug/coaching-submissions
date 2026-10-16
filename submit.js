@@ -624,11 +624,59 @@ let studentReportChart = null;
 
 function getExamTermRank(name = "") {
   const n = (name || "").toLowerCase().trim();
+
+  // 1. Pre-Mid Term (Grade 12)
   if (n.includes("pre mid") || n.includes("pre-mid") || n.startsWith("pre ") || n === "pre") return 10;
-  if (n.includes("post mid") || n.includes("post-mid") || n.startsWith("post ") || n === "post") return 30;
-  if (n.includes("mid term") || n.includes("mid-term") || n.includes("mid") || n.includes("half yearly")) return 20;
-  if (n.includes("pre board") || n.includes("pre-board")) return 40;
+
+  // 2. Post-Mid Term (Grade 12) - check before generic mid term
+  if (n.includes("post mid") || n.includes("post-mid") || n.startsWith("post ") || n === "post") {
+    return 30;
+  }
+
+  // 3. Unit Test 1 / UT1 (Grade 10)
+  if (
+    n.includes("ut 1") || n.includes("ut-1") || n.includes("ut1") ||
+    n.includes("unit test 1") || n.includes("unit test1") ||
+    n === "ut" || n === "unit test"
+  ) {
+    return 11;
+  }
+
+  // 4. Class Tests / Test 1 / Test 2 (Grade 10)
+  if (
+    n.includes("class test") || n.includes("class ttest") || n.includes("class-test") ||
+    n.includes("classtest") || n.startsWith("ct") || n.includes("weekly test") ||
+    /^test\s*\d+/i.test(n) || n === "test"
+  ) {
+    const match = n.match(/\d+/);
+    const num = match ? parseInt(match[0], 10) : 1;
+    return 14 + Math.min(num, 4); // Test 1 = 15, Test 2 = 16, Test 3 = 17, etc.
+  }
+
+  // 5. Half Yearly / Term 1 / Mid Term (Grade 10 / Grade 12)
+  if (
+    n.includes("half yearly") || n.includes("half-yearly") || n.includes("halfyearly") ||
+    n.includes("term 1") || n.includes("term-1") || n.includes("term1") ||
+    n.includes("mid term") || n.includes("mid-term") || n.includes("midterm") || n === "mid"
+  ) {
+    return 20;
+  }
+
+  // 6. Unit Test 2 / UT2
+  if (
+    n.includes("ut 2") || n.includes("ut-2") || n.includes("ut2") ||
+    n.includes("unit test 2") || n.includes("unit test2")
+  ) {
+    return 25;
+  }
+
+  // 7. Term 2 / Pre Board
+  if (n.includes("term 2") || n.includes("term-2") || n.includes("term2")) return 35;
+  if (n.includes("pre board") || n.includes("pre-board") || n.includes("preboard")) return 40;
+
+  // 8. Final / Annual / Board
   if (n.includes("final") || n.includes("annual") || n.includes("board")) return 50;
+
   return 100;
 }
 
@@ -765,7 +813,7 @@ function renderStudentReportContent(forcedStudentId = null) {
   const isNerdStudent = studentObj && studentObj.group_name && studentObj.group_name.startsWith("Nerd Tutors");
   const studentSubjs = (isNerdStudent && Array.isArray(studentObj.subjects) && studentObj.subjects.length > 0)
     ? studentObj.subjects
-    : (isNerdStudent ? ["Accountancy", "Economics", "Business Studies"] : null);
+    : (isNerdStudent ? ["Accountancy", "Economics", "Business Studies"] : ["Social Science"]);
 
   const applicableExams = publicExams.filter(ex => {
     if (studentObj && studentObj.group_name && Array.isArray(ex.target_groups) && ex.target_groups.length > 0) {
@@ -773,12 +821,22 @@ function renderStudentReportContent(forcedStudentId = null) {
     }
     if (isNerdStudent) {
       if (!ex.subject) return false;
-      if (studentSubjs && !studentSubjs.includes(ex.subject)) return false;
+      return studentSubjs.includes(ex.subject);
+    } else {
+      // Non-Nerd Tutors groups study ONLY Social Science
+      // Filter out any commerce exams (Accountancy, Business Studies, Economics)
+      const s = (ex.subject || "").toLowerCase().trim();
+      if (s.includes("account") || s.includes("business") || s === "bst" || s.includes("econom")) {
+        return false;
+      }
+      if (ex.subject && s !== "social science" && !s.includes("social")) {
+        return false;
+      }
+      return true;
     }
-    return true;
   });
 
-  // Extract distinct exam terms (e.g. Pre Mid Term, Mid Term, Post Mid Term)
+  // Extract distinct exam terms (e.g. UT1, Class Test, Half Yearly)
   // Only include terms that have actual student marks, with fallback if no marks exist yet
   const distinctTerms = [];
   applicableExams.forEach(ex => {
@@ -799,12 +857,8 @@ function renderStudentReportContent(forcedStudentId = null) {
   distinctTerms.sort((a, b) => getExamTermRank(a) - getExamTermRank(b));
 
   // Extract distinct subjects to display as row headers
-  let displaySubjects = [];
-  if (studentSubjs && studentSubjs.length > 0) {
-    displaySubjects = [...studentSubjs];
-  } else {
-    displaySubjects = [...new Set(applicableExams.map(ex => ex.subject).filter(Boolean))];
-  }
+  // For non-Nerd students, this is always strictly ["Social Science"]
+  let displaySubjects = isNerdStudent ? [...studentSubjs] : ["Social Science"];
   displaySubjects.sort((a, b) => getSubjectRank(a) - getSubjectRank(b));
 
   let hasExams = false;
@@ -860,39 +914,42 @@ function renderStudentReportContent(forcedStudentId = null) {
       html += `</tr>`;
     });
 
-    // Average row across subjects for each exam term
-    let avgCells = `<td style="padding: 0.75rem 0.5rem; font-weight: 700; font-size: 0.9rem; color: var(--primary);">Average</td>`;
-    distinctTerms.forEach(term => {
-      let termObt = 0;
-      let termMax = 0;
-      let hasTermMarks = false;
+    // Only display Average row when there are MULTIPLE subjects (e.g. Nerd Tutors with Accountancy, Business Studies, Economics)
+    // For single-subject report cards (e.g. Social Science), the Average row is redundant and is omitted
+    if (isNerdStudent && displaySubjects.length > 1) {
+      let avgCells = `<td style="padding: 0.75rem 0.5rem; font-weight: 700; font-size: 0.9rem; color: var(--primary);">Average</td>`;
+      distinctTerms.forEach(term => {
+        let termObt = 0;
+        let termMax = 0;
+        let hasTermMarks = false;
 
-      displaySubjects.forEach(subj => {
-        const ex = applicableExams.find(e => e.name === term && (e.subject === subj || (!e.subject && displaySubjects.length === 1)));
-        if (ex) {
-          const markObj = studentMarks.find(m => m.exam_id === ex.id);
-          if (markObj && markObj.marks_obtained !== null && markObj.marks_obtained !== undefined) {
-            termObt += markObj.marks_obtained;
-            termMax += ex.total_marks;
-            hasTermMarks = true;
+        displaySubjects.forEach(subj => {
+          const ex = applicableExams.find(e => e.name === term && (e.subject === subj || (!e.subject && displaySubjects.length === 1)));
+          if (ex) {
+            const markObj = studentMarks.find(m => m.exam_id === ex.id);
+            if (markObj && markObj.marks_obtained !== null && markObj.marks_obtained !== undefined) {
+              termObt += markObj.marks_obtained;
+              termMax += ex.total_marks;
+              hasTermMarks = true;
+            }
           }
+        });
+
+        if (hasTermMarks && termMax > 0) {
+          const termPerc = (termObt / termMax) * 100;
+          avgCells += `
+            <td style="padding: 0.75rem 0.5rem; text-align: center; background: rgba(59, 130, 246, 0.06);">
+              <div style="font-weight: 700; font-size: 0.95rem; color: var(--primary);">${termObt}/${termMax}</div>
+              <div style="font-size: 0.8rem; font-weight: 700; color: var(--primary); margin-top: 2px;">${termPerc.toFixed(1)}%</div>
+            </td>
+          `;
+        } else {
+          avgCells += `<td style="padding: 0.75rem 0.5rem; text-align: center; color: var(--text-muted); font-size: 0.85rem;">&mdash;</td>`;
         }
       });
 
-      if (hasTermMarks && termMax > 0) {
-        const termPerc = (termObt / termMax) * 100;
-        avgCells += `
-          <td style="padding: 0.75rem 0.5rem; text-align: center; background: rgba(59, 130, 246, 0.06);">
-            <div style="font-weight: 700; font-size: 0.95rem; color: var(--primary);">${termObt}/${termMax}</div>
-            <div style="font-size: 0.8rem; font-weight: 700; color: var(--primary); margin-top: 2px;">${termPerc.toFixed(1)}%</div>
-          </td>
-        `;
-      } else {
-        avgCells += `<td style="padding: 0.75rem 0.5rem; text-align: center; color: var(--text-muted); font-size: 0.85rem;">&mdash;</td>`;
-      }
-    });
-
-    html += `<tr style="border-top: 2px solid var(--border); background: rgba(59, 130, 246, 0.04);">${avgCells}</tr>`;
+      html += `<tr style="border-top: 2px solid var(--border); background: rgba(59, 130, 246, 0.04);">${avgCells}</tr>`;
+    }
   } else {
     // Single-subject / general fallback
     html += `<tr style="border-bottom: 1px solid var(--border);">
@@ -929,7 +986,7 @@ function renderStudentReportContent(forcedStudentId = null) {
     applicableExams.forEach(ex => {
       const markObj = studentMarks.find(m => m.exam_id === ex.id);
       if (markObj && markObj.marks_obtained !== null && markObj.marks_obtained !== undefined) {
-        stats.push({ name: ex.name, subject: ex.subject || "", perc: (markObj.marks_obtained / ex.total_marks) * 100 });
+        stats.push({ name: ex.name, subject: ex.subject || (!isNerdStudent ? "Social Science" : ""), perc: (markObj.marks_obtained / ex.total_marks) * 100 });
       }
     });
 
@@ -999,7 +1056,7 @@ function renderStudentReportContent(forcedStudentId = null) {
                 <p style="margin: 0.2rem 0 0 0; font-size: 0.8rem; color: var(--text-muted);">${escapeHtml(lowestExam.name)}${lowestExam.subject ? ` (${escapeHtml(lowestExam.subject)})` : ''}</p>
             </div>
         </div>
-        ${subjectCardsHtml ? `
+        ${(subjectCardsHtml && displaySubjects.length > 1) ? `
         <div style="margin-top: 1.25rem; border-top: 1px solid var(--border); padding-top: 1rem;">
           <p style="margin: 0 0 0.75rem 0; font-weight: 600; font-size: 0.95rem; color: var(--text);">Subject-wise Average</p>
           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.75rem;">

@@ -405,11 +405,59 @@ let globalMarksByStudent = {};
 
 function getExamTermRank(name = "") {
   const n = (name || "").toLowerCase().trim();
+
+  // 1. Pre-Mid Term (Grade 12)
   if (n.includes("pre mid") || n.includes("pre-mid") || n.startsWith("pre ") || n === "pre") return 10;
-  if (n.includes("post mid") || n.includes("post-mid") || n.startsWith("post ") || n === "post") return 30;
-  if (n.includes("mid term") || n.includes("mid-term") || n.includes("mid") || n.includes("half yearly")) return 20;
-  if (n.includes("pre board") || n.includes("pre-board")) return 40;
+
+  // 2. Post-Mid Term (Grade 12) - check before generic mid term
+  if (n.includes("post mid") || n.includes("post-mid") || n.startsWith("post ") || n === "post") {
+    return 30;
+  }
+
+  // 3. Unit Test 1 / UT1 (Grade 10)
+  if (
+    n.includes("ut 1") || n.includes("ut-1") || n.includes("ut1") ||
+    n.includes("unit test 1") || n.includes("unit test1") ||
+    n === "ut" || n === "unit test"
+  ) {
+    return 11;
+  }
+
+  // 4. Class Tests / Test 1 / Test 2 (Grade 10)
+  if (
+    n.includes("class test") || n.includes("class ttest") || n.includes("class-test") ||
+    n.includes("classtest") || n.startsWith("ct") || n.includes("weekly test") ||
+    /^test\s*\d+/i.test(n) || n === "test"
+  ) {
+    const match = n.match(/\d+/);
+    const num = match ? parseInt(match[0], 10) : 1;
+    return 14 + Math.min(num, 4); // Test 1 = 15, Test 2 = 16, Test 3 = 17, etc.
+  }
+
+  // 5. Half Yearly / Term 1 / Mid Term (Grade 10 / Grade 12)
+  if (
+    n.includes("half yearly") || n.includes("half-yearly") || n.includes("halfyearly") ||
+    n.includes("term 1") || n.includes("term-1") || n.includes("term1") ||
+    n.includes("mid term") || n.includes("mid-term") || n.includes("midterm") || n === "mid"
+  ) {
+    return 20;
+  }
+
+  // 6. Unit Test 2 / UT2
+  if (
+    n.includes("ut 2") || n.includes("ut-2") || n.includes("ut2") ||
+    n.includes("unit test 2") || n.includes("unit test2")
+  ) {
+    return 25;
+  }
+
+  // 7. Term 2 / Pre Board
+  if (n.includes("term 2") || n.includes("term-2") || n.includes("term2")) return 35;
+  if (n.includes("pre board") || n.includes("pre-board") || n.includes("preboard")) return 40;
+
+  // 8. Final / Annual / Board
   if (n.includes("final") || n.includes("annual") || n.includes("board")) return 50;
+
   return 100;
 }
 
