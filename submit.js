@@ -622,6 +622,45 @@ let publicExams = [];
 let publicMarks = [];
 let studentReportChart = null;
 
+function getExamTermRank(name = "") {
+  const n = (name || "").toLowerCase().trim();
+  if (n.includes("pre mid") || n.includes("pre-mid") || n.startsWith("pre ") || n === "pre") return 10;
+  if (n.includes("post mid") || n.includes("post-mid") || n.startsWith("post ") || n === "post") return 30;
+  if (n.includes("mid term") || n.includes("mid-term") || n.includes("mid") || n.includes("half yearly")) return 20;
+  if (n.includes("pre board") || n.includes("pre-board")) return 40;
+  if (n.includes("final") || n.includes("annual") || n.includes("board")) return 50;
+  return 100;
+}
+
+function getSubjectRank(subject = "") {
+  const s = (subject || "").toLowerCase().trim();
+  if (s.includes("account")) return 1;
+  if (s.includes("business") || s === "bst") return 2;
+  if (s.includes("econom")) return 3;
+  if (s.includes("social")) return 4;
+  return 10;
+}
+
+function sortExams(exams = []) {
+  return [...exams].sort((a, b) => {
+    const rankA = getExamTermRank(a.name);
+    const rankB = getExamTermRank(b.name);
+    if (rankA !== rankB) return rankA - rankB;
+
+    const subjA = getSubjectRank(a.subject);
+    const subjB = getSubjectRank(b.subject);
+    if (subjA !== subjB) return subjA - subjB;
+
+    const sCmp = (a.subject || "").localeCompare(b.subject || "");
+    if (sCmp !== 0) return sCmp;
+
+    const nCmp = (a.name || "").localeCompare(b.name || "");
+    if (nCmp !== 0) return nCmp;
+
+    return new Date(a.created_at || 0) - new Date(b.created_at || 0);
+  });
+}
+
 async function initStudentReport() {
   const container = document.getElementById("student-report-content");
   if (!container) return; // report section not on page
@@ -638,10 +677,8 @@ async function initStudentReport() {
     ]);
     
     publicStudents = studentsRes.students || [];
-    publicExams = examsRes.exams || [];
+    publicExams = sortExams(examsRes.exams || []);
     publicMarks = marksRes.marks || [];
-    
-    publicExams.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
 
     if (studentInfoStr) {
       // Auto-load for logged in student
