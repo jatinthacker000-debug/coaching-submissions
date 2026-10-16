@@ -761,15 +761,6 @@ function renderStudentReportContent(forcedStudentId = null) {
   container.style.display = "block";
   
   const studentMarks = publicMarks.filter(m => m.student_id === studentId);
-  const reportSection = document.getElementById("student-report-section");
-  if (reportSection) {
-    if (studentMarks.length > 0) {
-      reportSection.open = true;
-    } else {
-      reportSection.open = false;
-    }
-  }
-
   const studentObj = publicStudents.find(s => s.id === studentId);
   const isNerdStudent = studentObj && studentObj.group_name && studentObj.group_name.startsWith("Nerd Tutors");
   const studentSubjs = (isNerdStudent && Array.isArray(studentObj.subjects) && studentObj.subjects.length > 0)
@@ -781,92 +772,147 @@ function renderStudentReportContent(forcedStudentId = null) {
     if (!ex.subject) return true;
     return studentSubjs.includes(ex.subject);
   });
-  
+
+  // Extract distinct exam terms (e.g. Pre Mid Term, Mid Term, Post Mid Term)
+  const distinctTerms = [];
+  applicableExams.forEach(ex => {
+    if (!distinctTerms.includes(ex.name)) {
+      distinctTerms.push(ex.name);
+    }
+  });
+  distinctTerms.sort((a, b) => getExamTermRank(a) - getExamTermRank(b));
+
+  // Extract distinct subjects to display as row headers
+  let displaySubjects = [];
+  if (studentSubjs && studentSubjs.length > 0) {
+    displaySubjects = [...studentSubjs];
+  } else {
+    displaySubjects = [...new Set(applicableExams.map(ex => ex.subject).filter(Boolean))];
+  }
+  displaySubjects.sort((a, b) => getSubjectRank(a) - getSubjectRank(b));
+
+  let hasExams = false;
   let html = `<div class="submit-card" style="padding: 0; overflow-x: auto;"><table style="width: 100%; border-collapse: collapse; text-align: left; background: var(--surface);">
     <thead>
       <tr style="border-bottom: 2px solid var(--border);">
-        <th style="padding: 1rem; color: var(--text-muted); font-weight: 600;">Exam</th>
-        <th style="padding: 1rem; color: var(--text-muted); font-weight: 600;">Marks</th>
-        <th style="padding: 1rem; color: var(--text-muted); font-weight: 600;">Percentage</th>
-        <th style="padding: 1rem; color: var(--text-muted); font-weight: 600;">Change</th>
-      </tr>
-    </thead>
-    <tbody>`;
+        <th style="padding: 0.75rem 0.5rem; color: var(--text-muted); font-weight: 600; font-size: 0.85rem; width: 28%;">Subject</th>`;
 
-  let prevPercentage = null;
-  let hasExams = false;
-
-  applicableExams.forEach(ex => {
-    const markObj = studentMarks.find(m => m.exam_id === ex.id);
-    if (markObj) {
-      hasExams = true;
-      const marksObtained = markObj.marks_obtained;
-      const maxMarks = ex.total_marks;
-      const perc = (marksObtained / maxMarks) * 100;
-      
-      let changeText = "NA";
-      let changeColor = "var(--text-muted)";
-      if (prevPercentage !== null) {
-        const diff = perc - prevPercentage;
-        if (diff > 0) {
-          changeText = "+" + diff.toFixed(1) + "%";
-          changeColor = "#059669"; // green
-        } else if (diff < 0) {
-          changeText = diff.toFixed(1) + "%";
-          changeColor = "#dc2626"; // red
-        } else {
-          changeText = "0%";
-        }
-      }
-      prevPercentage = perc;
-
-      const subjBadge = ex.subject ? ` <span style="font-size: 0.75rem; color: #2563eb; background: rgba(37,99,235,0.1); padding: 0.1rem 0.4rem; border-radius: 4px; font-weight: 600;">${escapeHtml(ex.subject)}</span>` : '';
-
-      html += `<tr style="border-bottom: 1px solid var(--border);">
-        <td style="padding: 1rem;">${escapeHtml(ex.name)}${subjBadge}</td>
-        <td style="padding: 1rem; font-weight: 500;">${marksObtained}/${maxMarks}</td>
-        <td style="padding: 1rem; color: var(--primary); font-weight: 600;">${perc.toFixed(1)}%</td>
-        <td style="padding: 1rem; color: ${changeColor}; font-weight: 500;">${changeText}</td>
-      </tr>`;
-    }
+  distinctTerms.forEach(term => {
+    const matchingEx = applicableExams.find(e => e.name === term);
+    const maxMarks = matchingEx ? matchingEx.total_marks : '';
+    html += `
+      <th style="padding: 0.75rem 0.5rem; color: var(--text-muted); font-weight: 600; text-align: center; font-size: 0.85rem;">
+        ${escapeHtml(term)}
+        ${maxMarks ? `<br><small style="font-weight: normal; font-size: 0.72rem; color: var(--text-muted);">Max: ${maxMarks}</small>` : ''}
+      </th>
+    `;
   });
 
-  if (!hasExams) {
-    html += `<tr><td colspan="4" style="padding: 1rem; text-align: center; color: var(--text-muted);">No exam records found.</td></tr>`;
+  html += `</tr></thead><tbody>`;
+
+  if (displaySubjects.length > 0) {
+    displaySubjects.forEach(subj => {
+      html += `<tr style="border-bottom: 1px solid var(--border);">
+        <td style="padding: 0.75rem 0.5rem; font-weight: 600; font-size: 0.9rem; color: var(--text);">
+          ${escapeHtml(subj)}
+        </td>`;
+
+      distinctTerms.forEach(term => {
+        const ex = applicableExams.find(e => e.name === term && (e.subject === subj || (!e.subject && displaySubjects.length === 1)));
+        if (!ex) {
+          html += `<td style="padding: 0.75rem 0.5rem; text-align: center; color: var(--text-muted); font-size: 0.85rem;">&mdash;</td>`;
+          return;
+        }
+
+        const markObj = studentMarks.find(m => m.exam_id === ex.id);
+        if (markObj && markObj.marks_obtained !== null && markObj.marks_obtained !== undefined) {
+          hasExams = true;
+          const marksObtained = markObj.marks_obtained;
+          const maxMarks = ex.total_marks;
+          const perc = (marksObtained / maxMarks) * 100;
+          html += `
+            <td style="padding: 0.75rem 0.5rem; text-align: center;">
+              <div style="font-weight: 700; font-size: 0.95rem; color: var(--text);">${marksObtained}/${maxMarks}</div>
+              <div style="font-size: 0.78rem; font-weight: 600; color: var(--primary); margin-top: 2px;">${perc.toFixed(1)}%</div>
+            </td>
+          `;
+        } else {
+          html += `<td style="padding: 0.75rem 0.5rem; text-align: center; color: var(--text-muted); font-size: 0.85rem;">&mdash;</td>`;
+        }
+      });
+
+      html += `</tr>`;
+    });
+  } else {
+    // Single-subject / general fallback
+    html += `<tr style="border-bottom: 1px solid var(--border);">
+      <td style="padding: 0.75rem 0.5rem; font-weight: 600; font-size: 0.9rem; color: var(--text);">Score</td>`;
+    distinctTerms.forEach(term => {
+      const ex = applicableExams.find(e => e.name === term);
+      const markObj = ex ? studentMarks.find(m => m.exam_id === ex.id) : null;
+      if (markObj && markObj.marks_obtained !== null && markObj.marks_obtained !== undefined) {
+        hasExams = true;
+        const marksObtained = markObj.marks_obtained;
+        const maxMarks = ex.total_marks;
+        const perc = (marksObtained / maxMarks) * 100;
+        html += `
+          <td style="padding: 0.75rem 0.5rem; text-align: center;">
+            <div style="font-weight: 700; font-size: 0.95rem; color: var(--text);">${marksObtained}/${maxMarks}</div>
+            <div style="font-size: 0.78rem; font-weight: 600; color: var(--primary); margin-top: 2px;">${perc.toFixed(1)}%</div>
+          </td>
+        `;
+      } else {
+        html += `<td style="padding: 0.75rem 0.5rem; text-align: center; color: var(--text-muted);">&mdash;</td>`;
+      }
+    });
+    html += `</tr>`;
   }
 
-  html += `</tbody></table>`;
+  if (!hasExams) {
+    html = `<div class="submit-card" style="padding: 1.5rem; text-align: center; color: var(--text-muted);">No exam records found yet.</div>`;
+  } else {
+    html += `</tbody></table></div>`;
+  }
 
   if (hasExams && applicableExams.length > 0) {
     const stats = [];
     applicableExams.forEach(ex => {
       const markObj = studentMarks.find(m => m.exam_id === ex.id);
-      if (markObj) {
+      if (markObj && markObj.marks_obtained !== null && markObj.marks_obtained !== undefined) {
         stats.push({ name: ex.name, subject: ex.subject || "", perc: (markObj.marks_obtained / ex.total_marks) * 100 });
       }
     });
 
     if (stats.length > 0) {
-      const firstExam = stats[0];
-      const lastExam = stats[stats.length - 1];
-      const overallChange = lastExam.perc - firstExam.perc;
       const averagePerc = stats.reduce((acc, curr) => acc + curr.perc, 0) / stats.length;
-      
       const highestExam = stats.reduce((prev, curr) => (prev.perc > curr.perc) ? prev : curr);
       const lowestExam = stats.reduce((prev, curr) => (prev.perc < curr.perc) ? prev : curr);
 
+      // Calculate term-by-term trend across terms (e.g. Pre Mid vs Post Mid average)
+      const termAverages = [];
+      distinctTerms.forEach(term => {
+        const termStats = stats.filter(st => st.name === term);
+        if (termStats.length > 0) {
+          const avg = termStats.reduce((sum, s) => sum + s.perc, 0) / termStats.length;
+          termAverages.push({ term, avg });
+        }
+      });
+
       let trendHtml = '';
-      if (stats.length >= 2) {
-          if (overallChange > 0) trendHtml = `<span style="color: #059669; font-weight: bold;">Improving (&#8593; ${overallChange.toFixed(1)}%)</span>`;
-          else if (overallChange < 0) trendHtml = `<span style="color: #dc2626; font-weight: bold;">Declining (&#8595; ${Math.abs(overallChange).toFixed(1)}%)</span>`;
-          else trendHtml = `<span style="color: var(--text-muted); font-weight: bold;">Stable</span>`;
+      if (termAverages.length >= 2) {
+        const firstTerm = termAverages[0];
+        const lastTerm = termAverages[termAverages.length - 1];
+        const overallChange = lastTerm.avg - firstTerm.avg;
+        if (overallChange > 0) trendHtml = `<span style="color: #059669; font-weight: bold;">Improving (&#8593; ${overallChange.toFixed(1)}%)</span>`;
+        else if (overallChange < 0) trendHtml = `<span style="color: #dc2626; font-weight: bold;">Declining (&#8595; ${Math.abs(overallChange).toFixed(1)}%)</span>`;
+        else trendHtml = `<span style="color: var(--text-muted); font-weight: bold;">Stable</span>`;
       } else {
-          trendHtml = `<span style="color: var(--text-muted);">Need more exams</span>`;
+        trendHtml = `<span style="color: var(--text-muted);">Need more exams</span>`;
       }
 
       let subjectCardsHtml = '';
-      if (isNerdStudent && studentSubjs && studentSubjs.length > 0) {
-        studentSubjs.forEach(sb => {
+      if (displaySubjects && displaySubjects.length > 0) {
+        displaySubjects.forEach(sb => {
           const sbStats = stats.filter(st => st.subject === sb);
           if (sbStats.length > 0) {
             const sbAvg = sbStats.reduce((acc, curr) => acc + curr.perc, 0) / sbStats.length;
@@ -881,7 +927,7 @@ function renderStudentReportContent(forcedStudentId = null) {
       }
 
       html += `
-      <div style="border-top: 1px solid var(--border); padding: 1.5rem; background: var(--bg);">
+      <div style="border-top: 1px solid var(--border); padding: 1.5rem; background: var(--bg); border-radius: 12px; margin-top: 1.5rem;">
         <h3 style="margin-top: 0; color: var(--text); border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; font-size: 1.1rem;">Insights & Analysis</h3>
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem; margin-top: 1rem;">
             <div>
@@ -895,12 +941,12 @@ function renderStudentReportContent(forcedStudentId = null) {
             <div>
                 <p style="margin: 0.5rem 0; color: var(--text-muted); font-size: 0.9rem;">Highest Score</p>
                 <p style="margin: 0; font-size: 1.1rem; font-weight: 500;">${highestExam.perc.toFixed(1)}%</p>
-                <p style="margin: 0.2rem 0 0 0; font-size: 0.8rem; color: var(--text-muted);">${escapeHtml(highestExam.name)}</p>
+                <p style="margin: 0.2rem 0 0 0; font-size: 0.8rem; color: var(--text-muted);">${escapeHtml(highestExam.name)}${highestExam.subject ? ` (${escapeHtml(highestExam.subject)})` : ''}</p>
             </div>
             <div>
                 <p style="margin: 0.5rem 0; color: var(--text-muted); font-size: 0.9rem;">Lowest Score</p>
                 <p style="margin: 0; font-size: 1.1rem; font-weight: 500;">${lowestExam.perc.toFixed(1)}%</p>
-                <p style="margin: 0.2rem 0 0 0; font-size: 0.8rem; color: var(--text-muted);">${escapeHtml(lowestExam.name)}</p>
+                <p style="margin: 0.2rem 0 0 0; font-size: 0.8rem; color: var(--text-muted);">${escapeHtml(lowestExam.name)}${lowestExam.subject ? ` (${escapeHtml(lowestExam.subject)})` : ''}</p>
             </div>
         </div>
         ${subjectCardsHtml ? `
