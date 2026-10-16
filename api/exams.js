@@ -57,6 +57,33 @@ export default async function handler(req, res) {
     return sendJson(res, { success: true });
   }
 
+  if (req.method === "PUT") {
+    if (!await isCoachAuthorized(req)) return coachUnauthorized(res);
+
+    const body = req.body || {};
+    const { id } = body;
+    if (!id) return sendError(res, "Missing exam id.", 400);
+
+    const updates = {};
+    if (body.name !== undefined) updates.name = body.name.trim();
+    if (body.total_marks !== undefined) updates.total_marks = Number(body.total_marks);
+    if (body.target_groups !== undefined) updates.target_groups = Array.isArray(body.target_groups) ? body.target_groups : [];
+    if (body.subject !== undefined) updates.subject = body.subject.trim();
+
+    if (Object.keys(updates).length > 0) {
+      const { data, error } = await supabase
+        .from("exams")
+        .update(updates)
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) return sendError(res, error.message, 500);
+      return sendJson(res, { exam: data });
+    }
+    return sendJson(res, { success: true });
+  }
+
   return sendError(res, "Method not allowed.", 405);
 }
 
