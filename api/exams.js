@@ -7,7 +7,7 @@ export default async function handler(req, res) {
   if (req.method === "GET") {
     const { data, error } = await supabase
       .from("exams")
-      .select("id, name, total_marks, target_groups, created_at")
+      .select("id, name, total_marks, target_groups, subject, created_at")
       .order("created_at", { ascending: true });
 
     if (error) return sendError(res, error.message, 500);
@@ -22,12 +22,15 @@ export default async function handler(req, res) {
       return sendError(res, "Exam name and total marks are required.");
     }
 
+    const subject = body.subject?.trim() || "";
+
     const { data, error } = await supabase
       .from("exams")
       .insert({
         name: body.name.trim(),
         total_marks: Number(body.total_marks),
-        target_groups: Array.isArray(body.target_groups) ? body.target_groups : []
+        target_groups: Array.isArray(body.target_groups) ? body.target_groups : [],
+        subject: subject
       })
       .select()
       .single();

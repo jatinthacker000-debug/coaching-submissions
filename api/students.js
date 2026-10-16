@@ -7,7 +7,7 @@ export default async function handler(req, res) {
   if (req.method === "GET") {
     const isCoach = await isCoachAuthorized(req);
     // If coach, fetch credentials too
-    const selectFields = isCoach ? "id, name, group_name, student_id_alias, password" : "id, name, group_name";
+    const selectFields = isCoach ? "id, name, group_name, subjects, student_id_alias, password" : "id, name, group_name, subjects";
     
     const { data, error } = await supabase
       .from("students")
@@ -26,11 +26,12 @@ export default async function handler(req, res) {
     const cleanName = body.name.trim().replace(/</g, "&lt;").replace(/>/g, "&gt;");
     const studentIdAlias = body.student_id_alias?.trim() || null;
     const password = body.password?.trim() || null;
+    const subjects = Array.isArray(body.subjects) ? body.subjects : [];
 
     // Check if exists
     const { data: existing } = await supabase
       .from("students")
-      .select("id, name, group_name, student_id_alias, password")
+      .select("id, name, group_name, subjects, student_id_alias, password")
       .ilike("name", cleanName)
       .maybeSingle();
 
@@ -38,6 +39,9 @@ export default async function handler(req, res) {
       const updates = {};
       if (body.group_name !== undefined && body.group_name !== existing.group_name) {
         updates.group_name = body.group_name || null;
+      }
+      if (body.subjects !== undefined) {
+        updates.subjects = subjects;
       }
       if (studentIdAlias !== null && studentIdAlias !== existing.student_id_alias) {
         updates.student_id_alias = studentIdAlias;
@@ -65,6 +69,7 @@ export default async function handler(req, res) {
       .insert({ 
         name: cleanName, 
         group_name: body.group_name || null,
+        subjects: subjects,
         student_id_alias: studentIdAlias,
         password: password
       })
@@ -111,6 +116,7 @@ export default async function handler(req, res) {
     if (body.student_id_alias !== undefined) updates.student_id_alias = body.student_id_alias.trim() || null;
     if (body.password !== undefined) updates.password = body.password.trim() || null;
     if (body.group_name !== undefined) updates.group_name = body.group_name.trim() || null;
+    if (body.subjects !== undefined) updates.subjects = Array.isArray(body.subjects) ? body.subjects : [];
 
     if (Object.keys(updates).length > 0) {
       const { data, error } = await supabase

@@ -53,6 +53,9 @@ export default async function handler(req, res) {
     }
     const { data, error } = await query;
     if (error) return sendError(res, error.message, 500);
+    if (res.setHeader) {
+      res.setHeader("Cache-Control", "public, s-maxage=60, stale-while-revalidate=300");
+    }
     return sendJson(res, { links: data });
   }
 

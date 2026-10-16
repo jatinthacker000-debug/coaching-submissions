@@ -12,7 +12,7 @@ export default async function handler(req, res) {
       .select(`
         id, marks_obtained, created_at,
         student_id, students (name),
-        exam_id, exams (name, total_marks)
+        exam_id, exams (name, total_marks, subject)
       `);
 
     if (error) return sendError(res, error.message, 500);
