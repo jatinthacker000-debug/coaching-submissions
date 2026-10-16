@@ -768,18 +768,34 @@ function renderStudentReportContent(forcedStudentId = null) {
     : (isNerdStudent ? ["Accountancy", "Economics", "Business Studies"] : null);
 
   const applicableExams = publicExams.filter(ex => {
-    if (!isNerdStudent || !studentSubjs) return true;
-    if (!ex.subject) return true;
-    return studentSubjs.includes(ex.subject);
+    if (studentObj && studentObj.group_name && Array.isArray(ex.target_groups) && ex.target_groups.length > 0) {
+      if (!ex.target_groups.includes(studentObj.group_name)) return false;
+    }
+    if (isNerdStudent) {
+      if (!ex.subject) return false;
+      if (studentSubjs && !studentSubjs.includes(ex.subject)) return false;
+    }
+    return true;
   });
 
   // Extract distinct exam terms (e.g. Pre Mid Term, Mid Term, Post Mid Term)
+  // Only include terms that have actual student marks, with fallback if no marks exist yet
   const distinctTerms = [];
   applicableExams.forEach(ex => {
     if (!distinctTerms.includes(ex.name)) {
-      distinctTerms.push(ex.name);
+      const hasMarkForTerm = studentMarks.some(m => m.marks_obtained !== null && m.marks_obtained !== undefined && applicableExams.some(e => e.id === m.exam_id && e.name === ex.name));
+      if (hasMarkForTerm) {
+        distinctTerms.push(ex.name);
+      }
     }
   });
+
+  // Fallback: if student has no marks yet, show distinct terms from applicableExams
+  if (distinctTerms.length === 0) {
+    applicableExams.forEach(ex => {
+      if (!distinctTerms.includes(ex.name)) distinctTerms.push(ex.name);
+    });
+  }
   distinctTerms.sort((a, b) => getExamTermRank(a) - getExamTermRank(b));
 
   // Extract distinct subjects to display as row headers
@@ -843,6 +859,40 @@ function renderStudentReportContent(forcedStudentId = null) {
 
       html += `</tr>`;
     });
+
+    // Average row across subjects for each exam term
+    let avgCells = `<td style="padding: 0.75rem 0.5rem; font-weight: 700; font-size: 0.9rem; color: var(--primary);">Average</td>`;
+    distinctTerms.forEach(term => {
+      let termObt = 0;
+      let termMax = 0;
+      let hasTermMarks = false;
+
+      displaySubjects.forEach(subj => {
+        const ex = applicableExams.find(e => e.name === term && (e.subject === subj || (!e.subject && displaySubjects.length === 1)));
+        if (ex) {
+          const markObj = studentMarks.find(m => m.exam_id === ex.id);
+          if (markObj && markObj.marks_obtained !== null && markObj.marks_obtained !== undefined) {
+            termObt += markObj.marks_obtained;
+            termMax += ex.total_marks;
+            hasTermMarks = true;
+          }
+        }
+      });
+
+      if (hasTermMarks && termMax > 0) {
+        const termPerc = (termObt / termMax) * 100;
+        avgCells += `
+          <td style="padding: 0.75rem 0.5rem; text-align: center; background: rgba(59, 130, 246, 0.06);">
+            <div style="font-weight: 700; font-size: 0.95rem; color: var(--primary);">${termObt}/${termMax}</div>
+            <div style="font-size: 0.8rem; font-weight: 700; color: var(--primary); margin-top: 2px;">${termPerc.toFixed(1)}%</div>
+          </td>
+        `;
+      } else {
+        avgCells += `<td style="padding: 0.75rem 0.5rem; text-align: center; color: var(--text-muted); font-size: 0.85rem;">&mdash;</td>`;
+      }
+    });
+
+    html += `<tr style="border-top: 2px solid var(--border); background: rgba(59, 130, 246, 0.04);">${avgCells}</tr>`;
   } else {
     // Single-subject / general fallback
     html += `<tr style="border-bottom: 1px solid var(--border);">
