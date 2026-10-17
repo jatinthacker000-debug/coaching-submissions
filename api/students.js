@@ -28,39 +28,15 @@ export default async function handler(req, res) {
     const password = body.password?.trim() || null;
     const subjects = Array.isArray(body.subjects) ? body.subjects : [];
 
-    // Check if exists
+    // Check if name already exists
     const { data: existing } = await supabase
       .from("students")
-      .select("id, name, group_name, subjects, student_id_alias, password")
+      .select("id, name")
       .ilike("name", cleanName)
       .maybeSingle();
 
     if (existing) {
-      const updates = {};
-      if (body.group_name !== undefined && body.group_name !== existing.group_name) {
-        updates.group_name = body.group_name || null;
-      }
-      if (body.subjects !== undefined) {
-        updates.subjects = subjects;
-      }
-      if (studentIdAlias !== null && studentIdAlias !== existing.student_id_alias) {
-        updates.student_id_alias = studentIdAlias;
-      }
-      if (password !== null && password !== existing.password) {
-        updates.password = password;
-      }
-
-      if (Object.keys(updates).length > 0) {
-        const { data: updated, error: updateError } = await supabase
-          .from("students")
-          .update(updates)
-          .eq("id", existing.id)
-          .select()
-          .single();
-        if (updateError) return sendError(res, updateError.message, 500);
-        return sendJson(res, { student: updated });
-      }
-      return sendJson(res, { student: existing });
+      return sendError(res, "name already taken", 400);
     }
 
     // Create new
@@ -112,7 +88,20 @@ export default async function handler(req, res) {
     if (!body.id) return sendError(res, "Student ID is required.", 400);
 
     const updates = {};
-    if (body.name !== undefined) updates.name = body.name.trim().replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    if (body.name !== undefined) {
+      const cleanName = body.name.trim().replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      const { data: existingWithName } = await supabase
+        .from("students")
+        .select("id")
+        .ilike("name", cleanName)
+        .neq("id", body.id)
+        .maybeSingle();
+
+      if (existingWithName) {
+        return sendError(res, "name already taken", 400);
+      }
+      updates.name = cleanName;
+    }
     if (body.student_id_alias !== undefined) updates.student_id_alias = body.student_id_alias.trim() || null;
     if (body.password !== undefined) updates.password = body.password.trim() || null;
     if (body.group_name !== undefined) updates.group_name = body.group_name.trim() || null;
