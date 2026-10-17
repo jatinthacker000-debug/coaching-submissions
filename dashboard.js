@@ -370,6 +370,21 @@ const examForm = document.getElementById("exam-form");
 const examNameInput = document.getElementById("exam-name");
 const examTotalInput = document.getElementById("exam-total");
 const examSubmitBtn = document.getElementById("exam-submit-btn");
+const examSubjectInput = document.getElementById("exam-subject");
+
+if (examSubjectInput) {
+  examSubjectInput.addEventListener("change", (e) => {
+    if (e.target.value === "Business Studies") {
+      document.querySelectorAll("#exam-groups-container input[type='checkbox']").forEach(cb => {
+        if (cb.value === "Nerd Tutors" || cb.value === "Nerd Tutors Nalanda") {
+          cb.checked = true;
+        } else {
+          cb.checked = false;
+        }
+      });
+    }
+  });
+}
 
 if (examForm) {
   examForm.addEventListener("submit", async (e) => {
@@ -378,12 +393,22 @@ if (examForm) {
     examSubmitBtn.textContent = "Creating...";
     try {
       const checkedGroups = Array.from(document.querySelectorAll("#exam-groups-container input:checked")).map(cb => cb.value);
-      const examSubjectInput = document.getElementById("exam-subject");
       const subject = examSubjectInput ? examSubjectInput.value : "";
+      let target_groups = checkedGroups;
+      if (subject === "Business Studies") {
+        if (target_groups.length === 0) {
+          target_groups = ["Nerd Tutors", "Nerd Tutors Nalanda"];
+        } else {
+          target_groups = target_groups.filter(g => isNerdGroup(g));
+          if (target_groups.length === 0) {
+            target_groups = ["Nerd Tutors", "Nerd Tutors Nalanda"];
+          }
+        }
+      }
       await createExam({
         name: examNameInput.value.trim(),
         total_marks: examTotalInput.value,
-        target_groups: checkedGroups,
+        target_groups: target_groups,
         subject: subject
       });
       examForm.reset();
@@ -395,6 +420,20 @@ if (examForm) {
       examSubmitBtn.textContent = "Create Exam";
     }
   });
+}
+
+// Helpers for Business Studies & Nerd Tutors Groups
+function isBusinessStudiesExam(ex) {
+  if (!ex) return false;
+  const s = (ex.subject || "").toLowerCase().trim();
+  const n = (ex.name || "").toLowerCase().trim();
+  return s.includes("business") || s === "bst" || n.includes("business studies") || /\bbst\b/i.test(n);
+}
+
+function isNerdGroup(groupName) {
+  if (!groupName) return false;
+  const g = groupName.trim();
+  return g === "Nerd Tutors" || g === "Nerd Tutors Nalanda" || g.startsWith("Nerd Tutors");
 }
 
 // Global state for analytics
@@ -554,7 +593,12 @@ function renderExamsList(exams) {
         const newSubj = e.target.value;
         selectEl.disabled = true;
         try {
-          await updateExam(ex.id, { subject: newSubj });
+          const payload = { subject: newSubj };
+          if (newSubj === "Business Studies") {
+            payload.target_groups = ["Nerd Tutors", "Nerd Tutors Nalanda"];
+            ex.target_groups = ["Nerd Tutors", "Nerd Tutors Nalanda"];
+          }
+          await updateExam(ex.id, payload);
           ex.subject = newSubj;
           if (saveStatus) {
             saveStatus.textContent = "Saved!";
@@ -1012,6 +1056,7 @@ function updateAnalyticsDropdowns(studentsToUse = globalStudents) {
   const selectedGrp = analyticsGroupFilter ? analyticsGroupFilter.value : "";
   const selectedSubj = document.getElementById("analytics-subject-filter") ? document.getElementById("analytics-subject-filter").value : "";
   const groupExams = globalExams.filter(ex => {
+    if (selectedGrp && !isNerdGroup(selectedGrp) && isBusinessStudiesExam(ex)) return false;
     if (selectedGrp && ex.target_groups && ex.target_groups.length > 0 && !ex.target_groups.includes(selectedGrp)) return false;
     if (selectedSubj && ex.subject && ex.subject !== selectedSubj) return false;
     return true;
@@ -1040,6 +1085,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const selectedGrp = analyticsGroupFilter ? analyticsGroupFilter.value : "";
     const selectedSubj = document.getElementById("analytics-subject-filter") ? document.getElementById("analytics-subject-filter").value : "";
     const groupExams = globalExams.filter(ex => {
+      if (selectedGrp && !isNerdGroup(selectedGrp) && isBusinessStudiesExam(ex)) return false;
       if (selectedGrp && ex.target_groups && ex.target_groups.length > 0 && !ex.target_groups.includes(selectedGrp)) return false;
       if (selectedSubj && ex.subject && ex.subject !== selectedSubj) return false;
       return true;
@@ -1520,6 +1566,7 @@ function renderClassStatsSection() {
   const selectedGrp = perfGroupFilter ? perfGroupFilter.value : "";
   const selectedSubj = perfSubjectFilter ? perfSubjectFilter.value : "";
   const groupExams = globalExams.filter(ex => {
+    if (selectedGrp && !isNerdGroup(selectedGrp) && isBusinessStudiesExam(ex)) return false;
     if (selectedGrp && ex.target_groups && ex.target_groups.length > 0 && !ex.target_groups.includes(selectedGrp)) return false;
     if (selectedSubj && ex.subject && ex.subject !== selectedSubj) return false;
     return true;
@@ -1561,6 +1608,7 @@ function renderOverviewTableSection() {
   const selectedGrp = overviewGroupFilter ? overviewGroupFilter.value : "";
   const selectedSubj = overviewSubjectFilter ? overviewSubjectFilter.value : "";
   const groupExams = globalExams.filter(ex => {
+    if (selectedGrp && !isNerdGroup(selectedGrp) && isBusinessStudiesExam(ex)) return false;
     if (selectedGrp && ex.target_groups && ex.target_groups.length > 0 && !ex.target_groups.includes(selectedGrp)) return false;
     if (selectedSubj && ex.subject && ex.subject !== selectedSubj) return false;
     return true;
@@ -1587,6 +1635,7 @@ function renderAttentionAndGrowthSection() {
   const selectedGrp = attentionGroupFilter ? attentionGroupFilter.value : "";
   const selectedSubj = attentionSubjectFilter ? attentionSubjectFilter.value : "";
   const groupExams = globalExams.filter(ex => {
+    if (selectedGrp && !isNerdGroup(selectedGrp) && isBusinessStudiesExam(ex)) return false;
     if (selectedGrp && ex.target_groups && ex.target_groups.length > 0 && !ex.target_groups.includes(selectedGrp)) return false;
     if (selectedSubj && ex.subject && ex.subject !== selectedSubj) return false;
     return true;
@@ -1946,8 +1995,11 @@ if (bulkLoadBtn) {
 
       bulkStudents = (studentsRes.students || []).filter(s => s.group_name === group);
       
+      const isSelectedGroupNerd = isNerdGroup(group);
       // Filter exams: either target_groups is empty/null, or contains the selected group
+      // Business Studies exams are strictly restricted to Nerd Tutors and Nerd Tutors Nalanda
       bulkExams = (examsRes.exams || []).filter(ex => {
+        if (!isSelectedGroupNerd && isBusinessStudiesExam(ex)) return false;
         if (!ex.target_groups || ex.target_groups.length === 0) return true;
         return ex.target_groups.includes(group);
       });
@@ -2011,7 +2063,8 @@ function renderBulkGrid() {
       <td style="font-weight: 500; padding: 0.5rem;">${escapeHtml(st.name)}</td>`;
     
     bulkExams.forEach(ex => {
-      const isOpted = !isStudentNerd || !ex.subject || studentSubjs.includes(ex.subject);
+      const isBst = isBusinessStudiesExam(ex);
+      const isOpted = (!isStudentNerd && !isBst) || (isStudentNerd && (!ex.subject || studentSubjs.includes(ex.subject)));
       if (!isOpted) {
         bodyHtml += `<td style="text-align: center; padding: 0.5rem; color: var(--text-muted); opacity: 0.5; font-size: 0.85rem;" title="Not opted for ${escapeHtml(ex.subject || '')}">&mdash;</td>`;
         return;
