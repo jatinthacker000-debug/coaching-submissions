@@ -1504,15 +1504,18 @@ if (manageGroupUpdateBtn) {
     if (!sid) return alert("Select student first");
     manageGroupUpdateBtn.disabled = true;
     try {
-      const studentName = manageGroupStudent.options[manageGroupStudent.selectedIndex].text.split(" (")[0];
-      await fetch("/api/students", {
-         method: "POST",
+      const res = await fetch("/api/students", {
+         method: "PUT",
          headers: { 
            "Content-Type": "application/json",
            "Authorization": `Bearer ${getCoachPassword()}`
          },
-         body: JSON.stringify({ name: studentName, group_name: grp })
+         body: JSON.stringify({ id: sid, group_name: grp })
       });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.error || "Failed to update group");
+      }
       manageGroupStatus.textContent = "Group updated!";
       manageGroupStatus.style.display = "block";
       manageGroupStatus.style.color = "#059669";
@@ -1752,6 +1755,16 @@ document.addEventListener("DOMContentLoaded", () => {
       
       if (!name) return alert("Please enter student name.");
 
+      // Check if student name already exists
+      if (Array.isArray(globalStudents) && globalStudents.some(s => s.name && s.name.trim().toLowerCase() === name.toLowerCase())) {
+        statusEl.textContent = "name already taken";
+        statusEl.style.color = "#dc2626";
+        statusEl.style.display = "block";
+        alert("name already taken");
+        setTimeout(() => { statusEl.style.display = "none"; }, 3000);
+        return;
+      }
+
       let subjects = [];
       if (group_name && group_name.startsWith("Nerd Tutors")) {
         if (document.getElementById("add-subj-acc")?.checked) subjects.push("Accountancy");
@@ -1766,8 +1779,8 @@ document.addEventListener("DOMContentLoaded", () => {
       addStudentBtn.textContent = "Adding...";
       try {
         await createStudent({ name, group_name, student_id_alias, password, subjects });
-        statusEl.textContent = "Student added/updated successfully!";
-        statusEl.style.color = "green";
+        statusEl.textContent = "Student added successfully!";
+        statusEl.style.color = "#059669";
         statusEl.style.display = "block";
         nameEl.value = "";
         groupEl.value = "";
@@ -1779,9 +1792,13 @@ document.addEventListener("DOMContentLoaded", () => {
         if (typeof loadExamData === "function") await loadExamData();
         if (typeof window.loadCredentialsTable === "function") await window.loadCredentialsTable();
       } catch (err) {
-        statusEl.textContent = "Error: " + err.message;
-        statusEl.style.color = "red";
+        const isTaken = (err.message || "").toLowerCase().includes("name already taken");
+        statusEl.textContent = isTaken ? "name already taken" : ("Error: " + err.message);
+        statusEl.style.color = "#dc2626";
         statusEl.style.display = "block";
+        if (isTaken) {
+          alert("name already taken");
+        }
       }
       addStudentBtn.disabled = false;
       addStudentBtn.textContent = "Add Student";
