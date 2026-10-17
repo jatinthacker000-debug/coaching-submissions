@@ -23,13 +23,23 @@ export default async function handler(req, res) {
     }
 
     const subject = body.subject?.trim() || "";
+    let target_groups = Array.isArray(body.target_groups) ? body.target_groups : [];
+
+    // Business Studies exams are strictly for Nerd Tutors and Nerd Tutors Nalanda
+    const isBst = subject.toLowerCase() === "business studies" || subject.toLowerCase() === "bst" || body.name?.trim().toLowerCase().includes("business studies");
+    if (isBst) {
+      target_groups = target_groups.filter(g => g === "Nerd Tutors" || g === "Nerd Tutors Nalanda");
+      if (target_groups.length === 0) {
+        target_groups = ["Nerd Tutors", "Nerd Tutors Nalanda"];
+      }
+    }
 
     const { data, error } = await supabase
       .from("exams")
       .insert({
         name: body.name.trim(),
         total_marks: Number(body.total_marks),
-        target_groups: Array.isArray(body.target_groups) ? body.target_groups : [],
+        target_groups: target_groups,
         subject: subject
       })
       .select()
@@ -69,6 +79,17 @@ export default async function handler(req, res) {
     if (body.total_marks !== undefined) updates.total_marks = Number(body.total_marks);
     if (body.target_groups !== undefined) updates.target_groups = Array.isArray(body.target_groups) ? body.target_groups : [];
     if (body.subject !== undefined) updates.subject = body.subject.trim();
+
+    const isBst = (updates.subject !== undefined && (updates.subject.toLowerCase() === "business studies" || updates.subject.toLowerCase() === "bst")) ||
+                  (updates.name !== undefined && updates.name.toLowerCase().includes("business studies"));
+    if (isBst) {
+      let tg = updates.target_groups !== undefined ? updates.target_groups : [];
+      tg = tg.filter(g => g === "Nerd Tutors" || g === "Nerd Tutors Nalanda");
+      if (tg.length === 0) {
+        tg = ["Nerd Tutors", "Nerd Tutors Nalanda"];
+      }
+      updates.target_groups = tg;
+    }
 
     if (Object.keys(updates).length > 0) {
       const { data, error } = await supabase
