@@ -86,7 +86,7 @@
       <div class="panel-header" style="margin-top: 3rem;">
         <div>
           <h1>Homework Links Manager</h1>
-          <p class="subtitle">Set the Google Drive links for the Grade 12 calendar.</p>
+          <p class="subtitle">Set Google Drive homework links for Grade 10 & Grade 12 calendars.</p>
         </div>
       </div>
       <div class="submit-card wide-card" style="margin-bottom: 3rem;">
@@ -95,22 +95,31 @@
             <label for="hw-date">Select Date</label>
             <input type="date" id="hw-date">
           </div>
-          <div class="form-group" style="flex: 1;">
-            <label for="hw-group">Select Group</label>
+          <div class="form-group" style="flex: 1.2;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+              <label for="hw-group" style="margin-bottom: 0;">Select Group</label>
+              <button type="button" id="hw-quick-all-g10" title="Select Ignite, Velocity & Epsilon together" style="background: rgba(59, 130, 246, 0.1); border: 1px solid var(--primary); color: var(--primary); font-size: 0.75rem; border-radius: 99px; padding: 0.15rem 0.5rem; cursor: pointer; font-weight: 500;">⚡ 3 Classes (Grade 10)</button>
+            </div>
             <select id="hw-group">
-              <optgroup label="Grade 12">
-                <option value="Osem">Osem</option>
-                <option value="Nalanda">Nalanda</option>
+              <optgroup label="Multi-Class Selection">
+                <option value="ALL_GRADE_10">✨ All 3 Grade 10 Classes (Ignite, Velocity, Epsilon)</option>
               </optgroup>
               <optgroup label="Grade 10">
                 <option value="Ignite">Ignite</option>
                 <option value="Velocity">Velocity</option>
                 <option value="Epsilon">Epsilon</option>
               </optgroup>
+              <optgroup label="Grade 12">
+                <option value="Osem">Osem</option>
+                <option value="Nalanda">Nalanda</option>
+              </optgroup>
             </select>
           </div>
           <div class="form-group" style="flex: 2;">
-            <label for="hw-link">Google Drive Link</label>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+              <label for="hw-link" style="margin-bottom: 0;">Google Drive Link</label>
+              <span id="hw-autofill-indicator" style="display: none; font-size: 0.75rem; color: #059669; font-weight: 600;">✓ Auto-filled link</span>
+            </div>
             <input type="url" id="hw-link" placeholder="https://drive.google.com/...">
           </div>
         </div>
@@ -328,11 +337,12 @@
                 <th style="padding: 0.75rem; color: var(--text-muted);">Subjects</th>
                 <th style="padding: 0.75rem; color: var(--text-muted);">Student ID</th>
                 <th style="padding: 0.75rem; color: var(--text-muted);">Password</th>
+                <th style="padding: 0.75rem; color: var(--text-muted);">Status</th>
                 <th style="padding: 0.75rem; color: var(--text-muted);">Action</th>
               </tr>
             </thead>
             <tbody id="credentials-table-body">
-              <tr><td colspan="6" style="padding: 1rem; color: var(--text-muted); text-align: center;">Loading...</td></tr>
+              <tr><td colspan="7" style="padding: 1rem; color: var(--text-muted); text-align: center;">Loading...</td></tr>
             </tbody>
           </table>
         </div>

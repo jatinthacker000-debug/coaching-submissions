@@ -106,5 +106,28 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   } else {
     setupLogout();
+    // Verify that the currently logged-in student has not been suspended
+    (async () => {
+      try {
+        const studentInfoStr = localStorage.getItem("student_info");
+        if (studentInfoStr) {
+          const studentInfo = JSON.parse(studentInfoStr);
+          if (studentInfo && studentInfo.id) {
+            const res = await fetch(`/api/auth?student_id=${encodeURIComponent(studentInfo.id)}`);
+            if (res.ok) {
+              const data = await res.json();
+              if (data.is_active === false) {
+                localStorage.removeItem("student_token");
+                localStorage.removeItem("student_info");
+                alert("Your account has been temporarily suspended. You have been logged out.");
+                window.location.reload();
+              }
+            }
+          }
+        }
+      } catch (err) {
+        // Silently ignore background check failures
+      }
+    })();
   }
 });

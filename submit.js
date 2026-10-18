@@ -771,7 +771,7 @@ async function initStudentReport() {
       studentSelectEl.disabled = false;
       let studentHtml = `<option value="">Select your name...</option>`;
       
-      const filteredStudents = publicStudents.filter(s => (s.group_name || 'Unassigned') === selectedGroup);
+      const filteredStudents = publicStudents.filter(s => (s.group_name || 'Unassigned') === selectedGroup && s.is_active !== false);
       filteredStudents.sort((a,b) => a.name.localeCompare(b.name)).forEach(s => {
         studentHtml += `<option value="${escapeHtml(s.id)}">${escapeHtml(s.name)}</option>`;
       });
@@ -808,8 +808,13 @@ function renderStudentReportContent(forcedStudentId = null) {
   
   container.style.display = "block";
   
-  const studentMarks = publicMarks.filter(m => m.student_id === studentId);
   const studentObj = publicStudents.find(s => s.id === studentId);
+  if (studentObj && studentObj.is_active === false) {
+    container.innerHTML = `<div class="notice-banner" style="background: rgba(239, 68, 68, 0.1); border: 1px solid #ef4444; color: #dc2626; padding: 1.5rem; border-radius: 8px; text-align: center; margin-top: 1rem;"><strong>Account Suspended:</strong> This student account is temporarily deactivated. Please contact your instructor.</div>`;
+    return;
+  }
+
+  const studentMarks = publicMarks.filter(m => m.student_id === studentId);
   const isNerdStudent = studentObj && studentObj.group_name && studentObj.group_name.startsWith("Nerd Tutors");
   const studentSubjs = (isNerdStudent && Array.isArray(studentObj.subjects) && studentObj.subjects.length > 0)
     ? studentObj.subjects

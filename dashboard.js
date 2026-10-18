@@ -1844,6 +1844,15 @@ document.addEventListener("DOMContentLoaded", () => {
             ? subjs.map(sb => `<span class="score-pill" style="font-size: 0.72rem; padding: 0.15rem 0.35rem; background: rgba(59, 130, 246, 0.12); color: #2563eb; margin: 1px;">${escapeHtml(sb)}</span>`).join(" ")
             : (isNerd ? `<span style="color: var(--text-muted); font-size: 0.8rem;">All</span>` : `<span style="color: var(--text-muted); font-size: 0.8rem;">-</span>`);
 
+          const isActive = s.is_active !== false;
+          const statusBadge = isActive 
+            ? `<span class="score-pill" style="font-size: 0.72rem; padding: 0.15rem 0.45rem; background: rgba(16, 185, 129, 0.15); color: #059669; font-weight: 600;">Active</span>`
+            : `<span class="score-pill" style="font-size: 0.72rem; padding: 0.15rem 0.45rem; background: rgba(239, 68, 68, 0.15); color: #dc2626; font-weight: 600;">Suspended</span>`;
+
+          const toggleBtn = isActive
+            ? `<button class="btn" onclick="toggleStudentActive('${s.id}', false)" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; margin-right: 0.4rem; background: #f59e0b; color: white;">Deactivate</button>`
+            : `<button class="btn" onclick="toggleStudentActive('${s.id}', true)" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; margin-right: 0.4rem; background: #10b981; color: white;">Activate</button>`;
+
           const tr = document.createElement("tr");
           tr.innerHTML = `
             <td style="padding: 0.75rem;">${escapeHtml(s.name)}</td>
@@ -1851,8 +1860,10 @@ document.addEventListener("DOMContentLoaded", () => {
             <td style="padding: 0.75rem;">${subjsHtml}</td>
             <td style="padding: 0.75rem;">${escapeHtml(s.student_id_alias || "-")}</td>
             <td style="padding: 0.75rem; font-family: monospace;">${escapeHtml(s.password || "-")}</td>
+            <td style="padding: 0.75rem;">${statusBadge}</td>
             <td style="padding: 0.75rem;">
-              <button class="btn btn-primary" onclick="editStudent('${s.id}')" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; margin-right: 0.5rem;">Edit</button>
+              ${toggleBtn}
+              <button class="btn btn-primary" onclick="editStudent('${s.id}')" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; margin-right: 0.4rem;">Edit</button>
               <button class="btn btn-danger" onclick="deleteStudent('${s.id}')" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">Delete</button>
             </td>
           `;
@@ -1864,7 +1875,35 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
     } catch (e) {
-      credTableBody.innerHTML = `<tr><td colspan="6" style="color:red; text-align:center;">Failed to load credentials</td></tr>`;
+      credTableBody.innerHTML = `<tr><td colspan="7" style="color:red; text-align:center;">Failed to load credentials</td></tr>`;
+    }
+  };
+
+  window.toggleStudentActive = async function(id, newActiveStatus) {
+    const student = (globalStudents || []).find(s => s.id === id);
+    const sName = student ? student.name : "this student";
+    const actionLabel = newActiveStatus ? "Activate" : "Deactivate (Suspend)";
+    const confirmMsg = `Are you sure you want to ${actionLabel} ${sName}?` + (!newActiveStatus ? " The student will not be able to log in with their Student ID." : "");
+    if (!confirm(confirmMsg)) return;
+
+    try {
+      const res = await fetch("/api/students", {
+        method: "PUT",
+        headers: {
+          "Authorization": `Bearer ${getCoachPassword()}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ id, is_active: newActiveStatus })
+      });
+      if (res.ok) {
+        window.loadCredentialsTable();
+        if (typeof loadExamData === "function") loadExamData();
+      } else {
+        const d = await res.json();
+        alert(d.error || "Failed to update status");
+      }
+    } catch (e) {
+      alert(e.message);
     }
   };
   
@@ -1907,6 +1946,10 @@ document.addEventListener("DOMContentLoaded", () => {
       if (subjsStr === null) return;
       newSubjects = subjsStr.split(",").map(x => x.trim()).filter(Boolean);
     }
+
+    const statusPrompt = prompt("Enter Account Status ('active' or 'suspended'):", student.is_active !== false ? "active" : "suspended");
+    if (statusPrompt === null) return;
+    const newIsActive = statusPrompt.trim().toLowerCase() !== "suspended";
     
     try {
       const res = await fetch("/api/students", {
@@ -1921,7 +1964,8 @@ document.addEventListener("DOMContentLoaded", () => {
           student_id_alias: newAlias,
           password: newPass,
           group_name: newGroup,
-          subjects: newSubjects
+          subjects: newSubjects,
+          is_active: newIsActive
         })
       });
       if (res.ok) {
@@ -2181,13 +2225,76 @@ if (bulkSaveBtn) {
 
 
 
-// HOMEWORK LINK MANAGER
+// HOMEWORK LINK MANAGER & AUTO-FILL
+let cachedHomeworkLinks = [];
+
+function autoFillHomeworkLink() {
+  const dateInput = document.getElementById('hw-date');
+  const groupSelect = document.getElementById('hw-group');
+  const linkInput = document.getElementById('hw-link');
+  const indicator = document.getElementById('hw-autofill-indicator');
+  if (!dateInput || !groupSelect || !linkInput) return;
+
+  const date = dateInput.value;
+  const group = groupSelect.value;
+  if (!date || !group) return;
+
+  let matchingLink = null;
+  if (group === 'ALL_GRADE_10') {
+    matchingLink = cachedHomeworkLinks.find(l =>
+      l.homework_date === date && ['Ignite', 'Velocity', 'Epsilon'].includes(l.group_name)
+    );
+  } else {
+    matchingLink = cachedHomeworkLinks.find(l =>
+      l.homework_date === date && l.group_name === group
+    );
+  }
+
+  if (matchingLink && matchingLink.link) {
+    linkInput.value = matchingLink.link;
+    if (indicator) {
+      indicator.textContent = group === 'ALL_GRADE_10' 
+        ? `✓ Auto-filled link (${matchingLink.group_name})`
+        : `✓ Auto-filled link`;
+      indicator.style.display = 'inline';
+    }
+  } else {
+    if (indicator && indicator.style.display !== 'none') {
+      linkInput.value = '';
+      indicator.style.display = 'none';
+    }
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   const todayStr = new Date().toISOString().split('T')[0];
   const hwDateInput = document.getElementById('hw-date');
   if (hwDateInput && !hwDateInput.value) hwDateInput.value = todayStr;
   const hwTrackDateInput = document.getElementById('hw-track-date');
   if (hwTrackDateInput && !hwTrackDateInput.value) hwTrackDateInput.value = todayStr;
+
+  const hwGroupSelect = document.getElementById('hw-group');
+  const hwLinkInput = document.getElementById('hw-link');
+  const indicator = document.getElementById('hw-autofill-indicator');
+  const quickG10Btn = document.getElementById('hw-quick-all-g10');
+
+  if (hwDateInput) {
+    hwDateInput.addEventListener('change', autoFillHomeworkLink);
+  }
+  if (hwGroupSelect) {
+    hwGroupSelect.addEventListener('change', autoFillHomeworkLink);
+  }
+  if (quickG10Btn && hwGroupSelect) {
+    quickG10Btn.addEventListener('click', () => {
+      hwGroupSelect.value = 'ALL_GRADE_10';
+      autoFillHomeworkLink();
+    });
+  }
+  if (hwLinkInput) {
+    hwLinkInput.addEventListener('input', () => {
+      if (indicator) indicator.style.display = 'none';
+    });
+  }
 
   const hwBtn = document.getElementById('hw-submit-btn');
   if (hwBtn) {
@@ -2202,18 +2309,32 @@ document.addEventListener('DOMContentLoaded', () => {
       hwBtn.disabled = true;
       hwBtn.textContent = 'Saving...';
       try {
+        const payload = { homework_date: date, link };
+        if (group === 'ALL_GRADE_10') {
+          payload.group_name = 'ALL_GRADE_10';
+          payload.group_names = ['Ignite', 'Velocity', 'Epsilon'];
+        } else {
+          payload.group_name = group;
+        }
+
         const res = await fetch('/api/homework', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getCoachPassword() },
-          body: JSON.stringify({ homework_date: date, group_name: group, link })
+          body: JSON.stringify(payload)
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Failed to save');
 
-        status.textContent = 'Saved successfully!';
+        status.textContent = group === 'ALL_GRADE_10'
+          ? 'Saved successfully for 3 classes (Ignite, Velocity, Epsilon)!'
+          : 'Saved successfully!';
         status.style.color = 'green';
         status.style.display = 'block';
-        document.getElementById('hw-link').value = ''; if (typeof loadHomeworkLinks !== 'undefined') loadHomeworkLinks();
+
+        if (typeof loadHomeworkLinks !== 'undefined') {
+          await loadHomeworkLinks();
+          autoFillHomeworkLink();
+        }
       } catch (e) {
         status.textContent = e.message;
         status.style.color = 'red';
@@ -2221,7 +2342,7 @@ document.addEventListener('DOMContentLoaded', () => {
       } finally {
         hwBtn.disabled = false;
         hwBtn.textContent = 'Save Homework Link';
-        setTimeout(() => status.style.display = 'none', 3000);
+        setTimeout(() => status.style.display = 'none', 3500);
       }
     });
   }
@@ -2330,6 +2451,11 @@ async function loadHomeworkLinks() {
     if (!res.ok) throw new Error(data.error || 'Failed to fetch links');
     
     const links = data.links || [];
+    cachedHomeworkLinks = links;
+    if (typeof autoFillHomeworkLink === 'function') {
+      autoFillHomeworkLink();
+    }
+
     if (links.length === 0) {
       tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 1rem; color: var(--text-muted);">No links found.</td></tr>';
       return;
