@@ -1196,3 +1196,141 @@ document.addEventListener("DOMContentLoaded", () => {
     banner.classList.add("show");
   }, 2000);
 });
+
+// --- AI CHECKING & NERD TUTORS SMART ACCESS ROUTING ---
+function initNerdTutorsAccess() {
+  const evalBtn = document.getElementById("nerd-tutors-eval-btn");
+  if (!evalBtn) return;
+
+  const modal = document.getElementById("nerd-access-modal");
+  const closeBtn = document.getElementById("nerd-access-close-btn");
+  const form = document.getElementById("nerd-access-form");
+  const idInput = document.getElementById("nerd-access-id");
+  const passInput = document.getElementById("nerd-access-pass");
+  const submitBtn = document.getElementById("nerd-access-submit-btn");
+  const errorEl = document.getElementById("nerd-access-error");
+  const statusTag = document.getElementById("ai-checking-status-tag");
+  const gateLink = document.getElementById("nerd-access-gate-link");
+
+  const GATE_PASS_URL = "https://nerd-tutors-two.vercel.app/?gate_pass=nt_pass_alpha2026";
+  const GATE_LOGIN_URL = "https://nerd-tutors-two.vercel.app/login-gate.html";
+
+  const getStudentInfo = () => {
+    try {
+      const str = localStorage.getItem("student_info");
+      return str ? JSON.parse(str) : null;
+    } catch (e) {
+      return null;
+    }
+  };
+
+  const isNerdStudent = (info) => {
+    return Boolean(info && info.group_name && info.group_name.startsWith("Nerd Tutors"));
+  };
+
+  const updateCardState = () => {
+    const student = getStudentInfo();
+    if (student && isNerdStudent(student)) {
+      evalBtn.href = GATE_PASS_URL;
+      if (statusTag) {
+        statusTag.textContent = `✓ Logged in as ${student.name} (Nerd Tutors) — Direct Access Active`;
+        statusTag.style.display = "block";
+      }
+    } else {
+      evalBtn.href = "#";
+      if (statusTag) statusTag.style.display = "none";
+    }
+  };
+
+  updateCardState();
+
+  evalBtn.addEventListener("click", (e) => {
+    const student = getStudentInfo();
+    if (student && isNerdStudent(student)) {
+      // Direct access allowed
+      return;
+    }
+    // Block standard click and open access modal
+    e.preventDefault();
+    if (modal) {
+      modal.classList.remove("hidden");
+      modal.style.display = "flex";
+      if (errorEl) errorEl.style.display = "none";
+      if (idInput) idInput.focus();
+    }
+  });
+
+  if (closeBtn && modal) {
+    closeBtn.addEventListener("click", () => {
+      modal.classList.add("hidden");
+      modal.style.display = "none";
+    });
+  }
+
+  if (gateLink && modal) {
+    gateLink.addEventListener("click", () => {
+      modal.classList.add("hidden");
+      modal.style.display = "none";
+    });
+  }
+
+  if (form) {
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const idVal = idInput ? idInput.value.trim() : "";
+      const passVal = passInput ? passInput.value.trim() : "";
+
+      if (!idVal || !passVal) {
+        if (errorEl) {
+          errorEl.textContent = "Please enter both Student ID and Password.";
+          errorEl.style.display = "block";
+        }
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Verifying...";
+      if (errorEl) errorEl.style.display = "none";
+
+      try {
+        const res = await fetch("/api/auth", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ student_id_alias: idVal, password: passVal })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || "Login failed");
+        }
+
+        const student = data.student;
+        if (student && isNerdStudent(student)) {
+          localStorage.setItem("student_token", data.token);
+          localStorage.setItem("student_info", JSON.stringify(student));
+          updateCardState();
+          modal.classList.add("hidden");
+          modal.style.display = "none";
+          window.open(GATE_PASS_URL, "_blank");
+        } else {
+          // Valid student in another group
+          if (errorEl) {
+            errorEl.innerHTML = `Your account (${escapeHtml(student.name)}) is in <strong>${escapeHtml(student.group_name || "Unassigned")}</strong>, not Nerd Tutors.<br><a href="${GATE_LOGIN_URL}" target="_blank" style="color:var(--primary); font-weight:600; display:inline-block; margin-top:0.35rem;">Click here to go to the NerdTutors login gate ↗</a>`;
+            errorEl.style.display = "block";
+          }
+        }
+      } catch (err) {
+        if (errorEl) {
+          errorEl.textContent = err.message || "Invalid Student ID or Password.";
+          errorEl.style.display = "block";
+        }
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Verify & Enter Directly →";
+      }
+    });
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  initNerdTutorsAccess();
+});
