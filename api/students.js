@@ -7,7 +7,7 @@ export default async function handler(req, res) {
   if (req.method === "GET") {
     const isCoach = await isCoachAuthorized(req);
     // If coach, fetch credentials too
-    const selectFields = isCoach ? "id, name, group_name, subjects, student_id_alias, password" : "id, name, group_name, subjects";
+    const selectFields = isCoach ? "id, name, group_name, subjects, student_id_alias, password, is_active" : "id, name, group_name, subjects, is_active";
     
     const { data, error } = await supabase
       .from("students")
@@ -27,6 +27,7 @@ export default async function handler(req, res) {
     const studentIdAlias = body.student_id_alias?.trim() || null;
     const password = body.password?.trim() || null;
     const subjects = Array.isArray(body.subjects) ? body.subjects : [];
+    const isActive = body.is_active !== undefined ? Boolean(body.is_active) : true;
 
     // Check if name already exists
     const { data: existing } = await supabase
@@ -47,7 +48,8 @@ export default async function handler(req, res) {
         group_name: body.group_name || null,
         subjects: subjects,
         student_id_alias: studentIdAlias,
-        password: password
+        password: password,
+        is_active: isActive
       })
       .select()
       .single();
@@ -106,6 +108,7 @@ export default async function handler(req, res) {
     if (body.password !== undefined) updates.password = body.password.trim() || null;
     if (body.group_name !== undefined) updates.group_name = body.group_name.trim() || null;
     if (body.subjects !== undefined) updates.subjects = Array.isArray(body.subjects) ? body.subjects : [];
+    if (body.is_active !== undefined) updates.is_active = Boolean(body.is_active);
 
     if (Object.keys(updates).length > 0) {
       const { data, error } = await supabase

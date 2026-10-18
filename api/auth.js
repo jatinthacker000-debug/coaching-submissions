@@ -4,6 +4,23 @@ import { getSupabase } from "./_lib/supabase.js";
 import { sendJson, sendError } from "./_lib/utils.js";
 
 export default async function handler(req, res) {
+  if (req.method === "GET") {
+    const { student_id } = req.query || {};
+    if (student_id) {
+      const supabase = getSupabase();
+      const { data: student, error } = await supabase
+        .from("students")
+        .select("id, is_active")
+        .eq("id", student_id)
+        .maybeSingle();
+
+      if (error) return sendError(res, "Database error", 500);
+      if (!student) return sendError(res, "Student not found", 404);
+      return sendJson(res, { is_active: student.is_active !== false });
+    }
+    return sendError(res, "Missing student_id", 400);
+  }
+
   if (req.method !== "POST") {
     return sendError(res, "Method not allowed", 405);
   }
@@ -24,7 +41,7 @@ export default async function handler(req, res) {
 
     const { data: student, error } = await supabase
       .from("students")
-      .select("id, name, group_name, password")
+      .select("id, name, group_name, password, is_active")
       .eq("student_id_alias", student_id_alias)
       .maybeSingle();
 
@@ -34,6 +51,10 @@ export default async function handler(req, res) {
 
     if (!student || student.password !== password) {
       return sendError(res, "Invalid Student ID or Password", 401);
+    }
+
+    if (student.is_active === false) {
+      return sendError(res, "Your account has been temporarily suspended. You cannot enter your ID.", 403);
     }
 
     const token = jwt.sign(

@@ -63,7 +63,7 @@ export default async function handler(req, res) {
     if (!await isCoachAuthorized(req)) return coachUnauthorized(res);
     
     // 1. Upsert Homework Status
-    const { updates, homework_date, group_name, link } = req.body || {};
+    const { updates, homework_date, group_name, group_names, link } = req.body || {};
     
     if (updates && Array.isArray(updates)) {
       if (updates.length === 0) return sendJson(res, { success: true });
@@ -74,19 +74,32 @@ export default async function handler(req, res) {
       return sendJson(res, { success: true });
     }
 
-    // 2. Upsert Homework Link
-    if (homework_date && group_name && link) {
+    // 2. Upsert Homework Link(s)
+    if (homework_date && (group_name || (Array.isArray(group_names) && group_names.length > 0)) && link) {
+      let targetGroups = [];
+      if (group_name === "ALL_GRADE_10") {
+        targetGroups = ["Ignite", "Velocity", "Epsilon"];
+      } else if (Array.isArray(group_names) && group_names.length > 0) {
+        targetGroups = group_names;
+      } else if (Array.isArray(group_name)) {
+        targetGroups = group_name;
+      } else {
+        targetGroups = [group_name];
+      }
+
+      const rows = targetGroups.map(g => ({
+        homework_date,
+        group_name: g,
+        link: link.trim()
+      }));
+
       const { data, error } = await supabase
         .from("homework_links")
-        .upsert(
-          { homework_date, group_name, link },
-          { onConflict: 'homework_date,group_name' }
-        )
-        .select()
-        .single();
+        .upsert(rows, { onConflict: 'homework_date,group_name' })
+        .select();
 
       if (error) return sendError(res, error.message, 500);
-      return sendJson(res, { link: data }, 201);
+      return sendJson(res, { links: data, link: data && data[0] }, 201);
     }
 
     return sendError(res, "Invalid body parameters.", 400);
