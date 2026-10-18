@@ -809,3 +809,20 @@ input:focus, select:focus, textarea:focus {
   opacity: 0.9;
   transform: translateY(-1px);
 }
+
+/* Homework Calendar Enhancements */
+.cal-day {
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+.cal-day:hover {
+  transform: translateY(-1px);
+}
+.cal-day-has-hw:hover {
+  transform: translateY(-2px) scale(1.04) !important;
+  box-shadow: 0 6px 14px rgba(16, 185, 129, 0.45) !important;
+}
+.cal-prev-btn:hover,
+.cal-next-btn:hover {
+  background: var(--surface-hover) !important;
+  border-color: var(--primary) !important;
+}

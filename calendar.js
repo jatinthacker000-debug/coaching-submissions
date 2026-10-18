@@ -98,7 +98,11 @@ document.addEventListener("DOMContentLoaded", () => {
     // Blanks from previous month
     let prevDays = daysInPrevMonth - firstDayIndex + 1;
     for (let i = 0; i < firstDayIndex; i++) {
-      html += `<div style="padding: 0.85rem 0.5rem; color: #9ca3af; background: var(--surface-card); opacity: 0.5; border-radius: 4px; font-size: 0.9rem;">${prevDays++}</div>`;
+      html += `
+        <div style="min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0.35rem 0.2rem; color: #9ca3af; background: var(--surface-card); opacity: 0.45; border-radius: 6px; font-size: 0.9rem; border: 1px dashed var(--border);">
+          <span>${prevDays++}</span>
+          <span style="font-size: 0.75rem; line-height: 1; margin-top: 2px; visibility: hidden;">&nbsp;</span>
+        </div>`;
     }
 
     // Days in current month
@@ -107,41 +111,64 @@ document.addEventListener("DOMContentLoaded", () => {
 
     for (let day = 1; day <= daysInMonth; day++) {
       const isSunday = (firstDayIndex + day - 1) % 7 === 0;
-      let bgColor = isSunday ? "#fef3c7" : "var(--surface-card)";
-      let color = isSunday ? "#92400e" : "var(--text)";
-
       const monthStr = String(month + 1).padStart(2, '0');
       const dayStr = String(day).padStart(2, '0');
       const dateStr = `${year}-${monthStr}-${dayStr}`;
 
       const hasHomework = Boolean(linksMap[dateStr]);
-      const cursor = hasHomework ? "pointer" : "default";
-
       const isRead = readHomeworks[`${groupName}-${dateStr}`];
-      const highlightStyle = (hasHomework && !isRead) ? "box-shadow: inset 0 0 0 3px #3b82f6;" : "";
 
-      html += `<div class="cal-day" data-date="${dateStr}" data-group="${groupName}" data-link="${hasHomework ? linksMap[dateStr] : ''}" style="padding: 0.85rem 0.5rem; background: ${bgColor}; color: ${color}; border-radius: 4px; cursor: ${cursor}; font-weight: bold; transition: transform 0.1s; ${highlightStyle}">${day}</div>`;
+      let cellStyle = "";
+      let innerContent = "";
+
+      if (hasHomework) {
+        // High-contrast vibrant emerald green highlight with white text, shadow, and homework icon
+        cellStyle = "min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0.35rem 0.2rem; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff; border-radius: 6px; cursor: pointer; font-weight: 700; box-shadow: 0 3px 8px rgba(16, 185, 129, 0.35); border: 1px solid #047857; position: relative; transition: transform 0.15s ease, box-shadow 0.15s ease;";
+        innerContent = `
+          ${!isRead ? `<span class="cal-hw-unread-dot" title="New Homework" style="position: absolute; top: 4px; right: 4px; width: 7px; height: 7px; background: #fbbf24; border-radius: 50%; box-shadow: 0 0 0 2px rgba(255,255,255,0.9);"></span>` : ''}
+          <span style="font-size: 0.95rem; line-height: 1.1;">${day}</span>
+          <span style="font-size: 0.75rem; line-height: 1; margin-top: 2px;" title="Homework Uploaded">📝</span>
+        `;
+      } else if (isSunday) {
+        cellStyle = "min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0.35rem 0.2rem; background: #fef3c7; color: #92400e; border: 1px solid #fde68a; border-radius: 6px; cursor: pointer; font-weight: 600; position: relative; transition: transform 0.15s ease;";
+        innerContent = `
+          <span style="font-size: 0.95rem; line-height: 1.1;">${day}</span>
+          <span style="font-size: 0.75rem; line-height: 1; margin-top: 2px; visibility: hidden;">&nbsp;</span>
+        `;
+      } else {
+        cellStyle = "min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0.35rem 0.2rem; background: var(--surface-card); color: var(--text); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; font-weight: 600; position: relative; transition: transform 0.15s ease, background 0.15s ease;";
+        innerContent = `
+          <span style="font-size: 0.95rem; line-height: 1.1;">${day}</span>
+          <span style="font-size: 0.75rem; line-height: 1; margin-top: 2px; visibility: hidden;">&nbsp;</span>
+        `;
+      }
+
+      html += `<div class="cal-day ${hasHomework ? 'cal-day-has-hw' : ''}" data-date="${dateStr}" data-group="${groupName}" data-link="${hasHomework ? linksMap[dateStr] : ''}" style="${cellStyle}">${innerContent}</div>`;
     }
 
     // Remaining days to fill grid
     const totalCells = firstDayIndex + daysInMonth;
     const remaining = Math.ceil(totalCells / 7) * 7 - totalCells;
     for (let i = 1; i <= remaining; i++) {
-      html += `<div style="padding: 0.85rem 0.5rem; color: #9ca3af; background: var(--surface-card); opacity: 0.5; border-radius: 4px; font-size: 0.9rem;">${i}</div>`;
+      html += `
+        <div style="min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0.35rem 0.2rem; color: #9ca3af; background: var(--surface-card); opacity: 0.45; border-radius: 6px; font-size: 0.9rem; border: 1px dashed var(--border);">
+          <span>${i}</span>
+          <span style="font-size: 0.75rem; line-height: 1; margin-top: 2px; visibility: hidden;">&nbsp;</span>
+        </div>`;
     }
 
     html += `</div>`; // Close grid
 
-    // Clean Legend (Holidays removed)
+    // Clean Legend
     html += `
-      <div style="display: flex; gap: 1.5rem; justify-content: center; align-items: center; margin-top: 1.25rem; font-size: 0.85rem; color: var(--text-muted);">
+      <div style="display: flex; gap: 1.5rem; justify-content: center; align-items: center; margin-top: 1.25rem; font-size: 0.85rem;">
         <div style="display: flex; align-items: center; gap: 0.5rem;">
-          <div style="width: 16px; height: 16px; box-shadow: inset 0 0 0 3px #3b82f6; border-radius: 4px; background: var(--surface-card);"></div>
-          <span>Homework Uploaded</span>
+          <div style="width: 22px; height: 22px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 11px; box-shadow: 0 2px 6px rgba(16, 185, 129, 0.35); color: white;">📝</div>
+          <span style="font-weight: 600; color: var(--text);">Homework Uploaded</span>
         </div>
         <div style="display: flex; align-items: center; gap: 0.5rem;">
-          <div style="width: 16px; height: 16px; background: #fef3c7; border: 1px solid #fde68a; border-radius: 4px;"></div>
-          <span>Sunday</span>
+          <div style="width: 22px; height: 22px; background: #fef3c7; border: 1px solid #fde68a; border-radius: 6px;"></div>
+          <span style="font-weight: 500; color: var(--text-muted);">Sunday</span>
         </div>
       </div>
     `;
@@ -204,7 +231,8 @@ document.addEventListener("DOMContentLoaded", () => {
             try { hw = JSON.parse(localStorage.getItem("readHomeworks") || "{}"); } catch(e){}
             hw[group + "-" + date] = true;
             localStorage.setItem("readHomeworks", JSON.stringify(hw));
-            dayEl.style.boxShadow = "";
+            const badge = dayEl.querySelector(".cal-hw-unread-dot");
+            if (badge) badge.remove();
           };
         } else {
           modalText.textContent = "No homework link has been set for this date yet. Check back later!";
