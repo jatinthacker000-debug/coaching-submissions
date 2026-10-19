@@ -19,7 +19,19 @@ export default async function handler(req, res) {
       return sendJson(res, { statuses: data });
     }
 
-    // 2. Fetch Status Grid (for Coach Dashboard)
+    // 2. Fetch All Events (for Coach Dashboard)
+    if (type === "events") {
+      if (!await isCoachAuthorized(req)) return coachUnauthorized(res);
+      const { data, error } = await supabase
+        .from("calendar_events")
+        .select("id, event_date, group_name, title, color, created_at")
+        .order("event_date", { ascending: false });
+
+      if (error) return sendError(res, error.message, 500);
+      return sendJson(res, { events: data || [] });
+    }
+
+    // 3. Fetch Status Grid (for Coach Dashboard)
     if (homework_date && group_name) {
       if (!await isCoachAuthorized(req)) return coachUnauthorized(res);
 
@@ -46,24 +58,37 @@ export default async function handler(req, res) {
       return sendJson(res, { students, statuses });
     }
 
-    // 3. Fetch Homework Links
+    // 4. Fetch Homework Links and Calendar Events
     let query = supabase.from("homework_links").select("id, homework_date, group_name, link");
     if (group_name) {
       query = query.eq("group_name", group_name);
     }
-    const { data, error } = await query;
+    const { data: links, error } = await query;
     if (error) return sendError(res, error.message, 500);
+
+    let events = [];
+    try {
+      let evQuery = supabase.from("calendar_events").select("id, event_date, group_name, title, color");
+      if (group_name) {
+        evQuery = evQuery.eq("group_name", group_name);
+      }
+      const { data: evData, error: evErr } = await evQuery;
+      if (!evErr && evData) {
+        events = evData;
+      }
+    } catch (_) {}
+
     if (res.setHeader) {
       res.setHeader("Cache-Control", "public, s-maxage=60, stale-while-revalidate=300");
     }
-    return sendJson(res, { links: data });
+    return sendJson(res, { links: links || [], events: events || [] });
   }
 
   if (req.method === "POST") {
     if (!await isCoachAuthorized(req)) return coachUnauthorized(res);
     
     // 1. Upsert Homework Status
-    const { updates, homework_date, group_name, group_names, link } = req.body || {};
+    const { updates, homework_date, group_name, group_names, link, event_date, title, color } = req.body || {};
     
     if (updates && Array.isArray(updates)) {
       if (updates.length === 0) return sendJson(res, { success: true });
@@ -74,7 +99,36 @@ export default async function handler(req, res) {
       return sendJson(res, { success: true });
     }
 
-    // 2. Upsert Homework Link(s)
+    // 2. Upsert Calendar Event(s)
+    if (event_date && title && (group_name || (Array.isArray(group_names) && group_names.length > 0))) {
+      let targetGroups = [];
+      if (group_name === "ALL_GRADE_10") {
+        targetGroups = ["Ignite", "Velocity", "Epsilon"];
+      } else if (Array.isArray(group_names) && group_names.length > 0) {
+        targetGroups = group_names;
+      } else if (Array.isArray(group_name)) {
+        targetGroups = group_name;
+      } else {
+        targetGroups = [group_name];
+      }
+
+      const rows = targetGroups.map(g => ({
+        event_date,
+        group_name: g,
+        title: title.trim(),
+        color: (color || "blue").trim().toLowerCase()
+      }));
+
+      const { data, error } = await supabase
+        .from("calendar_events")
+        .upsert(rows, { onConflict: 'event_date,group_name,title' })
+        .select();
+
+      if (error) return sendError(res, error.message, 500);
+      return sendJson(res, { events: data, event: data && data[0] }, 201);
+    }
+
+    // 3. Upsert Homework Link(s)
     if (homework_date && (group_name || (Array.isArray(group_names) && group_names.length > 0)) && link) {
       let targetGroups = [];
       if (group_name === "ALL_GRADE_10") {
@@ -108,7 +162,17 @@ export default async function handler(req, res) {
   if (req.method === "DELETE") {
     if (!await isCoachAuthorized(req)) return coachUnauthorized(res);
 
-    const { id } = req.query;
+    const { id, event_id } = req.query;
+    if (event_id) {
+      const { error } = await supabase
+        .from("calendar_events")
+        .delete()
+        .eq("id", event_id);
+
+      if (error) return sendError(res, error.message, 500);
+      return sendJson(res, { success: true });
+    }
+
     if (!id) return sendError(res, "Missing ID.", 400);
 
     const { error } = await supabase
