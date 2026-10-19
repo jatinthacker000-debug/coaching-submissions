@@ -144,6 +144,76 @@
         </table>
       </div>
 
+      <!-- Calendar Events & Important Dates Manager -->
+      <div class="panel-header" style="margin-top: 3rem;">
+        <div>
+          <h1>Calendar Events & Test Dates Manager</h1>
+          <p class="subtitle">Mark tests, important dates, and announcements on group calendars (e.g. Eco Test on 4th Nov).</p>
+        </div>
+      </div>
+      <div class="submit-card wide-card" style="margin-bottom: 3rem;">
+        <div class="form-row">
+          <div class="form-group" style="flex: 1;">
+            <label for="cal-event-date">Select Date</label>
+            <input type="date" id="cal-event-date">
+          </div>
+          <div class="form-group" style="flex: 1.2;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+              <label for="cal-event-group" style="margin-bottom: 0;">Select Group</label>
+              <button type="button" id="cal-event-quick-g10" title="Select Ignite, Velocity & Epsilon together" style="background: rgba(59, 130, 246, 0.1); border: 1px solid var(--primary); color: var(--primary); font-size: 0.75rem; border-radius: 99px; padding: 0.15rem 0.5rem; cursor: pointer; font-weight: 500;">⚡ 3 Classes (Grade 10)</button>
+            </div>
+            <select id="cal-event-group">
+              <optgroup label="Multi-Class Selection">
+                <option value="ALL_GRADE_10">✨ All 3 Grade 10 Classes (Ignite, Velocity, Epsilon)</option>
+              </optgroup>
+              <optgroup label="Grade 10">
+                <option value="Ignite">Ignite</option>
+                <option value="Velocity">Velocity</option>
+                <option value="Epsilon">Epsilon</option>
+              </optgroup>
+              <optgroup label="Grade 12">
+                <option value="Osem">Osem</option>
+                <option value="Nalanda">Nalanda</option>
+              </optgroup>
+            </select>
+          </div>
+          <div class="form-group" style="flex: 1.8;">
+            <label for="cal-event-title">Event / Test Name</label>
+            <input type="text" id="cal-event-title" placeholder="e.g. Eco Test, PT-1, Accounts Exam...">
+          </div>
+          <div class="form-group" style="flex: 1;">
+            <label for="cal-event-color">Color Tag</label>
+            <select id="cal-event-color">
+              <option value="blue">Soft Blue (Default)</option>
+              <option value="purple">Soft Purple</option>
+              <option value="green">Soft Green</option>
+              <option value="amber">Soft Amber / Orange</option>
+              <option value="rose">Soft Rose / Red</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-primary" id="cal-event-submit-btn" style="margin-top: 1rem;">Save Calendar Event</button>
+        <p id="cal-event-status" style="margin-top: 1rem; display: none; font-weight: 500;"></p>
+      </div>
+
+      <div class="submit-card wide-card" style="margin-bottom: 3rem; max-height: 400px; overflow-y: auto;">
+        <h3 style="margin-bottom: 1rem;">Existing Calendar Events & Tests</h3>
+        <table style="width: 100%; text-align: left; border-collapse: collapse;">
+          <thead style="background: var(--bg); position: sticky; top: 0; z-index: 10;">
+            <tr>
+              <th style="padding: 1rem; border-bottom: 1px solid var(--border);">Date</th>
+              <th style="padding: 1rem; border-bottom: 1px solid var(--border);">Group</th>
+              <th style="padding: 1rem; border-bottom: 1px solid var(--border);">Event / Test</th>
+              <th style="padding: 1rem; border-bottom: 1px solid var(--border);">Color</th>
+              <th style="padding: 1rem; border-bottom: 1px solid var(--border); text-align: right;">Action</th>
+            </tr>
+          </thead>
+          <tbody id="cal-events-tbody">
+            <tr><td colspan="5" style="text-align: center; padding: 1rem; color: var(--text-muted);">Loading events...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
       <div class="panel-header">
         <div>
           <h1>Resources Manager</h1>

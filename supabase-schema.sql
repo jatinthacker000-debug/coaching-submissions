@@ -97,3 +97,14 @@ ALTER TABLE exams ADD COLUMN IF NOT EXISTS subject TEXT DEFAULT '';
 
 -- STUDENT ACTIVE / SUSPENDED STATUS
 ALTER TABLE students ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT true;
+
+-- CALENDAR IMPORTANT DATES & TESTS
+CREATE TABLE IF NOT EXISTS calendar_events (
+  id uuid primary key default gen_random_uuid(),
+  event_date date not null,
+  group_name text not null,
+  title text not null,
+  color text not null default 'blue',
+  created_at timestamptz not null default now(),
+  unique(event_date, group_name, title)
+);

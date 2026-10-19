@@ -73,6 +73,8 @@ loginForm.addEventListener("submit", async (e) => {
     await fetchSubmissions();
     showDashboard();
     await renderNotes();
+    if (typeof loadHomeworkLinks === 'function') loadHomeworkLinks();
+    if (typeof loadCalendarEvents === 'function') loadCalendarEvents();
   } catch (err) {
     clearCoachPassword();
     loginError.textContent = err.message || "Wrong password. Please try again.";
@@ -332,6 +334,8 @@ if (hasCoachPassword()) {
     .then(() => {
       showDashboard();
       renderNotes();
+      if (typeof loadHomeworkLinks === 'function') loadHomeworkLinks();
+      if (typeof loadCalendarEvents === 'function') loadCalendarEvents();
     })
     .catch(showLogin);
 } else {
@@ -2498,6 +2502,7 @@ window.deleteHomeworkLink = async function(id) {
 
 document.addEventListener('DOMContentLoaded', () => {
   loadHomeworkLinks();
+  loadCalendarEvents();
   
   // Hook into the save button to reload the list after saving
   const hwBtn = document.getElementById('hw-submit-btn');
@@ -2508,7 +2513,143 @@ document.addEventListener('DOMContentLoaded', () => {
       setTimeout(loadHomeworkLinks, 1000); // 1 second delay to ensure save completes
     });
   }
+
+  const calDateInput = document.getElementById('cal-event-date');
+  if (calDateInput && !calDateInput.value) {
+    calDateInput.value = new Date().toISOString().split('T')[0];
+  }
+
+  const calQuickG10Btn = document.getElementById('cal-event-quick-g10');
+  const calGroupSelect = document.getElementById('cal-event-group');
+  if (calQuickG10Btn && calGroupSelect) {
+    calQuickG10Btn.addEventListener('click', () => {
+      calGroupSelect.value = 'ALL_GRADE_10';
+    });
+  }
+
+  const calSubmitBtn = document.getElementById('cal-event-submit-btn');
+  if (calSubmitBtn) {
+    calSubmitBtn.addEventListener('click', async () => {
+      const date = document.getElementById('cal-event-date').value;
+      const group = document.getElementById('cal-event-group').value;
+      const title = document.getElementById('cal-event-title').value.trim();
+      const color = document.getElementById('cal-event-color').value;
+      const status = document.getElementById('cal-event-status');
+
+      if (!date || !group || !title) {
+        return alert('Please select a date, group, and enter an event or test name.');
+      }
+
+      calSubmitBtn.disabled = true;
+      calSubmitBtn.textContent = 'Saving...';
+      try {
+        const payload = { event_date: date, title, color };
+        if (group === 'ALL_GRADE_10') {
+          payload.group_name = 'ALL_GRADE_10';
+          payload.group_names = ['Ignite', 'Velocity', 'Epsilon'];
+        } else {
+          payload.group_name = group;
+        }
+
+        const res = await fetch('/api/homework', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + getCoachPassword()
+          },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to save event');
+
+        status.textContent = group === 'ALL_GRADE_10'
+          ? 'Event saved successfully for all 3 Grade 10 classes (Ignite, Velocity, Epsilon)!'
+          : 'Event saved successfully!';
+        status.style.color = '#059669';
+        status.style.display = 'block';
+
+        document.getElementById('cal-event-title').value = '';
+        await loadCalendarEvents();
+      } catch (e) {
+        status.textContent = e.message;
+        status.style.color = '#ef4444';
+        status.style.display = 'block';
+      } finally {
+        calSubmitBtn.disabled = false;
+        calSubmitBtn.textContent = 'Save Calendar Event';
+        setTimeout(() => { if (status) status.style.display = 'none'; }, 3500);
+      }
+    });
+  }
 });
+
+// CALENDAR EVENTS & IMPORTANT DATES LOADING AND MANAGEMENT
+async function loadCalendarEvents() {
+  const tbody = document.getElementById('cal-events-tbody');
+  if (!tbody) return;
+  if (!getCoachPassword()) return;
+  try {
+    const res = await fetch('/api/homework?type=events', {
+      cache: 'no-store',
+      headers: { 'Authorization': 'Bearer ' + getCoachPassword() }
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to fetch events');
+
+    const events = data.events || [];
+    if (events.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 1rem; color: var(--text-muted);">No calendar events or test dates found.</td></tr>';
+      return;
+    }
+
+    // Sort by event_date descending
+    events.sort((a, b) => new Date(b.event_date) - new Date(a.event_date));
+
+    const colorBadgeMap = {
+      blue: { bg: '#dbeafe', color: '#1e40af', border: '#bfdbfe', label: 'Soft Blue' },
+      purple: { bg: '#ede9fe', color: '#5b21b6', border: '#ddd6fe', label: 'Soft Purple' },
+      green: { bg: '#d1fae5', color: '#065f46', border: '#a7f3d0', label: 'Soft Green' },
+      amber: { bg: '#fef3c7', color: '#92400e', border: '#fde68a', label: 'Soft Amber' },
+      rose: { bg: '#ffe4e6', color: '#9f1239', border: '#fecdd3', label: 'Soft Rose' }
+    };
+
+    tbody.innerHTML = events.map(ev => {
+      const c = colorBadgeMap[ev.color] || colorBadgeMap.blue;
+      return `
+        <tr>
+          <td style="padding: 1rem; border-bottom: 1px solid var(--border); font-weight: 500;">${escapeHtml(ev.event_date)}</td>
+          <td style="padding: 1rem; border-bottom: 1px solid var(--border);"><span style="font-weight: 600;">${escapeHtml(ev.group_name)}</span></td>
+          <td style="padding: 1rem; border-bottom: 1px solid var(--border); font-weight: 600; color: var(--text);">${escapeHtml(ev.title)}</td>
+          <td style="padding: 1rem; border-bottom: 1px solid var(--border);">
+            <span style="background: ${c.bg}; color: ${c.color}; border: 1px solid ${c.border}; padding: 0.2rem 0.55rem; border-radius: 99px; font-size: 0.75rem; font-weight: 600;">${c.label}</span>
+          </td>
+          <td style="padding: 1rem; border-bottom: 1px solid var(--border); text-align: right;">
+            <button class="btn" onclick="deleteCalendarEvent('${ev.id}')" style="background: #ef4444; color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.8rem; cursor: pointer;">Delete</button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  } catch (e) {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 1rem; color: #ef4444;">Error: ${escapeHtml(e.message)}</td></tr>`;
+  }
+}
+
+window.deleteCalendarEvent = async function(id) {
+  if (!confirm('Are you sure you want to delete this event/test date?')) return;
+  try {
+    const res = await fetch('/api/homework?event_id=' + encodeURIComponent(id), {
+      method: 'DELETE',
+      headers: { 'Authorization': 'Bearer ' + getCoachPassword() }
+    });
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || 'Failed to delete event');
+    }
+    loadCalendarEvents();
+  } catch (e) {
+    alert('Error deleting calendar event: ' + e.message);
+  }
+};
 
 
 // --- HOMEWORK TRACKING ---
