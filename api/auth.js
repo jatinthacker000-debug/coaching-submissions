@@ -42,17 +42,29 @@ export default async function handler(req, res) {
 
       if (record_session === "true" && student.is_active !== false) {
         try {
-          await supabase.from("student_logins").insert({
+          const { error: insertErr } = await supabase.from("student_logins").insert({
             student_id: student.id,
             student_name: student.name,
             student_id_alias: student.student_id_alias || null,
             group_name: student.group_name || "",
             logged_in_at: new Date().toISOString()
           });
-        } catch (_) {}
+          if (insertErr) {
+            console.error("Failed to record student visit in student_logins:", insertErr);
+          }
+        } catch (err) {
+          console.error("Exception recording student visit:", err);
+        }
       }
 
-      return sendJson(res, { is_active: student.is_active !== false });
+      return sendJson(res, { 
+        is_active: student.is_active !== false,
+        student: {
+          id: student.id,
+          name: student.name,
+          group_name: student.group_name
+        }
+      });
     }
     return sendError(res, "Missing student_id or valid type", 400);
   }
