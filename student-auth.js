@@ -24,7 +24,7 @@ document.addEventListener("DOMContentLoaded", () => {
       logoutBtn.addEventListener("click", () => {
         localStorage.removeItem("student_token");
         localStorage.removeItem("student_info");
-        sessionStorage.removeItem("nt_session_logged");
+        sessionStorage.removeItem("last_g12_visit_time");
         window.location.reload();
       });
       
@@ -88,7 +88,7 @@ document.addEventListener("DOMContentLoaded", () => {
         
         localStorage.setItem("student_token", data.token);
         localStorage.setItem("student_info", JSON.stringify(data.student));
-        sessionStorage.setItem("nt_session_logged", new Date().toDateString());
+        sessionStorage.setItem("last_g12_visit_time", String(Date.now()));
         
         // Remove modal and show content
         document.getElementById("student-login-modal").remove();
@@ -108,27 +108,52 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   } else {
     setupLogout();
-    // Verify that the currently logged-in student has not been suspended & record daily session
+    // Verify that the currently logged-in student has not been suspended & record Grade 12 visit
     (async () => {
       try {
+        let studentId = null;
         const studentInfoStr = localStorage.getItem("student_info");
         if (studentInfoStr) {
-          const studentInfo = JSON.parse(studentInfoStr);
-          if (studentInfo && studentInfo.id) {
-            const todayStr = new Date().toDateString();
-            const shouldRecordSession = sessionStorage.getItem("nt_session_logged") !== todayStr;
-            const res = await fetch(`/api/auth?student_id=${encodeURIComponent(studentInfo.id)}${shouldRecordSession ? '&record_session=true' : ''}`);
-            if (res.ok) {
-              const data = await res.json();
-              if (data.is_active === false) {
-                localStorage.removeItem("student_token");
-                localStorage.removeItem("student_info");
-                sessionStorage.removeItem("nt_session_logged");
-                alert("Your account has been temporarily suspended. You have been logged out.");
-                window.location.reload();
-              } else if (shouldRecordSession) {
-                sessionStorage.setItem("nt_session_logged", todayStr);
-              }
+          try {
+            const studentInfo = JSON.parse(studentInfoStr);
+            if (studentInfo && studentInfo.id) {
+              studentId = studentInfo.id;
+            }
+          } catch (_) {}
+        }
+
+        // Fallback: decode student_id from token payload if student_info was missing
+        if (!studentId) {
+          const token = localStorage.getItem("student_token");
+          if (token) {
+            try {
+              const payload = JSON.parse(atob(token.split('.')[1]));
+              studentId = payload.student_id;
+            } catch (_) {}
+          }
+        }
+
+        if (studentId) {
+          const lastVisit = parseInt(sessionStorage.getItem("last_g12_visit_time") || "0", 10);
+          const now = Date.now();
+          // 5-second debounce against accidental double-clicks or rapid reloads
+          const shouldRecord = (now - lastVisit) > 5000;
+          if (shouldRecord) {
+            sessionStorage.setItem("last_g12_visit_time", String(now));
+          }
+
+          const res = await fetch(`/api/auth?student_id=${encodeURIComponent(studentId)}${shouldRecord ? '&record_session=true' : ''}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.is_active === false) {
+              localStorage.removeItem("student_token");
+              localStorage.removeItem("student_info");
+              sessionStorage.removeItem("last_g12_visit_time");
+              alert("Your account has been temporarily suspended. You have been logged out.");
+              window.location.reload();
+            } else if (data.student) {
+              // Ensure stored student info is always up to date
+              localStorage.setItem("student_info", JSON.stringify(data.student));
             }
           }
         }

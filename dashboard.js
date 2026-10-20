@@ -368,6 +368,7 @@ if (navTabResources && navTabExams) {
     navTabResources.style.background = "var(--surface-card)";
     navTabResources.style.color = "var(--text)";
     loadExamData();
+    if (typeof loadStudentLogins === 'function') loadStudentLogins();
   });
 }
 
