@@ -24,6 +24,7 @@ document.addEventListener("DOMContentLoaded", () => {
       logoutBtn.addEventListener("click", () => {
         localStorage.removeItem("student_token");
         localStorage.removeItem("student_info");
+        sessionStorage.removeItem("nt_session_logged");
         window.location.reload();
       });
       
@@ -87,6 +88,7 @@ document.addEventListener("DOMContentLoaded", () => {
         
         localStorage.setItem("student_token", data.token);
         localStorage.setItem("student_info", JSON.stringify(data.student));
+        sessionStorage.setItem("nt_session_logged", new Date().toDateString());
         
         // Remove modal and show content
         document.getElementById("student-login-modal").remove();
@@ -106,21 +108,26 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   } else {
     setupLogout();
-    // Verify that the currently logged-in student has not been suspended
+    // Verify that the currently logged-in student has not been suspended & record daily session
     (async () => {
       try {
         const studentInfoStr = localStorage.getItem("student_info");
         if (studentInfoStr) {
           const studentInfo = JSON.parse(studentInfoStr);
           if (studentInfo && studentInfo.id) {
-            const res = await fetch(`/api/auth?student_id=${encodeURIComponent(studentInfo.id)}`);
+            const todayStr = new Date().toDateString();
+            const shouldRecordSession = sessionStorage.getItem("nt_session_logged") !== todayStr;
+            const res = await fetch(`/api/auth?student_id=${encodeURIComponent(studentInfo.id)}${shouldRecordSession ? '&record_session=true' : ''}`);
             if (res.ok) {
               const data = await res.json();
               if (data.is_active === false) {
                 localStorage.removeItem("student_token");
                 localStorage.removeItem("student_info");
+                sessionStorage.removeItem("nt_session_logged");
                 alert("Your account has been temporarily suspended. You have been logged out.");
                 window.location.reload();
+              } else if (shouldRecordSession) {
+                sessionStorage.setItem("nt_session_logged", todayStr);
               }
             }
           }

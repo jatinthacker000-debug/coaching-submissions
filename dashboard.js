@@ -75,6 +75,7 @@ loginForm.addEventListener("submit", async (e) => {
     await renderNotes();
     if (typeof loadHomeworkLinks === 'function') loadHomeworkLinks();
     if (typeof loadCalendarEvents === 'function') loadCalendarEvents();
+    if (typeof loadStudentLogins === 'function') loadStudentLogins();
   } catch (err) {
     clearCoachPassword();
     loginError.textContent = err.message || "Wrong password. Please try again.";
@@ -336,6 +337,7 @@ if (hasCoachPassword()) {
       renderNotes();
       if (typeof loadHomeworkLinks === 'function') loadHomeworkLinks();
       if (typeof loadCalendarEvents === 'function') loadCalendarEvents();
+      if (typeof loadStudentLogins === 'function') loadStudentLogins();
     })
     .catch(showLogin);
 } else {
@@ -2440,6 +2442,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupAccordion('analytics-header', 'analytics-content', 'analytics-toggle-icon', 'block');
   setupAccordion('exams-header', 'exams-content', 'exams-toggle-icon', 'block');
   setupAccordion('credentials-header', 'credentials-content', 'credentials-toggle-icon', 'block');
+  setupAccordion('logins-header', 'logins-content', 'logins-toggle-icon', 'block');
 });
 
 // HOMEWORK LINKS LOADING AND DELETION
@@ -2503,6 +2506,8 @@ window.deleteHomeworkLink = async function(id) {
 document.addEventListener('DOMContentLoaded', () => {
   loadHomeworkLinks();
   loadCalendarEvents();
+  loadStudentLogins();
+  if (typeof setupStudentLoginsUI === 'function') setupStudentLoginsUI();
   
   // Hook into the save button to reload the list after saving
   const hwBtn = document.getElementById('hw-submit-btn');
@@ -2773,3 +2778,269 @@ if (hwTrackLoadBtn) {
     });
   }
 }
+
+// ==========================================
+// STUDENT LOGINS TRACKER (GRADE 12 ACTIVITY)
+// ==========================================
+let cachedStudentLogins = [];
+let activeLoginFilter = 'today'; // 'today' | 'yesterday' | 'custom' | 'all'
+let customLoginFilterDate = '';
+let loginSortDescending = true; // true = newest first, false = oldest first
+let loginSearchQuery = '';
+
+function getLocalDateString(dateObj = new Date()) {
+  const year = dateObj.getFullYear();
+  const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+  const day = String(dateObj.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function getRelativeTime(timestamp) {
+  const diffSec = Math.floor((Date.now() - new Date(timestamp).getTime()) / 1000);
+  if (diffSec < 60) return 'Just now';
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHours = Math.floor(diffMin / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  return `${diffDays}d ago`;
+}
+
+async function loadStudentLogins() {
+  const tbody = document.getElementById('student-logins-tbody');
+  if (!tbody) return;
+  if (!getCoachPassword()) return;
+
+  try {
+    const res = await fetch('/api/auth?type=logins', {
+      cache: 'no-store',
+      headers: { 'Authorization': 'Bearer ' + getCoachPassword() }
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to fetch student logins');
+
+    cachedStudentLogins = Array.isArray(data.logins) ? data.logins : [];
+    renderStudentLogins();
+  } catch (err) {
+    if (tbody) {
+      tbody.innerHTML = `<tr><td colspan="7" style="padding: 1.5rem; text-align: center; color: #ef4444;">Error loading logins: ${escapeHtml(err.message)}</td></tr>`;
+    }
+  }
+}
+
+function renderStudentLogins() {
+  const tbody = document.getElementById('student-logins-tbody');
+  if (!tbody) return;
+
+  const todayDateStr = getLocalDateString(new Date());
+  const yesterdayObj = new Date();
+  yesterdayObj.setDate(yesterdayObj.getDate() - 1);
+  const yesterdayDateStr = getLocalDateString(yesterdayObj);
+
+  // 1. Day filtering
+  let filtered = cachedStudentLogins.filter(item => {
+    if (!item.logged_in_at) return false;
+    const itemDate = new Date(item.logged_in_at);
+    const itemDateStr = getLocalDateString(itemDate);
+
+    if (activeLoginFilter === 'today') {
+      return itemDateStr === todayDateStr;
+    } else if (activeLoginFilter === 'yesterday') {
+      return itemDateStr === yesterdayDateStr;
+    } else if (activeLoginFilter === 'custom') {
+      return customLoginFilterDate ? itemDateStr === customLoginFilterDate : true;
+    } else if (activeLoginFilter === 'all') {
+      return true;
+    }
+    return true;
+  });
+
+  // 2. Search query filtering
+  if (loginSearchQuery) {
+    const q = loginSearchQuery.toLowerCase();
+    filtered = filtered.filter(item => {
+      const nameMatch = (item.student_name || '').toLowerCase().includes(q);
+      const groupMatch = (item.group_name || '').toLowerCase().includes(q);
+      const aliasMatch = (item.student_id_alias || '').toLowerCase().includes(q);
+      return nameMatch || groupMatch || aliasMatch;
+    });
+  }
+
+  // 3. Chronological Time Sorting
+  filtered.sort((a, b) => {
+    const timeA = new Date(a.logged_in_at).getTime();
+    const timeB = new Date(b.logged_in_at).getTime();
+    return loginSortDescending ? timeB - timeA : timeA - timeB;
+  });
+
+  // Update Summary Pill & Label
+  const statusSummary = document.getElementById('login-status-summary');
+  const countPill = document.getElementById('login-count-pill');
+  if (statusSummary) {
+    let label = 'Today';
+    if (activeLoginFilter === 'yesterday') label = 'Yesterday';
+    else if (activeLoginFilter === 'custom') label = customLoginFilterDate ? `Date: ${customLoginFilterDate}` : 'Selected Date';
+    else if (activeLoginFilter === 'all') label = 'All Recent Days';
+    statusSummary.innerHTML = `Showing logins for <strong>${escapeHtml(label)}</strong>`;
+  }
+
+  if (countPill) {
+    const uniqueStudents = new Set(filtered.map(f => f.student_name || f.student_id)).size;
+    countPill.textContent = `${filtered.length} login${filtered.length === 1 ? '' : 's'} (${uniqueStudents} unique student${uniqueStudents === 1 ? '' : 's'})`;
+  }
+
+  if (filtered.length === 0) {
+    let emptyMsg = "No student logins recorded for today yet.";
+    if (activeLoginFilter === 'yesterday') emptyMsg = "No student logins recorded for yesterday.";
+    else if (activeLoginFilter === 'custom') emptyMsg = customLoginFilterDate ? `No student logins recorded for ${customLoginFilterDate}.` : "Please pick a date to view logins.";
+    else if (activeLoginFilter === 'all') emptyMsg = "No student logins recorded yet.";
+    if (loginSearchQuery) emptyMsg = `No student logins matching "${escapeHtml(loginSearchQuery)}".`;
+
+    tbody.innerHTML = `<tr><td colspan="7" style="padding: 2rem; text-align: center; color: var(--text-muted);">${emptyMsg}</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map((item, idx) => {
+    const itemDate = new Date(item.logged_in_at);
+    const itemDateStr = getLocalDateString(itemDate);
+    const timeStr = itemDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+    const relTime = getRelativeTime(item.logged_in_at);
+
+    let dateBadge = "";
+    if (itemDateStr === todayDateStr) {
+      dateBadge = '<span style="color: #059669; font-weight: 600;">Today</span>';
+    } else if (itemDateStr === yesterdayDateStr) {
+      dateBadge = '<span style="color: #d97706; font-weight: 600;">Yesterday</span>';
+    } else {
+      dateBadge = itemDate.toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+
+    return `
+      <tr style="border-bottom: 1px solid var(--border);">
+        <td style="padding: 0.75rem; text-align: center; color: var(--text-muted); font-size: 0.85rem;">${idx + 1}</td>
+        <td style="padding: 0.75rem; font-weight: 600; color: var(--text);">
+          <div style="display: flex; align-items: center; gap: 0.4rem;">
+            <span style="font-size: 1rem;">👤</span>
+            <span>${escapeHtml(item.student_name)}</span>
+          </div>
+        </td>
+        <td style="padding: 0.75rem;">
+          <span style="background: rgba(59, 130, 246, 0.1); color: var(--primary); padding: 0.2rem 0.55rem; border-radius: 99px; font-size: 0.75rem; font-weight: 600;">
+            ${escapeHtml(item.group_name || 'Grade 12')}
+          </span>
+        </td>
+        <td style="padding: 0.75rem; font-family: monospace; font-weight: 500; color: var(--text-muted);">
+          ${escapeHtml(item.student_id_alias || '-')}
+        </td>
+        <td style="padding: 0.75rem;">
+          <div style="font-weight: 700; color: var(--text); font-size: 0.95rem;">${timeStr}</div>
+          <div style="font-size: 0.75rem; color: var(--text-muted);">${relTime}</div>
+        </td>
+        <td style="padding: 0.75rem; font-size: 0.85rem;">${dateBadge}</td>
+        <td style="padding: 0.75rem; text-align: right;">
+          <button class="btn" onclick="deleteStudentLogin('${item.id}')" title="Delete login log" style="background: #ef4444; color: white; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; cursor: pointer;">Delete</button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+window.deleteStudentLogin = async function(id) {
+  if (!confirm('Are you sure you want to delete this login record?')) return;
+  try {
+    const res = await fetch('/api/auth?login_id=' + encodeURIComponent(id), {
+      method: 'DELETE',
+      headers: { 'Authorization': 'Bearer ' + getCoachPassword() }
+    });
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || 'Failed to delete login record');
+    }
+    cachedStudentLogins = cachedStudentLogins.filter(item => item.id !== id);
+    renderStudentLogins();
+  } catch (err) {
+    alert('Error deleting login: ' + err.message);
+  }
+};
+
+function setupStudentLoginsUI() {
+  const btnToday = document.getElementById('login-filter-today');
+  const btnYesterday = document.getElementById('login-filter-yesterday');
+  const btnCustom = document.getElementById('login-filter-custom-btn');
+  const btnAll = document.getElementById('login-filter-all');
+  const dateInput = document.getElementById('login-filter-date');
+  const searchInput = document.getElementById('login-search-input');
+  const sortBtn = document.getElementById('login-sort-btn');
+  const sortLabel = document.getElementById('login-sort-label');
+  const refreshBtn = document.getElementById('login-refresh-btn');
+
+  const setFilterActive = (activeType) => {
+    activeLoginFilter = activeType;
+    const btns = [btnToday, btnYesterday, btnCustom, btnAll];
+    btns.forEach(btn => {
+      if (!btn) return;
+      if (btn.dataset.filter === activeType) {
+        btn.className = "btn btn-primary login-day-btn";
+        btn.style.background = "";
+        btn.style.color = "";
+        btn.style.border = "";
+      } else {
+        btn.className = "btn login-day-btn";
+        btn.style.background = "var(--surface-card)";
+        btn.style.color = "var(--text)";
+        btn.style.border = "1px solid var(--border)";
+      }
+    });
+
+    if (dateInput) {
+      if (activeType === 'custom') {
+        dateInput.style.display = 'inline-block';
+        if (!dateInput.value) {
+          dateInput.value = getLocalDateString(new Date());
+        }
+        customLoginFilterDate = dateInput.value;
+      } else {
+        dateInput.style.display = 'none';
+      }
+    }
+    renderStudentLogins();
+  };
+
+  if (btnToday) btnToday.addEventListener('click', () => setFilterActive('today'));
+  if (btnYesterday) btnYesterday.addEventListener('click', () => setFilterActive('yesterday'));
+  if (btnCustom) btnCustom.addEventListener('click', () => setFilterActive('custom'));
+  if (btnAll) btnAll.addEventListener('click', () => setFilterActive('all'));
+
+  if (dateInput) {
+    dateInput.addEventListener('change', (e) => {
+      customLoginFilterDate = e.target.value;
+      renderStudentLogins();
+    });
+  }
+
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      loginSearchQuery = e.target.value.trim();
+      renderStudentLogins();
+    });
+  }
+
+  if (sortBtn && sortLabel) {
+    sortBtn.addEventListener('click', () => {
+      loginSortDescending = !loginSortDescending;
+      sortLabel.textContent = loginSortDescending ? 'Latest First ▾' : 'Oldest First ▴';
+      renderStudentLogins();
+    });
+  }
+
+  if (refreshBtn) {
+    refreshBtn.addEventListener('click', async () => {
+      refreshBtn.disabled = true;
+      refreshBtn.textContent = 'Refreshing...';
+      await loadStudentLogins();
+      refreshBtn.disabled = false;
+      refreshBtn.textContent = '🔄 Refresh';
+    });
+  }
+}
+

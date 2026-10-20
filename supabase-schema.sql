@@ -108,3 +108,17 @@ CREATE TABLE IF NOT EXISTS calendar_events (
   created_at timestamptz not null default now(),
   unique(event_date, group_name, title)
 );
+
+-- STUDENT LOGIN ACTIVITY / HISTORY
+CREATE TABLE IF NOT EXISTS student_logins (
+  id uuid primary key default gen_random_uuid(),
+  student_id uuid references students(id) on delete cascade,
+  student_name text not null,
+  student_id_alias text,
+  group_name text default '',
+  logged_in_at timestamptz not null default now()
+);
+
+CREATE INDEX IF NOT EXISTS student_logins_logged_in_at_idx ON student_logins(logged_in_at desc);
+CREATE INDEX IF NOT EXISTS student_logins_student_id_idx ON student_logins(student_id);
+

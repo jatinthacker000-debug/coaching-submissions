@@ -420,6 +420,71 @@
 
       <button class="btn btn-danger" id="delete-all-students-btn" style="margin-bottom: 3rem;">Delete All Students</button>
 
+      <!-- Student Logins Tracker (Grade 12 Login Activity) -->
+      <div class="panel-header" id="logins-header" style="margin-top: 3rem; display: flex; justify-content: space-between; align-items: flex-end; cursor: pointer; user-select: none;">
+        <div>
+          <h1 style="display: flex; align-items: center; gap: 0.5rem;">
+            <span>Student Logins Tracker</span>
+            <span id="logins-badge-pill" style="font-size: 0.75rem; background: rgba(16, 185, 129, 0.15); color: #059669; border: 1px solid #10b981; padding: 0.2rem 0.65rem; border-radius: 99px; font-weight: 600;">Grade 12</span>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="accordion-icon" id="logins-toggle-icon" style="transform: rotate(0deg);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </h1>
+          <p class="subtitle">Track which students have logged in, filtered by day and arranged chronologically by time.</p>
+        </div>
+      </div>
+
+      <div id="logins-content" style="display: block;">
+        <!-- Day Filter Bar & Controls -->
+        <div class="submit-card wide-card" style="margin-bottom: 1.25rem; padding: 1.25rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+            
+            <!-- Day Filter Tabs -->
+            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+              <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-right: 0.25rem;">Filter Day:</span>
+              <button type="button" class="btn btn-primary login-day-btn" data-filter="today" id="login-filter-today" style="padding: 0.4rem 0.85rem; font-size: 0.85rem; border-radius: 6px;">Today</button>
+              <button type="button" class="btn login-day-btn" data-filter="yesterday" id="login-filter-yesterday" style="padding: 0.4rem 0.85rem; font-size: 0.85rem; border-radius: 6px; background: var(--surface-card); color: var(--text); border: 1px solid var(--border);">Yesterday</button>
+              <button type="button" class="btn login-day-btn" data-filter="custom" id="login-filter-custom-btn" style="padding: 0.4rem 0.85rem; font-size: 0.85rem; border-radius: 6px; background: var(--surface-card); color: var(--text); border: 1px solid var(--border);">Any Day</button>
+              <button type="button" class="btn login-day-btn" data-filter="all" id="login-filter-all" style="padding: 0.4rem 0.85rem; font-size: 0.85rem; border-radius: 6px; background: var(--surface-card); color: var(--text); border: 1px solid var(--border);">All Recent</button>
+              <input type="date" id="login-filter-date" style="padding: 0.35rem 0.6rem; font-size: 0.85rem; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text); display: none;">
+            </div>
+
+            <!-- Search, Sort & Refresh -->
+            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+              <input type="text" id="login-search-input" placeholder="Search student or group..." style="padding: 0.4rem 0.75rem; font-size: 0.85rem; border-radius: 6px; border: 1px solid var(--border); width: 200px; background: var(--surface); color: var(--text);">
+              <button type="button" id="login-sort-btn" class="btn" title="Toggle time sort order" style="padding: 0.4rem 0.75rem; font-size: 0.85rem; border-radius: 6px; background: var(--surface-card); color: var(--text); border: 1px solid var(--border); display: flex; align-items: center; gap: 0.25rem;">
+                <span id="login-sort-label">Latest First ▾</span>
+              </button>
+              <button type="button" id="login-refresh-btn" class="btn" title="Refresh Logins" style="padding: 0.4rem 0.75rem; font-size: 0.85rem; border-radius: 6px; background: var(--surface-card); color: var(--primary); border: 1px solid var(--border);">🔄 Refresh</button>
+            </div>
+
+          </div>
+
+          <div style="margin-top: 0.85rem; display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; color: var(--text-muted); border-top: 1px solid var(--border); padding-top: 0.65rem;">
+            <span id="login-status-summary">Showing logins for <strong>Today</strong></span>
+            <span id="login-count-pill" style="font-weight: 600; color: var(--text);">0 logins recorded</span>
+          </div>
+        </div>
+
+        <!-- Student Logins Table -->
+        <div class="submit-card wide-card" style="margin-bottom: 3rem; overflow-x: auto; max-height: 440px; overflow-y: auto;">
+          <table style="width: 100%; border-collapse: collapse; text-align: left;">
+            <thead style="border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--surface-card); z-index: 10;">
+              <tr>
+                <th style="padding: 0.75rem; color: var(--text-muted); width: 50px; text-align: center;">#</th>
+                <th style="padding: 0.75rem; color: var(--text-muted);">Student Name</th>
+                <th style="padding: 0.75rem; color: var(--text-muted);">Group</th>
+                <th style="padding: 0.75rem; color: var(--text-muted);">Student ID</th>
+                <th style="padding: 0.75rem; color: var(--text-muted);">Login Time</th>
+                <th style="padding: 0.75rem; color: var(--text-muted);">Date</th>
+                <th style="padding: 0.75rem; color: var(--text-muted); text-align: right;">Action</th>
+              </tr>
+            </thead>
+            <tbody id="student-logins-tbody">
+              <tr><td colspan="7" style="padding: 1.5rem; color: var(--text-muted); text-align: center;">Loading login records...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <!-- Class Performance Overview (Advanced Analytics) -->
       <div class="panel-header" style="margin-top: 3rem; display: flex; justify-content: space-between; align-items: flex-end;">
         <div>
