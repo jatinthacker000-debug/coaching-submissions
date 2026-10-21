@@ -536,6 +536,380 @@ function sortExams(exams = []) {
   });
 }
 
+// Robust Excel export helper using SheetJS with UTF-8 BOM CSV fallback
+function exportToExcel(filename, aoaData, sheetName = "Sheet1") {
+  if (window.XLSX && window.XLSX.utils) {
+    const wb = window.XLSX.utils.book_new();
+    const ws = window.XLSX.utils.aoa_to_sheet(aoaData);
+    window.XLSX.utils.book_append_sheet(wb, ws, sheetName);
+    window.XLSX.writeFile(wb, filename.endsWith(".xlsx") ? filename : `${filename}.xlsx`);
+  } else {
+    // CSV fallback with UTF-8 BOM for Excel compatibility
+    let csv = aoaData.map(row => 
+      row.map(cell => {
+        let val = (cell === null || cell === undefined) ? "" : String(cell);
+        if (val.includes('"') || val.includes(',') || val.includes('\n') || val.includes('\r')) {
+          return `"${val.replace(/"/g, '""')}"`;
+        }
+        return `"${val}"`;
+      }).join(",")
+    ).join("\r\n");
+
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", filename.endsWith(".csv") ? filename : `${filename.replace(/\.xlsx$/, '')}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+}
+
+// Chronological exam terms grouping helper for a student
+function getStudentExamTerms(student, exams, marksByStudent, selectedSubject = "") {
+  if (!student || !exams || exams.length === 0) return [];
+
+  const isStudentNerd = student.group_name && student.group_name.startsWith("Nerd Tutors");
+  const studentSubjs = Array.isArray(student.subjects) && student.subjects.length > 0
+    ? student.subjects
+    : (isStudentNerd ? ["Accountancy", "Economics", "Business Studies"] : []);
+
+  const applicableExams = exams.filter(ex => {
+    if (selectedSubject && ex.subject && ex.subject !== selectedSubject) return false;
+    if (isStudentNerd && ex.subject && !studentSubjs.includes(ex.subject)) return false;
+    if (ex.target_groups && ex.target_groups.length > 0 && student.group_name && !ex.target_groups.includes(student.group_name)) return false;
+    return true;
+  });
+
+  if (applicableExams.length === 0) return [];
+
+  const sm = marksByStudent[student.id] || {};
+  const termMap = new Map();
+
+  applicableExams.forEach(ex => {
+    const termName = ex.name ? ex.name.trim() : "Exam";
+    const termRank = getExamTermRank(termName);
+    const key = `${termRank}___${termName}`;
+
+    if (!termMap.has(key)) {
+      termMap.set(key, {
+        termName: termName,
+        termRank: termRank,
+        exams: [],
+        createdAt: new Date(ex.created_at || 0).getTime()
+      });
+    }
+    const tObj = termMap.get(key);
+    tObj.exams.push(ex);
+    if (ex.created_at) {
+      const exTime = new Date(ex.created_at).getTime();
+      if (exTime < tObj.createdAt) tObj.createdAt = exTime;
+    }
+  });
+
+  const sortedTerms = Array.from(termMap.values()).sort((a, b) => {
+    if (a.termRank !== b.termRank) return a.termRank - b.termRank;
+    return a.createdAt - b.createdAt;
+  });
+
+  const termResults = [];
+
+  sortedTerms.forEach(term => {
+    let termObtained = 0;
+    let termMax = 0;
+    let attemptedCount = 0;
+    const subjectScores = [];
+
+    term.exams.forEach(ex => {
+      const mark = sm[ex.id];
+      if (mark !== undefined && mark !== null) {
+        termObtained += mark;
+        termMax += ex.total_marks;
+        attemptedCount++;
+        const perc = (mark / ex.total_marks) * 100;
+        subjectScores.push({
+          examId: ex.id,
+          examName: ex.name,
+          subject: ex.subject || "General",
+          marks: mark,
+          totalMarks: ex.total_marks,
+          perc: perc
+        });
+      }
+    });
+
+    if (attemptedCount > 0 && termMax > 0) {
+      termResults.push({
+        termName: term.termName,
+        termRank: term.termRank,
+        totalObtained: termObtained,
+        totalMax: termMax,
+        averagePerc: (termObtained / termMax) * 100,
+        attemptedCount: attemptedCount,
+        totalExamsInTerm: term.exams.length,
+        subjectScores: subjectScores
+      });
+    }
+  });
+
+  return termResults;
+}
+
+// Export All Students Marks from Performance Overview
+function exportAllStudentsMarks() {
+  const selectedGrp = overviewGroupFilter ? overviewGroupFilter.value : "";
+  const selectedSubj = overviewSubjectFilter ? overviewSubjectFilter.value : "";
+  
+  let filteredStudents = getFilteredStudents(overviewGroupFilter);
+  const searchInput = document.getElementById("overview-search");
+  if (searchInput && searchInput.value.trim() !== "") {
+    const term = searchInput.value.trim().toLowerCase();
+    filteredStudents = filteredStudents.filter(s => s.name.toLowerCase().includes(term) || (s.student_id_alias && s.student_id_alias.toLowerCase().includes(term)));
+  }
+
+  const groupExams = globalExams.filter(ex => {
+    if (selectedGrp && !isNerdGroup(selectedGrp) && isBusinessStudiesExam(ex)) return false;
+    if (selectedGrp && ex.target_groups && ex.target_groups.length > 0 && !ex.target_groups.includes(selectedGrp)) return false;
+    if (selectedSubj && ex.subject && ex.subject !== selectedSubj) return false;
+    return true;
+  });
+
+  if (filteredStudents.length === 0 || groupExams.length === 0) {
+    return alert("No student or exam data available to export.");
+  }
+
+  const termGroups = [];
+  const termGroupMap = new Map();
+  groupExams.forEach(ex => {
+    const termName = ex.name ? ex.name.trim() : "Exam";
+    if (!termGroupMap.has(termName)) {
+      const grp = { termName: termName, exams: [] };
+      termGroupMap.set(termName, grp);
+      termGroups.push(grp);
+    }
+    termGroupMap.get(termName).exams.push(ex);
+  });
+  const hasMultiSubjectTerms = termGroups.some(g => g.exams.length > 1);
+
+  const headerRow = ["Student Name", "Group", "Subjects"];
+  termGroups.forEach(grp => {
+    grp.exams.forEach(ex => {
+      headerRow.push(`${ex.name}${ex.subject ? ` [${ex.subject}]` : ''} (${ex.total_marks})`);
+    });
+    if (hasMultiSubjectTerms && grp.exams.length > 1) {
+      headerRow.push(`${grp.termName} Average %`);
+    }
+  });
+  headerRow.push("Total Obtained");
+  headerRow.push("Total Max Marks");
+  headerRow.push("Overall %");
+
+  const aoaData = [headerRow];
+
+  filteredStudents.forEach(student => {
+    const isStudentNerd = student.group_name && student.group_name.startsWith("Nerd Tutors");
+    const studentSubjs = Array.isArray(student.subjects) && student.subjects.length > 0
+      ? student.subjects
+      : (isStudentNerd ? ["Accountancy", "Economics", "Business Studies"] : []);
+
+    const sm = globalMarksByStudent[student.id] || {};
+    let studentObtained = 0;
+    let studentMax = 0;
+
+    const row = [student.name, student.group_name || "-", studentSubjs.join(", ") || "-"];
+
+    termGroups.forEach(grp => {
+      let termObt = 0;
+      let termMx = 0;
+      let termAttempted = 0;
+
+      grp.exams.forEach(ex => {
+        const isOpted = !isStudentNerd || !ex.subject || studentSubjs.includes(ex.subject);
+        if (!isOpted) {
+          row.push("Not Opted");
+        } else if (sm[ex.id] !== undefined && sm[ex.id] !== null) {
+          const mark = sm[ex.id];
+          row.push(mark);
+          studentObtained += mark;
+          studentMax += ex.total_marks;
+          termObt += mark;
+          termMx += ex.total_marks;
+          termAttempted++;
+        } else {
+          row.push("-");
+          studentMax += ex.total_marks;
+        }
+      });
+
+      if (hasMultiSubjectTerms && grp.exams.length > 1) {
+        if (termAttempted > 0 && termMx > 0) {
+          row.push(((termObt / termMx) * 100).toFixed(1) + "%");
+        } else {
+          row.push("-");
+        }
+      }
+    });
+
+    row.push(studentObtained);
+    row.push(studentMax);
+    row.push(studentMax > 0 ? ((studentObtained / studentMax) * 100).toFixed(1) + "%" : "-");
+
+    aoaData.push(row);
+  });
+
+  const avgRow = ["Group Average", "-", "-"];
+  let overallSum = 0;
+  let overallMax = 0;
+
+  termGroups.forEach(grp => {
+    let termClassObt = 0;
+    let termClassMx = 0;
+
+    grp.exams.forEach(ex => {
+      let exSum = 0;
+      let exCount = 0;
+      filteredStudents.forEach(s => {
+        const sm = globalMarksByStudent[s.id] || {};
+        if (sm[ex.id] !== undefined && sm[ex.id] !== null) {
+          exSum += sm[ex.id];
+          exCount++;
+          overallSum += sm[ex.id];
+          overallMax += ex.total_marks;
+          termClassObt += sm[ex.id];
+          termClassMx += ex.total_marks;
+        }
+      });
+      avgRow.push(exCount > 0 ? (exSum / exCount).toFixed(1) : "-");
+    });
+
+    if (hasMultiSubjectTerms && grp.exams.length > 1) {
+      avgRow.push(termClassMx > 0 ? ((termClassObt / termClassMx) * 100).toFixed(1) + "%" : "-");
+    }
+  });
+
+  avgRow.push(overallSum);
+  avgRow.push(overallMax);
+  avgRow.push(overallMax > 0 ? ((overallSum / overallMax) * 100).toFixed(1) + "%" : "-");
+  aoaData.push(avgRow);
+
+  const groupLabel = selectedGrp ? selectedGrp.replace(/\s+/g, '_') : 'All_Groups';
+  const subjLabel = selectedSubj ? `_${selectedSubj}` : '';
+  exportToExcel(`Student_Marks_${groupLabel}${subjLabel}.xlsx`, aoaData, "Student Marks");
+}
+
+// Export Student Logins & Credentials
+function exportStudentsCredentials() {
+  if (!globalStudents || globalStudents.length === 0) {
+    return alert("No student records available to export.");
+  }
+  const headers = ["#", "Student Name", "Group", "Subjects", "Student ID", "Password", "Status"];
+  const aoaData = [headers];
+
+  globalStudents.forEach((s, idx) => {
+    const isStudentNerd = s.group_name && s.group_name.startsWith("Nerd Tutors");
+    const subjs = Array.isArray(s.subjects) && s.subjects.length > 0 
+      ? s.subjects.join(", ") 
+      : (isStudentNerd ? "Accountancy, Economics, Business Studies" : "-");
+
+    aoaData.push([
+      idx + 1,
+      s.name,
+      s.group_name || "-",
+      subjs,
+      s.student_id_alias || s.id,
+      s.password_plain || "Protected",
+      s.is_active === false ? "Inactive" : "Active"
+    ]);
+  });
+
+  exportToExcel("Student_Logins_Credentials.xlsx", aoaData, "Credentials");
+}
+
+// Export Chart Summary Table
+function exportChartSummaryTable(termGroups, hasMultiSubjectTerms, studentIds, marksByStudent, classAvgData, overallClassAvg) {
+  const headers = ["Student Name"];
+  termGroups.forEach(grp => {
+    grp.exams.forEach(ex => {
+      headers.push(`${ex.name}${ex.subject ? ` [${ex.subject}]` : ''} (${ex.total_marks})`);
+    });
+    if (hasMultiSubjectTerms && grp.exams.length > 1) {
+      headers.push(`${grp.termName} Average %`);
+    }
+  });
+  headers.push("Overall Average %");
+
+  const aoaData = [headers];
+
+  studentIds.forEach(sId => {
+    const studentObj = globalStudents.find(s => s.id === sId);
+    let studentTotalMax = 0;
+    let studentTotalObtained = 0;
+    const row = [studentObj ? studentObj.name : "Unknown"];
+
+    termGroups.forEach(grp => {
+      let termObtained = 0;
+      let termMax = 0;
+      let termAttempted = 0;
+
+      grp.exams.forEach(ex => {
+        const sm = marksByStudent[sId] || {};
+        if (sm[ex.id] !== undefined && sm[ex.id] !== null) {
+          const marks = sm[ex.id];
+          studentTotalObtained += marks;
+          studentTotalMax += ex.total_marks;
+          termObtained += marks;
+          termMax += ex.total_marks;
+          termAttempted++;
+          const perc = (marks / ex.total_marks) * 100;
+          row.push(`${marks}/${ex.total_marks} (${perc.toFixed(1)}%)`);
+        } else {
+          row.push("N/A");
+        }
+      });
+
+      if (hasMultiSubjectTerms && grp.exams.length > 1) {
+        if (termAttempted > 0 && termMax > 0) {
+          row.push(((termObtained / termMax) * 100).toFixed(1) + "%");
+        } else {
+          row.push("N/A");
+        }
+      }
+    });
+
+    const overallPerc = studentTotalMax > 0 ? ((studentTotalObtained / studentTotalMax) * 100).toFixed(1) + "%" : "N/A";
+    row.push(overallPerc);
+    aoaData.push(row);
+  });
+
+  const classRow = ["Class Average"];
+  let examIdx = 0;
+  termGroups.forEach(grp => {
+    let termClassPercSum = 0;
+    let termClassCount = 0;
+
+    grp.exams.forEach(ex => {
+      const avg = classAvgData[examIdx] || "0";
+      examIdx++;
+      termClassPercSum += parseFloat(avg) || 0;
+      termClassCount++;
+      classRow.push(`${avg}%`);
+    });
+
+    if (hasMultiSubjectTerms && grp.exams.length > 1) {
+      const termAvg = termClassCount > 0 ? (termClassPercSum / termClassCount).toFixed(1) + "%" : "0%";
+      classRow.push(termAvg);
+    }
+  });
+
+  classRow.push(`${overallClassAvg}%`);
+  aoaData.push(classRow);
+
+  exportToExcel("Student_Performance_Comparison.xlsx", aoaData, "Performance");
+}
+
 async function loadExamData() {
     try {
       const [examsRes, marksRes, studentsRes] = await Promise.all([
@@ -743,17 +1117,15 @@ function renderPerformanceTable(exams, marks, students) {
     });
     
     let trendHtml = '';
-    const validExams = exams.filter(ex => row.examScores[ex.id] !== null && row.examScores[ex.id] !== "NOT_OPTED");
-    if (validExams.length >= 2) {
-       const lastExam = validExams[validExams.length - 1];
-       const prevExam = validExams[validExams.length - 2];
-       const lastPerc = (row.examScores[lastExam.id] / lastExam.total_marks) * 100;
-       const prevPerc = (row.examScores[prevExam.id] / prevExam.total_marks) * 100;
-       const diff = lastPerc - prevPerc;
+    const studentTerms = getStudentExamTerms(row.student, exams, marksByStudent);
+    if (studentTerms.length >= 2) {
+       const lastTerm = studentTerms[studentTerms.length - 1];
+       const prevTerm = studentTerms[studentTerms.length - 2];
+       const diff = lastTerm.averagePerc - prevTerm.averagePerc;
        if (diff > 0) {
-          trendHtml = `<span style="color: #10b981; font-size: 0.85rem; margin-left: 0.5rem;" title="Up ${diff.toFixed(1)}% since last exam">&#9650;</span>`;
+          trendHtml = `<span style="color: #10b981; font-size: 0.85rem; margin-left: 0.5rem;" title="Up ${diff.toFixed(1)}% (${escapeHtml(prevTerm.termName)} → ${escapeHtml(lastTerm.termName)})">&#9650;</span>`;
        } else if (diff < 0) {
-          trendHtml = `<span style="color: #ef4444; font-size: 0.85rem; margin-left: 0.5rem;" title="Down ${Math.abs(diff).toFixed(1)}% since last exam">&#9660;</span>`;
+          trendHtml = `<span style="color: #ef4444; font-size: 0.85rem; margin-left: 0.5rem;" title="Down ${Math.abs(diff).toFixed(1)}% (${escapeHtml(prevTerm.termName)} → ${escapeHtml(lastTerm.termName)})">&#9660;</span>`;
        } else {
           trendHtml = `<span style="color: #6b7280; font-size: 0.85rem; margin-left: 0.5rem;" title="No change">&#9644;</span>`;
        }
@@ -955,45 +1327,155 @@ function renderChart(exams, marksByStudent, studentIds = []) {
   const summaryContainer = document.getElementById("chart-summary-container");
   if (summaryContainer) {
     if (studentIds.length > 0) {
-      let tableHtml = `<table style="width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; font-size: 0.9rem;">
-        <thead>
-          <tr style="background: var(--surface-card); border-bottom: 1px solid var(--border);">
-            <th style="padding: 0.75rem; text-align: left;">Student Name</th>`;
-      
-      exams.forEach(ex => {
-        tableHtml += `<th style="padding: 0.75rem; text-align: center;">${escapeHtml(ex.name)}</th>`;
-      });
-      tableHtml += `<th style="padding: 0.75rem; text-align: center;">Overall Average</th></tr></thead><tbody>`;
+      // Group exams by term name
+      const termGroups = [];
+      const termGroupMap = new Map();
 
+      exams.forEach(ex => {
+        const termName = ex.name ? ex.name.trim() : "Exam";
+        if (!termGroupMap.has(termName)) {
+          const grp = { termName: termName, exams: [] };
+          termGroupMap.set(termName, grp);
+          termGroups.push(grp);
+        }
+        termGroupMap.get(termName).exams.push(ex);
+      });
+
+      const hasMultiSubjectTerms = termGroups.some(g => g.exams.length > 1);
+
+      let html = `
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.75rem;">
+          <h3 style="margin: 0; color: var(--text); font-size: 1.05rem; display: flex; align-items: center; gap: 0.5rem;">
+            <span>Student Performance & Average Breakdown</span>
+            ${hasMultiSubjectTerms ? `<span style="font-size: 0.75rem; font-weight: 500; color: #6366f1; background: rgba(99, 102, 241, 0.1); padding: 0.15rem 0.5rem; border-radius: 99px;">Term Averages Included</span>` : ''}
+          </h3>
+          <button type="button" class="btn btn-primary small-btn" id="export-summary-table-btn" style="padding: 0.4rem 0.85rem; font-size: 0.85rem; display: flex; align-items: center; gap: 0.4rem; background: #059669; font-weight: 600;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            Export Table to Excel
+          </button>
+        </div>
+      `;
+
+      html += `<div style="overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 1.5rem; background: var(--surface);">`;
+      html += `<table id="chart-summary-table" style="width: 100%; border-collapse: collapse; font-size: 0.9rem; min-width: 650px;">
+        <thead>
+          <tr style="background: var(--surface-card); border-bottom: 2px solid var(--border);">
+            <th style="padding: 0.75rem 1rem; text-align: left; font-weight: 700; color: var(--text);">Student Name</th>`;
+
+      termGroups.forEach(grp => {
+        grp.exams.forEach(ex => {
+          html += `<th style="padding: 0.75rem; text-align: center; color: var(--text);">
+            <div style="font-weight: 600;">${escapeHtml(ex.name)}</div>
+            ${ex.subject ? `<div style="font-weight: 600; color: #6366f1; font-size: 0.8rem; margin-top: 2px;">${escapeHtml(ex.subject)}</div>` : ''}
+            <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 400; opacity: 0.8;">(${ex.total_marks})</div>
+          </th>`;
+        });
+        if (hasMultiSubjectTerms && grp.exams.length > 1) {
+          html += `<th style="padding: 0.75rem; text-align: center; background: rgba(99, 102, 241, 0.08); border-left: 2px solid rgba(99, 102, 241, 0.25); border-right: 2px solid rgba(99, 102, 241, 0.25);">
+            <div style="font-weight: 700; color: #4338ca;">${escapeHtml(grp.termName)}</div>
+            <div style="font-size: 0.75rem; font-weight: 600; color: #6366f1;">Average</div>
+          </th>`;
+        }
+      });
+
+      html += `<th style="padding: 0.75rem 1rem; text-align: center; font-weight: 700; color: #8b5cf6; background: rgba(139, 92, 246, 0.1);">Overall Average</th>
+        </tr>
+      </thead>
+      <tbody>`;
+
+      // Student Rows
       studentIds.forEach(sId => {
         const studentObj = globalStudents.find(s => s.id === sId);
         let studentTotalMax = 0;
         let studentTotalObtained = 0;
-        let rowHtml = `<tr style="border-bottom: 1px solid var(--border);">
-          <td style="padding: 0.75rem; font-weight: 500;">${studentObj ? escapeHtml(studentObj.name) : 'Unknown'}</td>`;
-        
-        exams.forEach(ex => {
-          const studentMarks = marksByStudent[sId] || {};
-          if (studentMarks[ex.id] !== undefined) {
-            const marks = studentMarks[ex.id];
-            const max = ex.total_marks;
-            const perc = (marks / max) * 100;
-            studentTotalMax += max;
-            studentTotalObtained += marks;
-            rowHtml += `<td style="padding: 0.75rem; text-align: center;">${marks}/${max} <br><span style="color: var(--text-muted); font-size: 0.8rem;">(${perc.toFixed(1)}%)</span></td>`;
-          } else {
-            rowHtml += `<td style="padding: 0.75rem; text-align: center; color: var(--text-muted);">N/A</td>`;
+
+        html += `<tr style="border-bottom: 1px solid var(--border);">
+          <td style="padding: 0.75rem 1rem; font-weight: 600; color: var(--text);">${studentObj ? escapeHtml(studentObj.name) : 'Unknown'}</td>`;
+
+        termGroups.forEach(grp => {
+          let termObtained = 0;
+          let termMax = 0;
+          let termAttempted = 0;
+
+          grp.exams.forEach(ex => {
+            const studentMarks = marksByStudent[sId] || {};
+            if (studentMarks[ex.id] !== undefined && studentMarks[ex.id] !== null) {
+              const marks = studentMarks[ex.id];
+              const max = ex.total_marks;
+              const perc = (marks / max) * 100;
+              studentTotalMax += max;
+              studentTotalObtained += marks;
+              termObtained += marks;
+              termMax += max;
+              termAttempted++;
+              html += `<td style="padding: 0.75rem; text-align: center;">${marks}/${max}<br><span style="color: var(--text-muted); font-size: 0.8rem;">(${perc.toFixed(1)}%)</span></td>`;
+            } else {
+              html += `<td style="padding: 0.75rem; text-align: center; color: var(--text-muted); opacity: 0.6;">N/A</td>`;
+            }
+          });
+
+          if (hasMultiSubjectTerms && grp.exams.length > 1) {
+            if (termAttempted > 0 && termMax > 0) {
+              const termPerc = (termObtained / termMax) * 100;
+              html += `<td style="padding: 0.75rem; text-align: center; font-weight: 600; color: #4338ca; background: rgba(99, 102, 241, 0.04); border-left: 2px solid rgba(99, 102, 241, 0.25); border-right: 2px solid rgba(99, 102, 241, 0.25);">
+                ${termObtained}/${termMax}<br><span style="font-weight: 700; color: #6366f1;">(${termPerc.toFixed(1)}%)</span>
+              </td>`;
+            } else {
+              html += `<td style="padding: 0.75rem; text-align: center; color: var(--text-muted); background: rgba(99, 102, 241, 0.04); border-left: 2px solid rgba(99, 102, 241, 0.25); border-right: 2px solid rgba(99, 102, 241, 0.25);">N/A</td>`;
+            }
           }
         });
 
         const overallPerc = studentTotalMax > 0 ? ((studentTotalObtained / studentTotalMax) * 100).toFixed(1) : 'N/A';
-        rowHtml += `<td style="padding: 0.75rem; text-align: center; font-weight: bold; color: var(--primary);">${overallPerc}%</td></tr>`;
-        tableHtml += rowHtml;
+        html += `<td style="padding: 0.75rem 1rem; text-align: center; font-weight: 700; color: var(--primary); font-size: 1rem; background: rgba(139, 92, 246, 0.06);">${overallPerc}%</td></tr>`;
       });
 
-      tableHtml += `</tbody></table>`;
-      summaryContainer.innerHTML = tableHtml;
+      // Class Average Row
+      html += `<tr style="background: rgba(139, 92, 246, 0.08); font-weight: 600; border-top: 2px solid rgba(139, 92, 246, 0.35);">
+        <td style="padding: 0.75rem 1rem; color: #8b5cf6; font-weight: 700;">Class Average</td>`;
+
+      let examIdx = 0;
+      let totalClassPercSum = 0;
+      let totalClassExamCount = 0;
+
+      termGroups.forEach(grp => {
+        let termClassPercSum = 0;
+        let termClassExamCount = 0;
+
+        grp.exams.forEach(ex => {
+          const avg = classAvgData[examIdx] || "0";
+          examIdx++;
+          const numAvg = parseFloat(avg) || 0;
+          termClassPercSum += numAvg;
+          termClassExamCount++;
+          totalClassPercSum += numAvg;
+          totalClassExamCount++;
+
+          html += `<td style="padding: 0.75rem; text-align: center; color: #8b5cf6; font-weight: 600;">${avg}%</td>`;
+        });
+
+        if (hasMultiSubjectTerms && grp.exams.length > 1) {
+          const termAvg = termClassExamCount > 0 ? (termClassPercSum / termClassExamCount).toFixed(1) : "0";
+          html += `<td style="padding: 0.75rem; text-align: center; font-weight: 700; color: #6366f1; background: rgba(99, 102, 241, 0.12); border-left: 2px solid rgba(99, 102, 241, 0.25); border-right: 2px solid rgba(99, 102, 241, 0.25);">
+            ${termAvg}%
+          </td>`;
+        }
+      });
+
+      const overallClassAvg = totalClassExamCount > 0 ? (totalClassPercSum / totalClassExamCount).toFixed(1) : "0";
+      html += `<td style="padding: 0.75rem 1rem; text-align: center; font-weight: 700; color: #8b5cf6; font-size: 1rem; background: rgba(139, 92, 246, 0.15);">${overallClassAvg}%</td>
+      </tr>`;
+
+      html += `</tbody></table></div>`;
+      summaryContainer.innerHTML = html;
       summaryContainer.style.display = "block";
+
+      const exportSummaryBtn = document.getElementById("export-summary-table-btn");
+      if (exportSummaryBtn) {
+        exportSummaryBtn.onclick = () => {
+          exportChartSummaryTable(termGroups, hasMultiSubjectTerms, studentIds, marksByStudent, classAvgData, overallClassAvg);
+        };
+      }
     } else {
       summaryContainer.style.display = "none";
       summaryContainer.innerHTML = "";
@@ -1375,107 +1857,112 @@ function calculateClassStats(exams, marksByStudent, validStudentIds = null) {
   document.getElementById("dist-below").textContent = dBelow;
 }
 
-function renderAttentionList(exams, marksByStudent, studentsToUse = globalStudents) {
+function renderAttentionList(exams, marksByStudent, studentsToUse = globalStudents, selectedSubject = "") {
   const attentionList = document.getElementById("attention-list");
   if (!attentionList) return;
   
   if (exams.length === 0) {
-    attentionList.innerHTML = `<li style="color: var(--text-muted); text-align: center; padding: 1rem;">No exams available.</li>`;
+    attentionList.innerHTML = `<li style="color: var(--text-muted); text-align: center; padding: 1rem;">No exams available for this filter.</li>`;
     return;
   }
-  
-  const latestExam = exams[exams.length - 1];
-  const previousExam = exams.length > 1 ? exams[exams.length - 2] : null;
-  
+
   const attentionStudents = [];
-  
+
   studentsToUse.forEach(student => {
-    const isStudentNerd = student.group_name && student.group_name.startsWith("Nerd Tutors");
-    const studentSubjs = Array.isArray(student.subjects) && student.subjects.length > 0
-      ? student.subjects
-      : (isStudentNerd ? ["Accountancy", "Economics", "Business Studies"] : []);
+    const terms = getStudentExamTerms(student, exams, marksByStudent, selectedSubject);
+    if (!terms || terms.length === 0) return;
 
-    const studentExams = exams.filter(ex => !isStudentNerd || !ex.subject || studentSubjs.includes(ex.subject));
-    if (studentExams.length === 0) return;
+    const latestTerm = terms[terms.length - 1];
+    const previousTerm = terms.length > 1 ? terms[terms.length - 2] : null;
 
-    const latestExam = studentExams[studentExams.length - 1];
-    const previousExam = studentExams.length > 1 ? studentExams[studentExams.length - 2] : null;
-
-    const sm = marksByStudent[student.id] || {};
-    
-    const latestMark = sm[latestExam.id];
-    let latestPerc = null;
     let needsAttention = false;
     let reason = "";
-    
-    if (latestMark !== undefined) {
-      latestPerc = (latestMark / latestExam.total_marks) * 100;
-      if (latestPerc < 50) {
-        needsAttention = true;
-        reason = `Scored below 50% in ${latestExam.name}${latestExam.subject ? ` (${latestExam.subject})` : ''}.`;
+    let drop = 0;
+
+    if (previousTerm) {
+      drop = previousTerm.averagePerc - latestTerm.averagePerc;
+    }
+
+    // 1. Latest term average < 50%
+    if (latestTerm.averagePerc < 50) {
+      needsAttention = true;
+      reason = `Scored below 50% average in ${latestTerm.termName} (${latestTerm.averagePerc.toFixed(1)}%).`;
+    }
+
+    // 2. Term average dropped by >= 10%
+    if (drop >= 10) {
+      needsAttention = true;
+      if (latestTerm.averagePerc < 50) {
+        reason = `Scored below 50% in ${latestTerm.termName} and dropped by ${drop.toFixed(1)}% (was ${previousTerm.averagePerc.toFixed(1)}% in ${previousTerm.termName}).`;
+      } else {
+        reason = `Term average dropped by ${drop.toFixed(1)}% (from ${previousTerm.termName} to ${latestTerm.termName}).`;
       }
     }
-    
-    let previousPerc = null;
-    let drop = null;
-    if (previousExam && sm[previousExam.id] !== undefined) {
-      previousPerc = (sm[previousExam.id] / previousExam.total_marks) * 100;
-      if (latestPerc !== null) {
-        drop = previousPerc - latestPerc;
-        if (drop >= 10 && !needsAttention) {
-          needsAttention = true;
-          reason = `Performance dropped by ${drop.toFixed(1)}%.`;
-        } else if (drop > 0 && needsAttention) {
-          reason = `Scored below 50% and dropped by ${drop.toFixed(1)}%.`;
+
+    // 3. Subject-level checks (when looking at All Subjects)
+    if (!selectedSubject && latestTerm.subjectScores && latestTerm.subjectScores.length > 0) {
+      const failedSubjs = latestTerm.subjectScores.filter(s => s.perc < 50);
+      // Note any failed individual subjects in the reason
+      if (failedSubjs.length > 0) {
+        needsAttention = true;
+        const failedStr = failedSubjs.map(s => `${s.subject} (${s.perc.toFixed(1)}%)`).join(", ");
+        if (drop >= 10) {
+          reason += ` Also scored below 50% in: ${failedStr}.`;
+        } else if (latestTerm.averagePerc >= 50) {
+          reason = `Scored below 50% in ${latestTerm.termName} [${failedStr}].`;
         }
       }
     }
-    
+
     if (needsAttention) {
       attentionStudents.push({
+        student: student,
         name: student.name,
-        latestPerc: latestPerc,
-        previousPerc: previousPerc,
+        group: student.group_name || "",
+        latestTermName: latestTerm.termName,
+        latestPerc: latestTerm.averagePerc,
+        previousTermName: previousTerm ? previousTerm.termName : null,
+        previousPerc: previousTerm ? previousTerm.averagePerc : null,
         reason: reason,
-        drop: drop || 0
+        drop: drop > 0 ? drop : (latestTerm.averagePerc < 50 ? (50 - latestTerm.averagePerc) : 0)
       });
     }
   });
-  
-  // Sort by highest drop first
+
+  // Sort by highest drop / severity
   attentionStudents.sort((a, b) => b.drop - a.drop);
-  
+
   if (attentionStudents.length === 0) {
-    attentionList.innerHTML = `<li style="color: #059669; text-align: center; padding: 1rem; font-weight: 500;">&#127881; Great job! No students currently require immediate attention.</li>`;
+    attentionList.innerHTML = `<li style="color: #059669; text-align: center; padding: 1rem; font-weight: 500;">&#127881; Great job! No students currently require immediate attention based on exam averages.</li>`;
     return;
   }
-  
+
   let html = "";
   attentionStudents.forEach(s => {
     let statHtml = "";
     if (s.latestPerc !== null) {
-      statHtml += `<span style="color: var(--danger); font-weight: bold;">${s.latestPerc.toFixed(1)}%</span> (Latest)`;
-    } else {
-      statHtml += `<span style="color: var(--text-muted);">Missed Latest Exam</span>`;
+      statHtml += `<span style="color: var(--danger); font-weight: bold;">${s.latestPerc.toFixed(1)}%</span> <span style="font-size: 0.8rem; color: var(--text-muted);">(${escapeHtml(s.latestTermName)})</span>`;
     }
-    
     if (s.previousPerc !== null) {
-      statHtml += ` <span style="color: var(--text-muted); margin: 0 0.5rem;">|</span> <span style="color: var(--text);">${s.previousPerc.toFixed(1)}%</span> (Previous)`;
+      statHtml += ` <span style="color: var(--text-muted); margin: 0 0.4rem;">|</span> <span style="color: var(--text);">${s.previousPerc.toFixed(1)}%</span> <span style="font-size: 0.8rem; color: var(--text-muted);">(${escapeHtml(s.previousTermName)})</span>`;
     }
-    
+
     html += `
-      <li style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: var(--bg); border: 1px solid var(--border); border-radius: 8px;">
-        <div>
-          <strong style="color: var(--text); font-size: 1.1rem; display: block; margin-bottom: 0.25rem;">${escapeHtml(s.name)}</strong>
-          <span style="color: var(--danger); font-size: 0.85rem;">&#9888; ${s.reason}</span>
+      <li style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; gap: 1rem; flex-wrap: wrap;">
+        <div style="flex: 1; min-width: 200px;">
+          <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+            <strong style="color: var(--text); font-size: 1.05rem;">${escapeHtml(s.name)}</strong>
+            ${s.group ? `<span class="score-pill" style="font-size: 0.72rem; padding: 0.1rem 0.4rem; background: rgba(99, 102, 241, 0.1); color: #6366f1;">${escapeHtml(s.group)}</span>` : ''}
+          </div>
+          <span style="color: var(--danger); font-size: 0.85rem; line-height: 1.4; display: block;">&#9888; ${s.reason}</span>
         </div>
-        <div style="text-align: right; font-size: 0.95rem;">
+        <div style="text-align: right; font-size: 0.95rem; white-space: nowrap;">
           ${statHtml}
         </div>
       </li>
     `;
   });
-  
+
   attentionList.innerHTML = html;
 }
 
@@ -1651,8 +2138,8 @@ function renderAttentionAndGrowthSection() {
     return true;
   });
 
-  renderAttentionList(groupExams, globalMarksByStudent, filteredStudents);
-  renderGrowthList(groupExams, globalMarksByStudent, filteredStudents);
+  renderAttentionList(groupExams, globalMarksByStudent, filteredStudents, selectedSubj);
+  renderGrowthList(groupExams, globalMarksByStudent, filteredStudents, selectedSubj);
 }
 
 function applyGroupFilterAndRender() {
@@ -1989,41 +2476,19 @@ document.addEventListener("DOMContentLoaded", () => {
     window.loadCredentialsTable();
   }
 
-  // EXPORT TO EXCEL
+  // EXPORT TO EXCEL - Performance Overview Marks
   const exportBtn = document.getElementById("export-excel-btn");
   if (exportBtn) {
     exportBtn.addEventListener("click", () => {
-      const table = document.querySelector("#performance-table-body").closest("table");
-      if (!table) return alert("No table found to export.");
-      
-      let csv = [];
-      const rows = table.querySelectorAll("tr");
-      
-      rows.forEach(row => {
-        // Skip hidden rows (like filtered out students)
-        if (row.style.display === "none") return;
-        
-        let rowData = [];
-        const cols = row.querySelectorAll("th, td");
-        
-        // Exclude the last "Action" column (Delete button)
-        for (let i = 0; i < cols.length - 1; i++) {
-          let text = cols[i].innerText.replace(/"/g, '"').trim();
-          rowData.push('"' + text + '"');
-        }
-        if (rowData.length > 0) csv.push(rowData.join(","));
-      });
-      
-      const csvStr = csv.join("\n");
-      const blob = new Blob([csvStr], { type: "text/csv;charset=utf-8;" });
-      const link = document.createElement("a");
-      const url = URL.createObjectURL(blob);
-      link.setAttribute("href", url);
-      link.setAttribute("download", "student_performance_data.csv");
-      link.style.visibility = "hidden";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      exportAllStudentsMarks();
+    });
+  }
+
+  // EXPORT TO EXCEL - Student Credentials / Logins
+  const exportCredsBtn = document.getElementById("export-credentials-excel-btn");
+  if (exportCredsBtn) {
+    exportCredsBtn.addEventListener("click", () => {
+      exportStudentsCredentials();
     });
   }
 });
@@ -2358,67 +2823,84 @@ document.addEventListener('DOMContentLoaded', () => {
 
 if (typeof ChartDataLabels !== 'undefined') Chart.register(ChartDataLabels);
 
-function renderGrowthList(exams, marksByStudent, studentsToUse = globalStudents) {
+function renderGrowthList(exams, marksByStudent, studentsToUse = globalStudents, selectedSubject = "") {
   const growthList = document.getElementById('growth-list');
   if (!growthList) return;
 
   const growthStudents = [];
-  
+
   studentsToUse.forEach(student => {
-    const isStudentNerd = student.group_name && student.group_name.startsWith("Nerd Tutors");
-    const studentSubjs = Array.isArray(student.subjects) && student.subjects.length > 0
-      ? student.subjects
-      : (isStudentNerd ? ["Accountancy", "Economics", "Business Studies"] : []);
+    const terms = getStudentExamTerms(student, exams, marksByStudent, selectedSubject);
+    if (!terms || terms.length < 2) return;
 
-    const studentExams = exams.filter(ex => !isStudentNerd || !ex.subject || studentSubjs.includes(ex.subject));
-    if (studentExams.length < 2) return;
+    const latestTerm = terms[terms.length - 1];
+    const previousTerm = terms[terms.length - 2];
 
-    const latestExam = studentExams[studentExams.length - 1];
-    const previousExam = studentExams[studentExams.length - 2];
+    const growth = latestTerm.averagePerc - previousTerm.averagePerc;
 
-    const sm = marksByStudent[student.id] || {};
-    const latestMark = sm[latestExam.id];
-    const previousMark = sm[previousExam.id];
-    
-    if (latestMark !== undefined && previousMark !== undefined) {
-      const latestPerc = (latestMark / latestExam.total_marks) * 100;
-      const previousPerc = (previousMark / previousExam.total_marks) * 100;
-      const growth = latestPerc - previousPerc;
-      
-      if (growth > 0) {
-        growthStudents.push({
-          name: student.name,
-          latestPerc: latestPerc,
-          previousPerc: previousPerc,
-          growth: growth
+    if (growth > 0) {
+      let bestSubj = null;
+      let maxSubjGain = 0;
+      if (!selectedSubject && latestTerm.subjectScores && previousTerm.subjectScores) {
+        latestTerm.subjectScores.forEach(ls => {
+          const ps = previousTerm.subjectScores.find(p => p.subject === ls.subject);
+          if (ps) {
+            const gain = ls.perc - ps.perc;
+            if (gain > maxSubjGain) {
+              maxSubjGain = gain;
+              bestSubj = ls.subject;
+            }
+          }
         });
       }
+
+      growthStudents.push({
+        student: student,
+        name: student.name,
+        group: student.group_name || "",
+        latestTermName: latestTerm.termName,
+        latestPerc: latestTerm.averagePerc,
+        previousTermName: previousTerm.termName,
+        previousPerc: previousTerm.averagePerc,
+        growth: growth,
+        bestSubj: bestSubj,
+        maxSubjGain: maxSubjGain
+      });
     }
   });
-  
+
   growthStudents.sort((a, b) => b.growth - a.growth);
-  
+
   if (growthStudents.length === 0) {
-    growthList.innerHTML = `<li style="color: var(--text-muted); text-align: center; padding: 1rem;">No positive growth recorded.</li>`;
+    growthList.innerHTML = `<li style="color: var(--text-muted); text-align: center; padding: 1rem;">No positive growth recorded between consecutive terms.</li>`;
     return;
   }
-  
+
   let html = "";
   growthStudents.forEach(s => {
+    let boostHtml = "";
+    if (s.bestSubj && s.maxSubjGain >= 5) {
+      boostHtml = `<div style="font-size: 0.8rem; color: #2563eb; margin-top: 2px;">🌟 Top boost: ${escapeHtml(s.bestSubj)} (+${s.maxSubjGain.toFixed(1)}%)</div>`;
+    }
+
     html += `
-      <li style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: var(--bg); border: 1px solid var(--border); border-radius: 8px;">
-        <div>
-          <strong style="color: var(--text); font-size: 1.1rem; display: block; margin-bottom: 0.25rem;">${escapeHtml(s.name)}</strong>
-          <span style="color: #059669; font-size: 0.85rem; font-weight: bold;">&#8593; Grew by ${s.growth.toFixed(1)}%</span>
+      <li style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; gap: 1rem; flex-wrap: wrap;">
+        <div style="flex: 1; min-width: 200px;">
+          <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+            <strong style="color: var(--text); font-size: 1.05rem;">${escapeHtml(s.name)}</strong>
+            ${s.group ? `<span class="score-pill" style="font-size: 0.72rem; padding: 0.1rem 0.4rem; background: rgba(99, 102, 241, 0.1); color: #6366f1;">${escapeHtml(s.group)}</span>` : ''}
+          </div>
+          <span style="color: #059669; font-size: 0.85rem; font-weight: 600;">&#8593; Overall grew by ${s.growth.toFixed(1)}% (from ${escapeHtml(s.previousTermName)} to ${escapeHtml(s.latestTermName)})</span>
+          ${boostHtml}
         </div>
-        <div style="text-align: right; font-size: 0.95rem;">
-          <span style="color: #059669; font-weight: bold;">${s.latestPerc.toFixed(1)}%</span> (Latest)
-          <span style="color: var(--text-muted); margin: 0 0.5rem;">|</span> <span style="color: var(--text);">${s.previousPerc.toFixed(1)}%</span> (Previous)
+        <div style="text-align: right; font-size: 0.95rem; white-space: nowrap;">
+          <span style="color: #059669; font-weight: bold;">${s.latestPerc.toFixed(1)}%</span> <span style="font-size: 0.8rem; color: var(--text-muted);">(${escapeHtml(s.latestTermName)})</span>
+          <span style="color: var(--text-muted); margin: 0 0.4rem;">|</span> <span style="color: var(--text);">${s.previousPerc.toFixed(1)}%</span> <span style="font-size: 0.8rem; color: var(--text-muted);">(${escapeHtml(s.previousTermName)})</span>
         </div>
       </li>
     `;
   });
-  
+
   growthList.innerHTML = html;
 }
 
