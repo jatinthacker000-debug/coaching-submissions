@@ -103,54 +103,63 @@
 
       <div class="desk-grid">
         <!-- LEFT: Query Submission Form -->
-        <div class="submit-card" style="position: sticky; top: 1.5rem;">
-          <h2 style="font-size: 1.25rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
-            <span>✍️</span> <span>Ask a Doubt</span>
-          </h2>
-          <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.25rem;">
-            Fill out the details below. Your coach will receive this in their dashboard.
-          </p>
+        <div class="submit-card" id="ask-doubt-card" style="position: sticky; top: 1.5rem;">
+          <div id="ask-doubt-header" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none;">
+            <div>
+              <h2 style="font-size: 1.25rem; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                <span>✍️</span> <span>Ask a Doubt</span>
+              </h2>
+              <p id="ask-doubt-subtitle" style="font-size: 0.82rem; color: var(--text-muted); margin: 0.25rem 0 0 0;">
+                Fill out the details below. Your coach will receive this in their dashboard.
+              </p>
+            </div>
+            <span id="ask-doubt-toggle-btn" style="font-size: 0.78rem; background: rgba(59, 130, 246, 0.1); color: #2563eb; padding: 0.25rem 0.65rem; border-radius: 99px; font-weight: 600; white-space: nowrap; margin-left: 0.5rem;">
+              Collapse ▴
+            </span>
+          </div>
 
-          <form id="submit-query-form">
-            <div class="form-group" style="margin-bottom: 1rem;">
-              <label for="query-student-name-display">Posting as</label>
-              <div id="query-student-name-display" style="padding: 0.55rem 0.75rem; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; font-weight: 600; color: var(--text); font-size: 0.9rem;">
-                -
+          <div id="ask-doubt-body" style="margin-top: 1.25rem;">
+            <form id="submit-query-form">
+              <div class="form-group" style="margin-bottom: 1rem;">
+                <label for="query-student-name-display">Posting as</label>
+                <div id="query-student-name-display" style="padding: 0.55rem 0.75rem; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; font-weight: 600; color: var(--text); font-size: 0.9rem;">
+                  -
+                </div>
               </div>
-            </div>
 
-            <div class="form-group" style="margin-bottom: 1rem;">
-              <label for="query-subject">Subject</label>
-              <select id="query-subject" style="width: 100%; padding: 0.55rem; border: 1px solid var(--border); border-radius: 6px; background: var(--surface-card); color: var(--text); font-size: 0.9rem;" required>
-                <option value="Economics">Economics</option>
-                <option value="Accountancy">Accountancy</option>
-                <option value="Business Studies">Business Studies</option>
-                <option value="Mathematics">Mathematics</option>
-                <option value="General">General / Other Doubt</option>
-              </select>
-            </div>
+              <div class="form-group" style="margin-bottom: 1rem;">
+                <label for="query-subject">Subject</label>
+                <select id="query-subject" style="width: 100%; padding: 0.55rem; border: 1px solid var(--border); border-radius: 6px; background: var(--surface-card); color: var(--text); font-size: 0.9rem;" required>
+                  <option value="Economics">Economics</option>
+                  <option value="Accountancy">Accountancy</option>
+                  <option value="Business Studies">Business Studies</option>
+                  <option value="Mathematics">Mathematics</option>
+                  <option value="General">General / Other Doubt</option>
+                </select>
+              </div>
 
-            <div class="form-group" style="margin-bottom: 1rem;">
-              <label for="query-title">Question / Topic Title</label>
-              <input type="text" id="query-title" placeholder="e.g. Cash Flow Statement Financing Activity Q4" required style="width: 100%;">
-            </div>
+              <div class="form-group" style="margin-bottom: 1rem;">
+                <label for="query-title">Question / Topic Title</label>
+                <input type="text" id="query-title" placeholder="e.g. Cash Flow Statement Financing Activity Q4" required style="width: 100%;">
+              </div>
 
-            <div class="form-group" style="margin-bottom: 1.5rem;">
-              <label for="query-message">Detailed Question / Description</label>
-              <textarea id="query-message" rows="5" placeholder="Explain your doubt in detail. Mention the page or question number if applicable..." required style="width: 100%; padding: 0.65rem; border: 1px solid var(--border); border-radius: 6px; background: var(--surface-card); color: var(--text); font-family: inherit; font-size: 0.9rem; resize: vertical;"></textarea>
-            </div>
+              <div class="form-group" style="margin-bottom: 1.5rem;">
+                <label for="query-message">Detailed Question / Description</label>
+                <textarea id="query-message" rows="5" placeholder="Explain your doubt in detail. Mention the page or question number if applicable..." required style="width: 100%; padding: 0.65rem; border: 1px solid var(--border); border-radius: 6px; background: var(--surface-card); color: var(--text); font-family: inherit; font-size: 0.9rem; resize: vertical;"></textarea>
+              </div>
 
-            <button type="submit" id="query-submit-btn" class="btn btn-primary" style="width: 100%; padding: 0.75rem; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
-              <span>🚀</span> <span>Send Query to Coach</span>
-            </button>
-            <p id="query-form-status" style="margin-top: 1rem; font-size: 0.9rem; text-align: center; display: none; font-weight: 500;"></p>
-          </form>
+              <button type="submit" id="query-submit-btn" class="btn btn-primary" style="width: 100%; padding: 0.75rem; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                <span>🚀</span> <span>Send Query to Coach</span>
+              </button>
+              <p id="query-form-status" style="margin-top: 1rem; font-size: 0.9rem; text-align: center; display: none; font-weight: 500;"></p>
+            </form>
+          </div>
         </div>
 
         <!-- RIGHT: My Queries List -->
-        <div>
+        <div id="queries-section-wrapper">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-            <h2 style="font-size: 1.25rem; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+            <h2 id="queries-heading" style="font-size: 1.25rem; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
               <span>📋</span> <span>My Queries & Coach Replies</span>
             </h2>
             <button id="refresh-queries-btn" style="background: var(--surface-card); border: 1px solid var(--border); color: var(--text); padding: 0.35rem 0.75rem; border-radius: 6px; cursor: pointer; font-size: 0.82rem; font-weight: 600; display: flex; align-items: center; gap: 0.35rem; transition: background 0.15s;">
@@ -284,6 +293,41 @@
         });
       }
 
+      // COLLAPSIBLE ASK A DOUBT LOGIC (Specially for Mobile UX)
+      const askDoubtHeader = document.getElementById("ask-doubt-header");
+      const askDoubtBody = document.getElementById("ask-doubt-body");
+      const askDoubtToggleBtn = document.getElementById("ask-doubt-toggle-btn");
+      let isFormCollapsed = false;
+
+      function toggleAskDoubt(collapse) {
+        if (!askDoubtBody) return;
+        if (collapse !== undefined) {
+          isFormCollapsed = collapse;
+        } else {
+          isFormCollapsed = !isFormCollapsed;
+        }
+
+        if (isFormCollapsed) {
+          askDoubtBody.style.display = "none";
+          if (askDoubtToggleBtn) {
+            askDoubtToggleBtn.textContent = "+ Tap to Ask Another Doubt";
+            askDoubtToggleBtn.style.background = "rgba(16, 185, 129, 0.15)";
+            askDoubtToggleBtn.style.color = "#059669";
+          }
+        } else {
+          askDoubtBody.style.display = "block";
+          if (askDoubtToggleBtn) {
+            askDoubtToggleBtn.textContent = "Collapse ▴";
+            askDoubtToggleBtn.style.background = "rgba(59, 130, 246, 0.1)";
+            askDoubtToggleBtn.style.color = "#2563eb";
+          }
+        }
+      }
+
+      if (askDoubtHeader) {
+        askDoubtHeader.addEventListener("click", () => toggleAskDoubt());
+      }
+
       // SUBMIT QUERY
       const queryForm = document.getElementById("submit-query-form");
       if (queryForm) {
@@ -340,6 +384,17 @@
             statusEl.style.display = "block";
 
             loadMyQueries();
+
+            // Mobile UX: When on mobile, collapse 'Ask a Doubt' and scroll directly to queries & replies feed
+            if (window.innerWidth <= 900) {
+              toggleAskDoubt(true);
+              const queriesHeading = document.getElementById("queries-heading") || document.getElementById("queries-list-container");
+              if (queriesHeading) {
+                setTimeout(() => {
+                  queriesHeading.scrollIntoView({ behavior: "smooth", block: "start" });
+                }, 250);
+              }
+            }
           } catch(err) {
             statusEl.textContent = err.message;
             statusEl.style.color = "#dc2626";

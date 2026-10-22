@@ -2342,13 +2342,14 @@ document.addEventListener("DOMContentLoaded", () => {
   const credSaveStatus = document.getElementById("cred-save-status");
 
   const STANDARD_GROUPS = [
-    "Osem",
+    "NEPS",
+    "NEGS",
     "Nalanda",
+    "Lakshya",
+    "Sankalp",
+    "Prayas",
     "Nerd Tutors",
-    "Nerd Tutors Nalanda",
-    "Ignite",
-    "Velocity",
-    "Epsilon"
+    "Nerd Tutors Nalanda"
   ];
 
   window.credentialsStudentsData = [];
@@ -2377,12 +2378,16 @@ document.addEventListener("DOMContentLoaded", () => {
     const searchTerm = credSearch ? credSearch.value.trim().toLowerCase() : "";
 
     const filtered = students.filter(s => {
-      const sGroup = (s.group_name || "").toLowerCase();
+      const sGroup = (s.group_name || "").toLowerCase().trim();
       const sName = (s.name || "").toLowerCase();
       const sAlias = (s.student_id_alias || "").toLowerCase();
 
-      if (filterGroup && sGroup !== filterGroup) {
-        return false;
+      if (filterGroup) {
+        if (filterGroup === "__none__") {
+          if (sGroup !== "" && sGroup !== "null" && sGroup !== "-") return false;
+        } else if (sGroup !== filterGroup) {
+          return false;
+        }
       }
       if (searchTerm) {
         const matches = sName.includes(searchTerm) || sGroup.includes(searchTerm) || sAlias.includes(searchTerm);
@@ -2406,19 +2411,16 @@ document.addEventListener("DOMContentLoaded", () => {
       const isActive = s.is_active !== false;
 
       // Group options
-      const currentGroup = s.group_name || "";
-      let groupOptionsHtml = "";
+      const currentGroup = (s.group_name || "").trim();
+      let groupOptionsHtml = `<option value="">-- No Group --</option>`;
       let foundInStandard = false;
       STANDARD_GROUPS.forEach(g => {
         const isSel = currentGroup.toLowerCase() === g.toLowerCase();
         if (isSel) foundInStandard = true;
         groupOptionsHtml += `<option value="${escapeHtml(g)}" ${isSel ? "selected" : ""}>${escapeHtml(g)}</option>`;
       });
-      if (currentGroup && !foundInStandard) {
+      if (currentGroup && !foundInStandard && currentGroup !== "-- No Group --") {
         groupOptionsHtml += `<option value="${escapeHtml(currentGroup)}" selected>${escapeHtml(currentGroup)}</option>`;
-      }
-      if (!currentGroup) {
-        groupOptionsHtml = `<option value="" selected>-- Select Group --</option>` + groupOptionsHtml;
       }
 
       rowsHtml += `
@@ -2531,7 +2533,14 @@ document.addEventListener("DOMContentLoaded", () => {
         })
       });
 
-      const d = await res.json();
+      const resText = await res.text();
+      let d;
+      try {
+        d = JSON.parse(resText);
+      } catch (pe) {
+        throw new Error(`Server error (${res.status}): ${resText.slice(0, 100)}`);
+      }
+
       if (!res.ok) {
         throw new Error(d.error || "Failed to update student.");
       }
@@ -2570,18 +2579,22 @@ document.addEventListener("DOMContentLoaded", () => {
   // Bulk save all students
   window.saveAllCredentials = async function() {
     if (!credTableBody) return;
-    const rows = credTableBody.querySelectorAll("tr[data-student-id]");
-    if (rows.length === 0) return;
+    const allRows = credTableBody.querySelectorAll("tr[data-student-id]");
+    if (allRows.length === 0) return;
+
+    // Check if any row was explicitly modified, otherwise update visible rows
+    const modifiedRows = credTableBody.querySelectorAll("tr.cred-row-modified[data-student-id]");
+    const targetRows = modifiedRows.length > 0 ? modifiedRows : allRows;
 
     if (!credSaveAllBtn) return;
     const prevBtnHtml = credSaveAllBtn.innerHTML;
     credSaveAllBtn.disabled = true;
-    credSaveAllBtn.innerHTML = "<span>⏳</span> <span>Saving All Changes...</span>";
+    credSaveAllBtn.innerHTML = "<span>⏳</span> <span>Saving Changes...</span>";
 
     if (credSaveStatus) credSaveStatus.style.display = "none";
 
     const studentsPayload = [];
-    rows.forEach(tr => {
+    targetRows.forEach(tr => {
       const id = tr.dataset.studentId;
       const name = tr.querySelector(".cred-cell-name")?.value.trim() || "";
       const group_name = tr.querySelector(".cred-cell-group")?.value.trim() || "";
@@ -2612,13 +2625,20 @@ document.addEventListener("DOMContentLoaded", () => {
         body: JSON.stringify({ students: studentsPayload })
       });
 
-      const d = await res.json();
+      const resText = await res.text();
+      let d;
+      try {
+        d = JSON.parse(resText);
+      } catch (pe) {
+        throw new Error(`Server error (${res.status}): ${resText.slice(0, 100)}`);
+      }
+
       if (!res.ok) {
         throw new Error(d.error || "Failed to bulk update students.");
       }
 
       // Remove modified styling
-      rows.forEach(tr => {
+      targetRows.forEach(tr => {
         tr.classList.remove("cred-row-modified");
         tr.classList.add("cred-row-saved");
         setTimeout(() => tr.classList.remove("cred-row-saved"), 1500);
@@ -2643,7 +2663,7 @@ document.addEventListener("DOMContentLoaded", () => {
         credSaveStatus.style.border = "1px solid rgba(239, 68, 68, 0.3)";
         credSaveStatus.style.display = "block";
       }
-      alert("Error: " + err.message);
+      alert("Error saving: " + err.message);
     } finally {
       credSaveAllBtn.disabled = false;
       credSaveAllBtn.innerHTML = prevBtnHtml;
