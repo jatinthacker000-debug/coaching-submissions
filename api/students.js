@@ -210,53 +210,106 @@ export default async function handler(req, res) {
 
     // Support Bulk updates for spreadsheet table
     if (Array.isArray(body.students)) {
-      const updatedList = [];
-      for (const s of body.students) {
-        if (!s.id) continue;
-        const sUpdates = {};
-        if (s.name !== undefined) sUpdates.name = s.name.trim().replace(/</g, "&lt;").replace(/>/g, "&gt;");
-        if (s.student_id_alias !== undefined) sUpdates.student_id_alias = s.student_id_alias.trim() || null;
-        if (s.password !== undefined) sUpdates.password = s.password.trim() || null;
-        if (s.group_name !== undefined) sUpdates.group_name = s.group_name.trim() || null;
-        if (s.subjects !== undefined) sUpdates.subjects = Array.isArray(s.subjects) ? s.subjects : [];
-        if (s.is_active !== undefined) sUpdates.is_active = Boolean(s.is_active);
+      try {
+        const updatePromises = body.students.map(async (s) => {
+          if (!s || !s.id) return null;
+          const sUpdates = {};
 
-        if (Object.keys(sUpdates).length > 0) {
-          const { data: updated } = await supabase
+          if (s.name !== undefined && s.name !== null) {
+            const trimmedName = String(s.name).trim();
+            if (trimmedName) {
+              sUpdates.name = trimmedName.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            }
+          }
+
+          if (s.student_id_alias !== undefined) {
+            const aliasStr = s.student_id_alias ? String(s.student_id_alias).trim() : "";
+            sUpdates.student_id_alias = aliasStr || null;
+          }
+
+          if (s.password !== undefined) {
+            const passStr = s.password ? String(s.password).trim() : "";
+            sUpdates.password = passStr || null;
+          }
+
+          if (s.group_name !== undefined) {
+            const grpStr = s.group_name ? String(s.group_name).trim() : "";
+            sUpdates.group_name = grpStr || null;
+          }
+
+          if (s.subjects !== undefined) {
+            sUpdates.subjects = Array.isArray(s.subjects) ? s.subjects : [];
+          }
+
+          if (s.is_active !== undefined) {
+            sUpdates.is_active = Boolean(s.is_active);
+          }
+
+          if (Object.keys(sUpdates).length === 0) return null;
+
+          const { data, error } = await supabase
             .from("students")
             .update(sUpdates)
             .eq("id", s.id)
             .select()
             .single();
-          if (updated) updatedList.push(updated);
-        }
+
+          if (error) {
+            console.error(`Error updating student ${s.id}:`, error);
+            return null;
+          }
+          return data;
+        });
+
+        const results = await Promise.all(updatePromises);
+        const updatedList = results.filter(Boolean);
+
+        return sendJson(res, { success: true, count: updatedList.length, students: updatedList });
+      } catch (err) {
+        console.error("Bulk update exception:", err);
+        return sendError(res, "Bulk update failed: " + err.message, 500);
       }
-      return sendJson(res, { success: true, count: updatedList.length, students: updatedList });
     }
 
     // Single student update
     if (!body.id) return sendError(res, "Student ID is required.", 400);
 
     const updates = {};
-    if (body.name !== undefined) {
-      const cleanName = body.name.trim().replace(/</g, "&lt;").replace(/>/g, "&gt;");
-      const { data: existingWithName } = await supabase
-        .from("students")
-        .select("id")
-        .ilike("name", cleanName)
-        .neq("id", body.id)
-        .maybeSingle();
+    if (body.name !== undefined && body.name !== null) {
+      const cleanName = String(body.name).trim().replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      if (cleanName) {
+        const { data: existingWithName } = await supabase
+          .from("students")
+          .select("id")
+          .ilike("name", cleanName)
+          .neq("id", body.id)
+          .maybeSingle();
 
-      if (existingWithName) {
-        return sendError(res, "name already taken", 400);
+        if (existingWithName) {
+          return sendError(res, "name already taken", 400);
+        }
+        updates.name = cleanName;
       }
-      updates.name = cleanName;
     }
-    if (body.student_id_alias !== undefined) updates.student_id_alias = body.student_id_alias.trim() || null;
-    if (body.password !== undefined) updates.password = body.password.trim() || null;
-    if (body.group_name !== undefined) updates.group_name = body.group_name.trim() || null;
-    if (body.subjects !== undefined) updates.subjects = Array.isArray(body.subjects) ? body.subjects : [];
-    if (body.is_active !== undefined) updates.is_active = Boolean(body.is_active);
+
+    if (body.student_id_alias !== undefined) {
+      const aliasStr = body.student_id_alias ? String(body.student_id_alias).trim() : "";
+      updates.student_id_alias = aliasStr || null;
+    }
+    if (body.password !== undefined) {
+      const passStr = body.password ? String(body.password).trim() : "";
+      updates.password = passStr || null;
+    }
+    if (body.group_name !== undefined) {
+      const grpStr = body.group_name ? String(body.group_name).trim() : "";
+      updates.group_name = grpStr || null;
+    }
+    if (body.subjects !== undefined) {
+      updates.subjects = Array.isArray(body.subjects) ? body.subjects : [];
+    }
+    if (body.is_active !== undefined) {
+      updates.is_active = Boolean(body.is_active);
+    }
 
     if (Object.keys(updates).length > 0) {
       const { data, error } = await supabase
