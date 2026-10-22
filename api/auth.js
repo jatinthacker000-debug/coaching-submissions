@@ -163,7 +163,8 @@ export default async function handler(req, res) {
       student: {
         id: student.id,
         name: student.name,
-        group_name: student.group_name
+        group_name: student.group_name,
+        student_id_alias: student.student_id_alias || student_id_alias
       }
     });
   }

@@ -3,7 +3,127 @@ import { isCoachAuthorized, coachUnauthorized, sendJson, sendError } from "./_li
 
 export default async function handler(req, res) {
   const supabase = getSupabase();
+  const type = req.query.type || req.body?.type;
 
+  // ==========================================
+  // 1. HELP DESK & QUERIES
+  // ==========================================
+  if (type === "queries") {
+    if (req.method === "GET") {
+      const isCoach = await isCoachAuthorized(req);
+      const { student_id, status, group_name } = req.query;
+
+      try {
+        let query = supabase
+          .from("student_queries")
+          .select("*")
+          .order("created_at", { ascending: false });
+
+        if (isCoach) {
+          if (status) query = query.eq("status", status);
+          if (group_name) query = query.eq("group_name", group_name);
+        } else if (student_id) {
+          query = query.eq("student_id", student_id);
+        } else {
+          return sendError(res, "Missing student_id or coach authorization", 401);
+        }
+
+        const { data, error } = await query;
+        if (error) {
+          // Table might not exist yet if user hasn't run the SQL
+          return sendJson(res, { queries: [], warning: error.message });
+        }
+        return sendJson(res, { queries: data || [] });
+      } catch (err) {
+        return sendJson(res, { queries: [] });
+      }
+    }
+
+    if (req.method === "POST") {
+      const body = req.body || {};
+      if (!body.student_name?.trim() || !body.title?.trim() || !body.message?.trim()) {
+        return sendError(res, "Student name, question title, and message are required.");
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from("student_queries")
+          .insert({
+            student_id: body.student_id || null,
+            student_name: body.student_name.trim().replace(/</g, "&lt;").replace(/>/g, "&gt;"),
+            student_id_alias: body.student_id_alias?.trim() || null,
+            group_name: body.group_name?.trim() || "",
+            subject: body.subject?.trim() || "General",
+            title: body.title.trim().replace(/</g, "&lt;").replace(/>/g, "&gt;"),
+            message: body.message.trim().replace(/</g, "&lt;").replace(/>/g, "&gt;"),
+            status: "pending"
+          })
+          .select()
+          .single();
+
+        if (error) return sendError(res, error.message, 500);
+        return sendJson(res, { query: data }, 201);
+      } catch (err) {
+        return sendError(res, err.message, 500);
+      }
+    }
+
+    if (req.method === "PUT") {
+      if (!await isCoachAuthorized(req)) return coachUnauthorized(res);
+      const body = req.body || {};
+      const queryId = body.query_id || body.id;
+      if (!queryId) return sendError(res, "Query ID is required.");
+
+      const updates = {};
+      if (body.coach_reply !== undefined) {
+        updates.coach_reply = body.coach_reply.trim();
+        updates.replied_at = new Date().toISOString();
+      }
+      if (body.status !== undefined) {
+        updates.status = body.status.trim();
+      } else if (body.coach_reply) {
+        updates.status = "resolved";
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from("student_queries")
+          .update(updates)
+          .eq("id", queryId)
+          .select()
+          .single();
+
+        if (error) return sendError(res, error.message, 500);
+        return sendJson(res, { query: data });
+      } catch (err) {
+        return sendError(res, err.message, 500);
+      }
+    }
+
+    if (req.method === "DELETE") {
+      if (!await isCoachAuthorized(req)) return coachUnauthorized(res);
+      const queryId = req.query.query_id || req.query.id;
+      if (!queryId) return sendError(res, "Missing Query ID.");
+
+      try {
+        const { error } = await supabase
+          .from("student_queries")
+          .delete()
+          .eq("id", queryId);
+
+        if (error) return sendError(res, error.message, 500);
+        return sendJson(res, { success: true });
+      } catch (err) {
+        return sendError(res, err.message, 500);
+      }
+    }
+
+    return sendError(res, "Method not allowed for queries.", 405);
+  }
+
+  // ==========================================
+  // 2. STUDENT MANAGEMENT & CREDENTIALS
+  // ==========================================
   if (req.method === "GET") {
     const isCoach = await isCoachAuthorized(req);
     // If coach, fetch credentials too
@@ -87,6 +207,34 @@ export default async function handler(req, res) {
   if (req.method === "PUT") {
     if (!await isCoachAuthorized(req)) return coachUnauthorized(res);
     const body = req.body || {};
+
+    // Support Bulk updates for spreadsheet table
+    if (Array.isArray(body.students)) {
+      const updatedList = [];
+      for (const s of body.students) {
+        if (!s.id) continue;
+        const sUpdates = {};
+        if (s.name !== undefined) sUpdates.name = s.name.trim().replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        if (s.student_id_alias !== undefined) sUpdates.student_id_alias = s.student_id_alias.trim() || null;
+        if (s.password !== undefined) sUpdates.password = s.password.trim() || null;
+        if (s.group_name !== undefined) sUpdates.group_name = s.group_name.trim() || null;
+        if (s.subjects !== undefined) sUpdates.subjects = Array.isArray(s.subjects) ? s.subjects : [];
+        if (s.is_active !== undefined) sUpdates.is_active = Boolean(s.is_active);
+
+        if (Object.keys(sUpdates).length > 0) {
+          const { data: updated } = await supabase
+            .from("students")
+            .update(sUpdates)
+            .eq("id", s.id)
+            .select()
+            .single();
+          if (updated) updatedList.push(updated);
+        }
+      }
+      return sendJson(res, { success: true, count: updatedList.length, students: updatedList });
+    }
+
+    // Single student update
     if (!body.id) return sendError(res, "Student ID is required.", 400);
 
     const updates = {};
