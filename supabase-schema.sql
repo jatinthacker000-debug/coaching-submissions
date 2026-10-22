@@ -122,3 +122,24 @@ CREATE TABLE IF NOT EXISTS student_logins (
 CREATE INDEX IF NOT EXISTS student_logins_logged_in_at_idx ON student_logins(logged_in_at desc);
 CREATE INDEX IF NOT EXISTS student_logins_student_id_idx ON student_logins(student_id);
 
+-- STUDENT HELP DESK & QUERIES
+CREATE TABLE IF NOT EXISTS student_queries (
+  id uuid primary key default gen_random_uuid(),
+  student_id uuid references students(id) on delete cascade,
+  student_name text not null,
+  student_id_alias text,
+  group_name text default '',
+  subject text default 'General',
+  title text not null,
+  message text not null,
+  status text not null default 'pending', -- 'pending', 'resolved'
+  coach_reply text default '',
+  replied_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+CREATE INDEX IF NOT EXISTS student_queries_created_at_idx ON student_queries(created_at desc);
+CREATE INDEX IF NOT EXISTS student_queries_student_id_idx ON student_queries(student_id);
+CREATE INDEX IF NOT EXISTS student_queries_status_idx ON student_queries(status);
+
+

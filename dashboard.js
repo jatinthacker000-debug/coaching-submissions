@@ -76,6 +76,7 @@ loginForm.addEventListener("submit", async (e) => {
     if (typeof loadHomeworkLinks === 'function') loadHomeworkLinks();
     if (typeof loadCalendarEvents === 'function') loadCalendarEvents();
     if (typeof loadStudentLogins === 'function') loadStudentLogins();
+    if (typeof loadStudentQueries === 'function') loadStudentQueries();
   } catch (err) {
     clearCoachPassword();
     loginError.textContent = err.message || "Wrong password. Please try again.";
@@ -338,6 +339,7 @@ if (hasCoachPassword()) {
       if (typeof loadHomeworkLinks === 'function') loadHomeworkLinks();
       if (typeof loadCalendarEvents === 'function') loadCalendarEvents();
       if (typeof loadStudentLogins === 'function') loadStudentLogins();
+      if (typeof loadStudentQueries === 'function') loadStudentQueries();
     })
     .catch(showLogin);
 } else {
@@ -347,30 +349,56 @@ if (hasCoachPassword()) {
 // --- TABS LOGIC ---
 const tabNotes = document.getElementById("tab-notes");
 const tabExams = document.getElementById("tab-exams");
+const tabQueries = document.getElementById("tab-queries");
 const navTabResources = document.getElementById("nav-tab-resources");
 const navTabExams = document.getElementById("nav-tab-exams");
+const navTabQueries = document.getElementById("nav-tab-queries");
 
-if (navTabResources && navTabExams) {
-  navTabResources.addEventListener("click", () => {
-    tabNotes.classList.remove("hidden");
-    tabExams.classList.add("hidden");
-    navTabResources.style.background = "var(--primary)";
-    navTabResources.style.color = "white";
-    navTabExams.style.background = "var(--surface-card)";
-    navTabExams.style.color = "var(--text)";
-  });
-  
-  navTabExams.addEventListener("click", () => {
-    tabNotes.classList.add("hidden");
-    tabExams.classList.remove("hidden");
-    navTabExams.style.background = "var(--primary)";
-    navTabExams.style.color = "white";
+function switchDashboardTab(tab) {
+  if (tabNotes) tabNotes.classList.add("hidden");
+  if (tabExams) tabExams.classList.add("hidden");
+  if (tabQueries) tabQueries.classList.add("hidden");
+
+  if (navTabResources) {
     navTabResources.style.background = "var(--surface-card)";
     navTabResources.style.color = "var(--text)";
+  }
+  if (navTabExams) {
+    navTabExams.style.background = "var(--surface-card)";
+    navTabExams.style.color = "var(--text)";
+  }
+  if (navTabQueries) {
+    navTabQueries.style.background = "var(--surface-card)";
+    navTabQueries.style.color = "var(--text)";
+  }
+
+  if (tab === "resources") {
+    if (tabNotes) tabNotes.classList.remove("hidden");
+    if (navTabResources) {
+      navTabResources.style.background = "var(--primary)";
+      navTabResources.style.color = "white";
+    }
+  } else if (tab === "exams") {
+    if (tabExams) tabExams.classList.remove("hidden");
+    if (navTabExams) {
+      navTabExams.style.background = "var(--primary)";
+      navTabExams.style.color = "white";
+    }
     loadExamData();
     if (typeof loadStudentLogins === 'function') loadStudentLogins();
-  });
+  } else if (tab === "queries") {
+    if (tabQueries) tabQueries.classList.remove("hidden");
+    if (navTabQueries) {
+      navTabQueries.style.background = "var(--primary)";
+      navTabQueries.style.color = "white";
+    }
+    if (typeof loadStudentQueries === 'function') loadStudentQueries();
+  }
 }
+
+if (navTabResources) navTabResources.addEventListener("click", () => switchDashboardTab("resources"));
+if (navTabExams) navTabExams.addEventListener("click", () => switchDashboardTab("exams"));
+if (navTabQueries) navTabQueries.addEventListener("click", () => switchDashboardTab("queries"));
 
 // --- EXAM MANAGEMENT ---
 const examForm = document.getElementById("exam-form");
@@ -802,13 +830,17 @@ function exportAllStudentsMarks() {
 
 // Export Student Logins & Credentials
 function exportStudentsCredentials() {
-  if (!globalStudents || globalStudents.length === 0) {
+  const students = (window.credentialsStudentsData && window.credentialsStudentsData.length > 0) 
+    ? window.credentialsStudentsData 
+    : (globalStudents || []);
+
+  if (!students || students.length === 0) {
     return alert("No student records available to export.");
   }
   const headers = ["#", "Student Name", "Group", "Subjects", "Student ID", "Password", "Status"];
   const aoaData = [headers];
 
-  globalStudents.forEach((s, idx) => {
+  students.forEach((s, idx) => {
     const isStudentNerd = s.group_name && s.group_name.startsWith("Nerd Tutors");
     const subjs = Array.isArray(s.subjects) && s.subjects.length > 0 
       ? s.subjects.join(", ") 
@@ -820,8 +852,8 @@ function exportStudentsCredentials() {
       s.group_name || "-",
       subjs,
       s.student_id_alias || s.id,
-      s.password_plain || "Protected",
-      s.is_active === false ? "Inactive" : "Active"
+      s.password || s.password_plain || "Protected",
+      s.is_active === false ? "Suspended" : "Active"
     ]);
   });
 
@@ -2300,24 +2332,26 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Credentials table logic
+  // ============================================================
+  // SPREADSHEET-STYLE EDITABLE STUDENT CREDENTIALS TABLE
+  // ============================================================
   const credTableBody = document.getElementById("credentials-table-body");
   const credSearch = document.getElementById("credentials-search");
+  const credGroupFilter = document.getElementById("credentials-group-filter");
+  const credSaveAllBtn = document.getElementById("cred-save-all-btn");
+  const credSaveStatus = document.getElementById("cred-save-status");
 
-  if (credSearch) {
-    credSearch.addEventListener("input", (e) => {
-      const term = e.target.value.toLowerCase();
-      if (!credTableBody) return;
-      const rows = credTableBody.querySelectorAll("tr");
-      rows.forEach(row => {
-        // Skip the "Loading" or "Failed" rows if they have single cell
-        if (row.children.length > 1) {
-          const text = row.textContent.toLowerCase();
-          row.style.display = text.includes(term) ? "" : "none";
-        }
-      });
-    });
-  }
+  const STANDARD_GROUPS = [
+    "Osem",
+    "Nalanda",
+    "Nerd Tutors",
+    "Nerd Tutors Nalanda",
+    "Ignite",
+    "Velocity",
+    "Epsilon"
+  ];
+
+  window.credentialsStudentsData = [];
 
   window.loadCredentialsTable = async function() {
     if (!credTableBody) return;
@@ -2328,57 +2362,156 @@ document.addEventListener("DOMContentLoaded", () => {
       });
       const data = await res.json();
       if (data.students) {
-        credTableBody.innerHTML = "";
-        data.students.forEach(s => {
-          const isNerd = s.group_name && s.group_name.startsWith("Nerd Tutors");
-          const subjs = Array.isArray(s.subjects) && s.subjects.length > 0 
-            ? s.subjects 
-            : (isNerd ? ["Accountancy", "Economics", "Business Studies"] : []);
-          const subjsHtml = subjs.length > 0 
-            ? subjs.map(sb => `<span class="score-pill" style="font-size: 0.72rem; padding: 0.15rem 0.35rem; background: rgba(59, 130, 246, 0.12); color: #2563eb; margin: 1px;">${escapeHtml(sb)}</span>`).join(" ")
-            : (isNerd ? `<span style="color: var(--text-muted); font-size: 0.8rem;">All</span>` : `<span style="color: var(--text-muted); font-size: 0.8rem;">-</span>`);
-
-          const isActive = s.is_active !== false;
-          const statusBadge = isActive 
-            ? `<span class="score-pill" style="font-size: 0.72rem; padding: 0.15rem 0.45rem; background: rgba(16, 185, 129, 0.15); color: #059669; font-weight: 600;">Active</span>`
-            : `<span class="score-pill" style="font-size: 0.72rem; padding: 0.15rem 0.45rem; background: rgba(239, 68, 68, 0.15); color: #dc2626; font-weight: 600;">Suspended</span>`;
-
-          const toggleBtn = isActive
-            ? `<button class="btn" onclick="toggleStudentActive('${s.id}', false)" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; margin-right: 0.4rem; background: #f59e0b; color: white;">Deactivate</button>`
-            : `<button class="btn" onclick="toggleStudentActive('${s.id}', true)" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; margin-right: 0.4rem; background: #10b981; color: white;">Activate</button>`;
-
-          const tr = document.createElement("tr");
-          tr.innerHTML = `
-            <td style="padding: 0.75rem;">${escapeHtml(s.name)}</td>
-            <td style="padding: 0.75rem;">${escapeHtml(s.group_name || "-")}</td>
-            <td style="padding: 0.75rem;">${subjsHtml}</td>
-            <td style="padding: 0.75rem;">${escapeHtml(s.student_id_alias || "-")}</td>
-            <td style="padding: 0.75rem; font-family: monospace;">${escapeHtml(s.password || "-")}</td>
-            <td style="padding: 0.75rem;">${statusBadge}</td>
-            <td style="padding: 0.75rem;">
-              ${toggleBtn}
-              <button class="btn btn-primary" onclick="editStudent('${s.id}')" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; margin-right: 0.4rem;">Edit</button>
-              <button class="btn btn-danger" onclick="deleteStudent('${s.id}')" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">Delete</button>
-            </td>
-          `;
-          credTableBody.appendChild(tr);
-        });
-
-        if (credSearch && credSearch.value) {
-          credSearch.dispatchEvent(new Event("input"));
-        }
+        window.credentialsStudentsData = data.students;
+        renderCredentialsSpreadsheet();
       }
     } catch (e) {
-      credTableBody.innerHTML = `<tr><td colspan="7" style="color:red; text-align:center;">Failed to load credentials</td></tr>`;
+      credTableBody.innerHTML = `<tr><td colspan="7" style="color:red; text-align:center; padding: 1.5rem;">Failed to load credentials: ${escapeHtml(e.message)}</td></tr>`;
     }
   };
 
-  window.toggleStudentActive = async function(id, newActiveStatus) {
-    const student = (globalStudents || []).find(s => s.id === id);
-    const sName = student ? student.name : "this student";
-    const actionLabel = newActiveStatus ? "Activate" : "Deactivate (Suspend)";
-    const confirmMsg = `Are you sure you want to ${actionLabel} ${sName}?` + (!newActiveStatus ? " The student will not be able to log in with their Student ID." : "");
-    if (!confirm(confirmMsg)) return;
+  function renderCredentialsSpreadsheet() {
+    if (!credTableBody) return;
+    const students = window.credentialsStudentsData || [];
+    const filterGroup = credGroupFilter ? credGroupFilter.value.trim().toLowerCase() : "";
+    const searchTerm = credSearch ? credSearch.value.trim().toLowerCase() : "";
+
+    const filtered = students.filter(s => {
+      const sGroup = (s.group_name || "").toLowerCase();
+      const sName = (s.name || "").toLowerCase();
+      const sAlias = (s.student_id_alias || "").toLowerCase();
+
+      if (filterGroup && sGroup !== filterGroup) {
+        return false;
+      }
+      if (searchTerm) {
+        const matches = sName.includes(searchTerm) || sGroup.includes(searchTerm) || sAlias.includes(searchTerm);
+        if (!matches) return false;
+      }
+      return true;
+    });
+
+    if (filtered.length === 0) {
+      credTableBody.innerHTML = `<tr><td colspan="7" style="color: var(--text-muted); text-align:center; padding: 2rem;">No students found matching current filters.</td></tr>`;
+      return;
+    }
+
+    let rowsHtml = "";
+    filtered.forEach(s => {
+      const isNerd = s.group_name && s.group_name.startsWith("Nerd Tutors");
+      const subjsList = Array.isArray(s.subjects) && s.subjects.length > 0
+        ? s.subjects
+        : (isNerd ? ["Accountancy", "Economics", "Business Studies"] : []);
+      const subjsText = subjsList.join(", ");
+      const isActive = s.is_active !== false;
+
+      // Group options
+      const currentGroup = s.group_name || "";
+      let groupOptionsHtml = "";
+      let foundInStandard = false;
+      STANDARD_GROUPS.forEach(g => {
+        const isSel = currentGroup.toLowerCase() === g.toLowerCase();
+        if (isSel) foundInStandard = true;
+        groupOptionsHtml += `<option value="${escapeHtml(g)}" ${isSel ? "selected" : ""}>${escapeHtml(g)}</option>`;
+      });
+      if (currentGroup && !foundInStandard) {
+        groupOptionsHtml += `<option value="${escapeHtml(currentGroup)}" selected>${escapeHtml(currentGroup)}</option>`;
+      }
+      if (!currentGroup) {
+        groupOptionsHtml = `<option value="" selected>-- Select Group --</option>` + groupOptionsHtml;
+      }
+
+      rowsHtml += `
+        <tr id="cred-row-${s.id}" data-student-id="${s.id}">
+          <td style="padding: 0.5rem;">
+            <input type="text" class="cred-cell-input cred-cell-name" data-student-id="${s.id}" value="${escapeHtml(s.name)}" placeholder="Student Name" required />
+          </td>
+          <td style="padding: 0.5rem;">
+            <select class="cred-cell-select cred-cell-group" data-student-id="${s.id}">
+              ${groupOptionsHtml}
+            </select>
+          </td>
+          <td style="padding: 0.5rem;">
+            <input type="text" class="cred-cell-input cred-cell-subjects" data-student-id="${s.id}" value="${escapeHtml(subjsText)}" placeholder="e.g. Economics, Accountancy" />
+          </td>
+          <td style="padding: 0.5rem;">
+            <input type="text" class="cred-cell-input cred-cell-alias" data-student-id="${s.id}" value="${escapeHtml(s.student_id_alias || '')}" placeholder="ID (e.g. 1508)" style="font-family: monospace;" />
+          </td>
+          <td style="padding: 0.5rem;">
+            <input type="text" class="cred-cell-input cred-cell-password" data-student-id="${s.id}" value="${escapeHtml(s.password || '')}" placeholder="Password" style="font-family: monospace;" />
+          </td>
+          <td style="padding: 0.5rem;">
+            <select class="cred-cell-select cred-cell-status" data-student-id="${s.id}">
+              <option value="true" ${isActive ? "selected" : ""}>Active</option>
+              <option value="false" ${!isActive ? "selected" : ""}>Suspended</option>
+            </select>
+          </td>
+          <td style="padding: 0.5rem; text-align: center; white-space: nowrap;">
+            <button type="button" class="btn cred-row-save-btn" data-student-id="${s.id}" style="padding: 0.35rem 0.65rem; font-size: 0.8rem; margin-right: 0.35rem; background: #059669; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
+              💾 Save
+            </button>
+            <button type="button" class="btn btn-danger" onclick="deleteStudent('${s.id}')" title="Delete Student" style="padding: 0.35rem 0.6rem; font-size: 0.8rem; border-radius: 6px; cursor: pointer;">
+              🗑️
+            </button>
+          </td>
+        </tr>
+      `;
+    });
+
+    credTableBody.innerHTML = rowsHtml;
+
+    // Attach row modification trackers
+    credTableBody.querySelectorAll(".cred-cell-input, .cred-cell-select").forEach(el => {
+      el.addEventListener("input", markRowModified);
+      el.addEventListener("change", markRowModified);
+    });
+
+    // Attach row-save handlers
+    credTableBody.querySelectorAll(".cred-row-save-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        saveStudentRow(btn.dataset.studentId);
+      });
+    });
+  }
+
+  function markRowModified(e) {
+    const sId = e.target.dataset.studentId;
+    const row = document.getElementById(`cred-row-${sId}`);
+    if (row && !row.classList.contains("cred-row-modified")) {
+      row.classList.add("cred-row-modified");
+    }
+  }
+
+  // Save single student row
+  window.saveStudentRow = async function(id) {
+    const row = document.getElementById(`cred-row-${id}`);
+    if (!row) return;
+
+    const nameInput = row.querySelector(".cred-cell-name");
+    const groupSelect = row.querySelector(".cred-cell-group");
+    const subjectsInput = row.querySelector(".cred-cell-subjects");
+    const aliasInput = row.querySelector(".cred-cell-alias");
+    const passInput = row.querySelector(".cred-cell-password");
+    const statusSelect = row.querySelector(".cred-cell-status");
+    const saveBtn = row.querySelector(".cred-row-save-btn");
+
+    const name = nameInput.value.trim();
+    if (!name) {
+      alert("Student name cannot be empty.");
+      nameInput.focus();
+      return;
+    }
+
+    const group_name = groupSelect.value.trim();
+    const subjsStr = subjectsInput.value;
+    const subjects = subjsStr.split(",").map(x => x.trim()).filter(Boolean);
+    const student_id_alias = aliasInput.value.trim() || null;
+    const password = passInput.value.trim() || null;
+    const is_active = statusSelect.value === "true";
+
+    const prevBtnText = saveBtn.innerHTML;
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = "⏳ Saving...";
 
     try {
       const res = await fetch("/api/students", {
@@ -2387,20 +2520,146 @@ document.addEventListener("DOMContentLoaded", () => {
           "Authorization": `Bearer ${getCoachPassword()}`,
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ id, is_active: newActiveStatus })
+        body: JSON.stringify({
+          id,
+          name,
+          group_name,
+          subjects,
+          student_id_alias,
+          password,
+          is_active
+        })
       });
-      if (res.ok) {
-        window.loadCredentialsTable();
-        if (typeof loadExamData === "function") loadExamData();
-      } else {
-        const d = await res.json();
-        alert(d.error || "Failed to update status");
+
+      const d = await res.json();
+      if (!res.ok) {
+        throw new Error(d.error || "Failed to update student.");
       }
-    } catch (e) {
-      alert(e.message);
+
+      // Update in memory cache
+      const cached = (window.credentialsStudentsData || []).find(s => s.id === id);
+      if (cached) {
+        cached.name = name;
+        cached.group_name = group_name;
+        cached.subjects = subjects;
+        cached.student_id_alias = student_id_alias;
+        cached.password = password;
+        cached.is_active = is_active;
+      }
+
+      row.classList.remove("cred-row-modified");
+      row.classList.add("cred-row-saved");
+      saveBtn.innerHTML = "✓ Saved";
+      saveBtn.style.background = "#10b981";
+
+      setTimeout(() => {
+        saveBtn.innerHTML = prevBtnText;
+        saveBtn.style.background = "#059669";
+        saveBtn.disabled = false;
+        row.classList.remove("cred-row-saved");
+      }, 2000);
+
+      if (typeof loadExamData === "function") loadExamData();
+    } catch (err) {
+      saveBtn.disabled = false;
+      saveBtn.innerHTML = prevBtnText;
+      alert("Error saving: " + err.message);
     }
   };
-  
+
+  // Bulk save all students
+  window.saveAllCredentials = async function() {
+    if (!credTableBody) return;
+    const rows = credTableBody.querySelectorAll("tr[data-student-id]");
+    if (rows.length === 0) return;
+
+    if (!credSaveAllBtn) return;
+    const prevBtnHtml = credSaveAllBtn.innerHTML;
+    credSaveAllBtn.disabled = true;
+    credSaveAllBtn.innerHTML = "<span>⏳</span> <span>Saving All Changes...</span>";
+
+    if (credSaveStatus) credSaveStatus.style.display = "none";
+
+    const studentsPayload = [];
+    rows.forEach(tr => {
+      const id = tr.dataset.studentId;
+      const name = tr.querySelector(".cred-cell-name")?.value.trim() || "";
+      const group_name = tr.querySelector(".cred-cell-group")?.value.trim() || "";
+      const subjsStr = tr.querySelector(".cred-cell-subjects")?.value || "";
+      const subjects = subjsStr.split(",").map(x => x.trim()).filter(Boolean);
+      const student_id_alias = tr.querySelector(".cred-cell-alias")?.value.trim() || null;
+      const password = tr.querySelector(".cred-cell-password")?.value.trim() || null;
+      const is_active = tr.querySelector(".cred-cell-status")?.value === "true";
+
+      studentsPayload.push({
+        id,
+        name,
+        group_name,
+        subjects,
+        student_id_alias,
+        password,
+        is_active
+      });
+    });
+
+    try {
+      const res = await fetch("/api/students", {
+        method: "PUT",
+        headers: {
+          "Authorization": `Bearer ${getCoachPassword()}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ students: studentsPayload })
+      });
+
+      const d = await res.json();
+      if (!res.ok) {
+        throw new Error(d.error || "Failed to bulk update students.");
+      }
+
+      // Remove modified styling
+      rows.forEach(tr => {
+        tr.classList.remove("cred-row-modified");
+        tr.classList.add("cred-row-saved");
+        setTimeout(() => tr.classList.remove("cred-row-saved"), 1500);
+      });
+
+      if (credSaveStatus) {
+        credSaveStatus.textContent = `✓ Successfully saved ${d.count || studentsPayload.length} student records!`;
+        credSaveStatus.style.background = "rgba(16, 185, 129, 0.15)";
+        credSaveStatus.style.color = "#059669";
+        credSaveStatus.style.border = "1px solid rgba(16, 185, 129, 0.3)";
+        credSaveStatus.style.display = "block";
+        setTimeout(() => { credSaveStatus.style.display = "none"; }, 4000);
+      }
+
+      await window.loadCredentialsTable();
+      if (typeof loadExamData === "function") loadExamData();
+    } catch (err) {
+      if (credSaveStatus) {
+        credSaveStatus.textContent = "Error saving changes: " + err.message;
+        credSaveStatus.style.background = "rgba(239, 68, 68, 0.15)";
+        credSaveStatus.style.color = "#dc2626";
+        credSaveStatus.style.border = "1px solid rgba(239, 68, 68, 0.3)";
+        credSaveStatus.style.display = "block";
+      }
+      alert("Error: " + err.message);
+    } finally {
+      credSaveAllBtn.disabled = false;
+      credSaveAllBtn.innerHTML = prevBtnHtml;
+    }
+  };
+
+  if (credSaveAllBtn) {
+    credSaveAllBtn.addEventListener("click", window.saveAllCredentials);
+  }
+  if (credGroupFilter) {
+    credGroupFilter.addEventListener("change", renderCredentialsSpreadsheet);
+  }
+  if (credSearch) {
+    credSearch.addEventListener("input", renderCredentialsSpreadsheet);
+  }
+
   window.deleteStudent = async function(id) {
     if (!confirm("Are you sure you want to delete this student? All their marks will also be deleted.")) return;
     try {
@@ -2418,62 +2677,251 @@ document.addEventListener("DOMContentLoaded", () => {
     } catch (e) { alert(e.message); }
   };
 
-  window.editStudent = async function(id) {
-    const student = globalStudents.find(s => s.id === id);
-    if (!student) return;
-    
-    const newName = prompt("Enter new Name:", student.name);
-    if (newName === null) return;
-    const newAlias = prompt("Enter new Student ID (Alias):", student.student_id_alias);
-    if (newAlias === null) return;
-    const newPass = prompt("Enter new Password:", student.password);
-    if (newPass === null) return;
-    const newGroup = prompt("Enter new Group Name:", student.group_name);
-    if (newGroup === null) return;
+  // ============================================================
+  // STUDENT HELP DESK & QUERIES (COACH MANAGEMENT)
+  // ============================================================
+  let coachQueriesList = [];
 
-    let newSubjects = student.subjects || [];
-    if ((newGroup && newGroup.startsWith("Nerd Tutors")) || (student.group_name && student.group_name.startsWith("Nerd Tutors"))) {
-      const currentSubjs = Array.isArray(student.subjects) && student.subjects.length > 0
-        ? student.subjects.join(", ")
-        : "Accountancy, Economics, Business Studies";
-      const subjsStr = prompt("Enter Opted Subjects (comma-separated: Accountancy, Economics, Business Studies):", currentSubjs);
-      if (subjsStr === null) return;
-      newSubjects = subjsStr.split(",").map(x => x.trim()).filter(Boolean);
+  window.loadStudentQueries = async function() {
+    const tableBody = document.getElementById("coach-queries-table-body");
+    const unreadBadge = document.getElementById("tab-queries-unread-badge");
+    if (!tableBody) return;
+
+    try {
+      const res = await fetch("/api/students?type=queries", {
+        cache: "no-store",
+        headers: { "Authorization": `Bearer ${getCoachPassword()}` }
+      });
+      const data = await res.json();
+      coachQueriesList = data.queries || [];
+
+      // Update badge
+      const pendingCount = coachQueriesList.filter(q => q.status === "pending" || !q.coach_reply).length;
+      if (unreadBadge) {
+        if (pendingCount > 0) {
+          unreadBadge.textContent = pendingCount;
+          unreadBadge.style.display = "inline-block";
+        } else {
+          unreadBadge.style.display = "none";
+        }
+      }
+
+      renderCoachQueries();
+    } catch (err) {
+      tableBody.innerHTML = `<tr><td colspan="6" style="padding: 2rem; color: #dc2626; text-align: center;">Failed to load queries: ${escapeHtml(err.message)}</td></tr>`;
+    }
+  };
+
+  window.renderCoachQueries = function() {
+    const tableBody = document.getElementById("coach-queries-table-body");
+    if (!tableBody) return;
+
+    const filterStatus = document.getElementById("queries-filter-status")?.value || "";
+    const filterGroup = document.getElementById("queries-filter-group")?.value || "";
+    const searchVal = (document.getElementById("queries-search-input")?.value || "").toLowerCase().trim();
+
+    const filtered = coachQueriesList.filter(q => {
+      const isResolved = q.status === "resolved" || Boolean(q.coach_reply);
+      if (filterStatus === "pending" && isResolved) return false;
+      if (filterStatus === "resolved" && !isResolved) return false;
+
+      if (filterGroup && (q.group_name || "").toLowerCase() !== filterGroup.toLowerCase()) {
+        return false;
+      }
+
+      if (searchVal) {
+        const text = `${q.student_name || ""} ${q.group_name || ""} ${q.subject || ""} ${q.title || ""} ${q.message || ""}`.toLowerCase();
+        if (!text.includes(searchVal)) return false;
+      }
+      return true;
+    });
+
+    if (filtered.length === 0) {
+      tableBody.innerHTML = `<tr><td colspan="6" style="padding: 2.5rem; color: var(--text-muted); text-align: center;">No queries match the selected filters.</td></tr>`;
+      return;
     }
 
-    const statusPrompt = prompt("Enter Account Status ('active' or 'suspended'):", student.is_active !== false ? "active" : "suspended");
-    if (statusPrompt === null) return;
-    const newIsActive = statusPrompt.trim().toLowerCase() !== "suspended";
-    
-    try {
-      const res = await fetch("/api/students", {
-        method: "PUT",
-        headers: { 
-          "Authorization": `Bearer ${getCoachPassword()}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          id: id,
-          name: newName,
-          student_id_alias: newAlias,
-          password: newPass,
-          group_name: newGroup,
-          subjects: newSubjects,
-          is_active: newIsActive
-        })
-      });
-      if (res.ok) {
-        window.loadCredentialsTable();
-        loadExamData(); // reload dashboard data
-      } else {
-        const d = await res.json();
-        alert(d.error || "Failed to update");
+    let rowsHtml = "";
+    filtered.forEach(q => {
+      const isResolved = q.status === "resolved" || Boolean(q.coach_reply);
+      const statusBadge = isResolved
+        ? `<span style="background: rgba(16, 185, 129, 0.15); color: #059669; padding: 0.2rem 0.6rem; border-radius: 99px; font-size: 0.75rem; font-weight: 700; border: 1px solid rgba(16, 185, 129, 0.3);">✓ Resolved</span>`
+        : `<span style="background: rgba(245, 158, 11, 0.15); color: #d97706; padding: 0.2rem 0.6rem; border-radius: 99px; font-size: 0.75rem; font-weight: 700; border: 1px solid rgba(245, 158, 11, 0.3);">⏳ Pending</span>`;
+
+      let replySnippet = "";
+      if (q.coach_reply) {
+        replySnippet = `
+          <div style="margin-top: 0.4rem; padding: 0.35rem 0.6rem; background: rgba(59, 130, 246, 0.08); border-left: 2.5px solid var(--primary); border-radius: 0 4px 4px 0; font-size: 0.78rem; color: var(--text);">
+            <strong style="color: #2563eb;">Coach Reply:</strong> ${escapeHtml(q.coach_reply)}
+          </div>
+        `;
       }
-    } catch (e) { alert(e.message); }
+
+      const formattedDate = q.created_at ? new Date(q.created_at).toLocaleDateString("en-IN", {
+        day: "numeric",
+        month: "short",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true
+      }) : "-";
+
+      rowsHtml += `
+        <tr>
+          <td style="padding: 0.75rem;">
+            <strong style="color: var(--text);">${escapeHtml(q.student_name)}</strong>
+            <div style="font-size: 0.78rem; color: var(--text-muted);">${escapeHtml(q.group_name || "General")}</div>
+          </td>
+          <td style="padding: 0.75rem;">
+            <span class="score-pill" style="font-size: 0.72rem; padding: 0.15rem 0.45rem; background: rgba(59, 130, 246, 0.12); color: #2563eb;">${escapeHtml(q.subject || "General")}</span>
+          </td>
+          <td style="padding: 0.75rem; max-width: 380px;">
+            <div style="font-weight: 600; color: var(--text); margin-bottom: 0.2rem;">${escapeHtml(q.title)}</div>
+            <div style="font-size: 0.82rem; color: var(--text); opacity: 0.85; line-height: 1.4; white-space: pre-wrap; max-height: 80px; overflow-y: auto;">${escapeHtml(q.message)}</div>
+            ${replySnippet}
+          </td>
+          <td style="padding: 0.75rem; font-size: 0.8rem; color: var(--text-muted);">${formattedDate}</td>
+          <td style="padding: 0.75rem;">${statusBadge}</td>
+          <td style="padding: 0.75rem; text-align: center; white-space: nowrap;">
+            <button type="button" class="btn btn-primary" onclick="openQueryReplyModal('${q.id}')" style="padding: 0.35rem 0.65rem; font-size: 0.8rem; margin-right: 0.35rem; cursor: pointer;">
+              ${q.coach_reply ? "✏️ Edit Reply" : "💬 Reply"}
+            </button>
+            <button type="button" class="btn btn-danger" onclick="deleteStudentQuery('${q.id}')" title="Delete Query" style="padding: 0.35rem 0.55rem; font-size: 0.8rem; cursor: pointer;">
+              🗑️
+            </button>
+          </td>
+        </tr>
+      `;
+    });
+
+    tableBody.innerHTML = rowsHtml;
   };
+
+  // Reply Modal
+  window.openQueryReplyModal = function(queryId) {
+    const q = coachQueriesList.find(x => x.id === queryId);
+    if (!q) return;
+
+    const modal = document.getElementById("query-reply-modal");
+    if (!modal) return;
+
+    document.getElementById("reply-query-id").value = q.id;
+    document.getElementById("reply-modal-subject-badge").textContent = q.subject || "General";
+    document.getElementById("reply-modal-title").textContent = q.title || "Question";
+    document.getElementById("reply-modal-student-info").textContent = `From: ${q.student_name} (${q.group_name || "General"})`;
+    document.getElementById("reply-modal-message").textContent = q.message || "";
+    document.getElementById("coach-reply-input").value = q.coach_reply || "";
+    document.getElementById("reply-mark-resolved").checked = true;
+    document.getElementById("reply-submit-status").style.display = "none";
+
+    const dateEl = document.getElementById("reply-modal-date");
+    if (dateEl && q.created_at) {
+      dateEl.textContent = "Asked on " + new Date(q.created_at).toLocaleString("en-IN");
+    }
+
+    modal.style.display = "flex";
+  };
+
+  window.closeQueryReplyModal = function() {
+    const modal = document.getElementById("query-reply-modal");
+    if (modal) modal.style.display = "none";
+  };
+
+  const replyCloseBtn = document.getElementById("reply-modal-close-btn");
+  const replyCancelBtn = document.getElementById("reply-cancel-btn");
+  if (replyCloseBtn) replyCloseBtn.addEventListener("click", window.closeQueryReplyModal);
+  if (replyCancelBtn) replyCancelBtn.addEventListener("click", window.closeQueryReplyModal);
+
+  // Submit coach reply
+  const coachReplyForm = document.getElementById("coach-reply-form");
+  if (coachReplyForm) {
+    coachReplyForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const qId = document.getElementById("reply-query-id").value;
+      const replyText = document.getElementById("coach-reply-input").value.trim();
+      const markResolved = document.getElementById("reply-mark-resolved").checked;
+      const statusEl = document.getElementById("reply-submit-status");
+      const submitBtn = document.getElementById("reply-submit-btn");
+
+      if (!replyText) {
+        alert("Please enter a reply.");
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Sending Reply...";
+      statusEl.style.display = "none";
+
+      try {
+        const res = await fetch("/api/students", {
+          method: "PUT",
+          headers: {
+            "Authorization": `Bearer ${getCoachPassword()}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            type: "queries",
+            query_id: qId,
+            coach_reply: replyText,
+            status: markResolved ? "resolved" : "pending"
+          })
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || "Failed to submit reply.");
+        }
+
+        statusEl.textContent = "✓ Reply sent successfully!";
+        statusEl.style.color = "#059669";
+        statusEl.style.display = "block";
+
+        setTimeout(() => {
+          window.closeQueryReplyModal();
+          window.loadStudentQueries();
+        }, 800);
+      } catch (err) {
+        statusEl.textContent = err.message;
+        statusEl.style.color = "#dc2626";
+        statusEl.style.display = "block";
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Send Reply";
+      }
+    });
+  }
+
+  // Delete query
+  window.deleteStudentQuery = async function(queryId) {
+    if (!confirm("Are you sure you want to delete this query?")) return;
+    try {
+      const res = await fetch(`/api/students?type=queries&query_id=${encodeURIComponent(queryId)}`, {
+        method: "DELETE",
+        headers: { "Authorization": `Bearer ${getCoachPassword()}` }
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to delete query.");
+      }
+      window.loadStudentQueries();
+    } catch (err) {
+      alert("Error deleting query: " + err.message);
+    }
+  };
+
+  // Filters listeners
+  const qStatusFilter = document.getElementById("queries-filter-status");
+  const qGroupFilter = document.getElementById("queries-filter-group");
+  const qSearchInput = document.getElementById("queries-search-input");
+  const qRefreshBtn = document.getElementById("queries-refresh-btn");
+
+  if (qStatusFilter) qStatusFilter.addEventListener("change", window.renderCoachQueries);
+  if (qGroupFilter) qGroupFilter.addEventListener("change", window.renderCoachQueries);
+  if (qSearchInput) qSearchInput.addEventListener("input", window.renderCoachQueries);
+  if (qRefreshBtn) qRefreshBtn.addEventListener("click", window.loadStudentQueries);
 
   if (hasCoachPassword()) {
     window.loadCredentialsTable();
+    window.loadStudentQueries();
   }
 
   // EXPORT TO EXCEL - Performance Overview Marks

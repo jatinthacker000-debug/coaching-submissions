@@ -826,3 +826,53 @@ input:focus, select:focus, textarea:focus {
   background: var(--surface-hover) !important;
   border-color: var(--primary) !important;
 }
+
+/* Editable Credentials Spreadsheet */
+.cred-cell-input,
+.cred-cell-select {
+  width: 100%;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-card);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.88rem;
+  transition: border-color 0.15s, box-shadow 0.15s, background-color 0.15s;
+  box-sizing: border-box;
+}
+.cred-cell-input:focus,
+.cred-cell-select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+  background: var(--bg);
+}
+.cred-row-modified {
+  background-color: rgba(245, 158, 11, 0.08) !important;
+}
+.cred-row-saved {
+  background-color: rgba(16, 185, 129, 0.08) !important;
+  transition: background-color 0.8s ease;
+}
+
+/* Student Help Desk */
+.query-card {
+  background: var(--surface-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+  box-shadow: var(--shadow);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.query-card:hover {
+  box-shadow: var(--shadow-lg);
+}
+.query-reply-box {
+  background: rgba(59, 130, 246, 0.06);
+  border-left: 3px solid var(--primary);
+  border-radius: 0 8px 8px 0;
+  padding: 0.85rem 1rem;
+  margin-top: 0.75rem;
+}
