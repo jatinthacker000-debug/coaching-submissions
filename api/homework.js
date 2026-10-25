@@ -5,7 +5,7 @@ export default async function handler(req, res) {
   const supabase = getSupabase();
 
   if (req.method === "GET") {
-    const { student_id, homework_date, group_name, type } = req.query;
+    const { student_id, homework_date, group_name, type, start_date, end_date } = req.query;
 
     // 1. Fetch Student Status (for Student Dashboard)
     if (student_id) {
@@ -31,31 +31,39 @@ export default async function handler(req, res) {
       return sendJson(res, { events: data || [] });
     }
 
-    // 3. Fetch Status Grid (for Coach Dashboard)
-    if (homework_date && group_name) {
+    // 3. Fetch Status Grid (for Coach Dashboard) - Single Date or Date Range
+    const effectiveStart = start_date || homework_date;
+    const effectiveEnd = end_date || homework_date || start_date;
+
+    if (effectiveStart && effectiveEnd) {
       if (!await isCoachAuthorized(req)) return coachUnauthorized(res);
 
-      const { data: students, error: studErr } = await supabase
+      let studentQuery = supabase
         .from("students")
-        .select("id, name")
-        .eq("group_name", group_name)
+        .select("id, name, group_name")
         .order("name", { ascending: true });
 
+      if (group_name && group_name !== "ALL" && group_name !== "__ALL__") {
+        studentQuery = studentQuery.eq("group_name", group_name);
+      }
+
+      const { data: students, error: studErr } = await studentQuery;
       if (studErr) return sendError(res, studErr.message, 500);
 
-      if (students.length === 0) {
-         return sendJson(res, { students: [], statuses: [] });
+      if (!students || students.length === 0) {
+        return sendJson(res, { students: [], statuses: [] });
       }
 
       const studentIds = students.map(s => s.id);
       const { data: statuses, error: statErr } = await supabase
         .from("homework_status")
         .select("*")
-        .eq("homework_date", homework_date)
+        .gte("homework_date", effectiveStart)
+        .lte("homework_date", effectiveEnd)
         .in("student_id", studentIds);
 
       if (statErr) return sendError(res, statErr.message, 500);
-      return sendJson(res, { students, statuses });
+      return sendJson(res, { students, statuses: statuses || [] });
     }
 
     // 4. Fetch Homework Links and Calendar Events
