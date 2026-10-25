@@ -837,7 +837,7 @@ function exportStudentsCredentials() {
   if (!students || students.length === 0) {
     return alert("No student records available to export.");
   }
-  const headers = ["#", "Student Name", "Group", "Subjects", "Student ID", "Password", "Status"];
+  const headers = ["#", "Student Name", "Class / Institute", "Group (Batch)", "Subjects", "Student ID", "Password", "Status"];
   const aoaData = [headers];
 
   students.forEach((s, idx) => {
@@ -846,9 +846,12 @@ function exportStudentsCredentials() {
       ? s.subjects.join(", ") 
       : (isStudentNerd ? "Accountancy, Economics, Business Studies" : "-");
 
+    const effectiveClass = s.class_name || (typeof resolveDefaultClass === "function" ? resolveDefaultClass(s.class_name, s.group_name) : (s.class_name || "-"));
+
     aoaData.push([
       idx + 1,
       s.name,
+      effectiveClass || "-",
       s.group_name || "-",
       subjs,
       s.student_id_alias || s.id,
@@ -2269,13 +2272,18 @@ document.addEventListener("DOMContentLoaded", () => {
   if (addStudentBtn) {
     addStudentBtn.addEventListener("click", async () => {
       const nameEl = document.getElementById("add-student-name");
+      const classEl = document.getElementById("add-student-class");
       const groupEl = document.getElementById("add-student-group");
       const idAliasEl = document.getElementById("add-student-id-alias");
       const passwordEl = document.getElementById("add-student-password");
       const statusEl = document.getElementById("add-student-status");
       
       const name = nameEl.value.trim();
-      const group_name = groupEl.value;
+      const group_name = groupEl ? groupEl.value : "";
+      let class_name = classEl ? classEl.value.trim() : "";
+      if (!class_name) {
+        class_name = resolveDefaultClass("", group_name);
+      }
       const student_id_alias = idAliasEl ? idAliasEl.value.trim() : "";
       const password = passwordEl ? passwordEl.value.trim() : "";
       
@@ -2304,12 +2312,13 @@ document.addEventListener("DOMContentLoaded", () => {
       addStudentBtn.disabled = true;
       addStudentBtn.textContent = "Adding...";
       try {
-        await createStudent({ name, group_name, student_id_alias, password, subjects });
+        await createStudent({ name, group_name, class_name, student_id_alias, password, subjects });
         statusEl.textContent = "Student added successfully!";
         statusEl.style.color = "#059669";
         statusEl.style.display = "block";
         nameEl.value = "";
-        groupEl.value = "";
+        if (classEl) classEl.value = "";
+        if (groupEl) groupEl.value = "";
         if (idAliasEl) idAliasEl.value = "";
         if (passwordEl) passwordEl.value = "";
         if (addStudentSubjWrapper) addStudentSubjWrapper.style.display = "none";
@@ -2337,9 +2346,18 @@ document.addEventListener("DOMContentLoaded", () => {
   // ============================================================
   const credTableBody = document.getElementById("credentials-table-body");
   const credSearch = document.getElementById("credentials-search");
+  const credClassFilter = document.getElementById("credentials-class-filter");
   const credGroupFilter = document.getElementById("credentials-group-filter");
   const credSaveAllBtn = document.getElementById("cred-save-all-btn");
   const credSaveStatus = document.getElementById("cred-save-status");
+
+  const STANDARD_CLASSES = [
+    "Velocity",
+    "IGNITE coaching class",
+    "Epsilon Classes",
+    "Nerd Tutors",
+    "Nerd Tutors Nalanda"
+  ];
 
   const STANDARD_GROUPS = [
     "NEPS",
@@ -2352,6 +2370,16 @@ document.addEventListener("DOMContentLoaded", () => {
     "Nerd Tutors Nalanda"
   ];
 
+  function resolveDefaultClass(className, groupName) {
+    if (className && String(className).trim()) return String(className).trim();
+    const g = (groupName || "").trim().toLowerCase();
+    if (["lakshya", "prayas", "sankalp"].includes(g)) return "Velocity";
+    if (g === "nalanda") return "IGNITE coaching class";
+    if (g.startsWith("nerd tutors")) return groupName.trim();
+    return "";
+  }
+  window.resolveDefaultClass = resolveDefaultClass;
+
   window.credentialsStudentsData = [];
 
   window.loadCredentialsTable = async function() {
@@ -2363,24 +2391,37 @@ document.addEventListener("DOMContentLoaded", () => {
       });
       const data = await res.json();
       if (data.students) {
-        window.credentialsStudentsData = data.students;
+        window.credentialsStudentsData = data.students.map(st => ({
+          ...st,
+          class_name: st.class_name || resolveDefaultClass(st.class_name, st.group_name)
+        }));
         renderCredentialsSpreadsheet();
       }
     } catch (e) {
-      credTableBody.innerHTML = `<tr><td colspan="7" style="color:red; text-align:center; padding: 1.5rem;">Failed to load credentials: ${escapeHtml(e.message)}</td></tr>`;
+      credTableBody.innerHTML = `<tr><td colspan="8" style="color:red; text-align:center; padding: 1.5rem;">Failed to load credentials: ${escapeHtml(e.message)}</td></tr>`;
     }
   };
 
   function renderCredentialsSpreadsheet() {
     if (!credTableBody) return;
     const students = window.credentialsStudentsData || [];
+    const filterClass = credClassFilter ? credClassFilter.value.trim().toLowerCase() : "";
     const filterGroup = credGroupFilter ? credGroupFilter.value.trim().toLowerCase() : "";
     const searchTerm = credSearch ? credSearch.value.trim().toLowerCase() : "";
 
     const filtered = students.filter(s => {
+      const effectiveClass = (s.class_name || resolveDefaultClass(s.class_name, s.group_name) || "").trim();
       const sGroup = (s.group_name || "").toLowerCase().trim();
       const sName = (s.name || "").toLowerCase();
       const sAlias = (s.student_id_alias || "").toLowerCase();
+
+      if (filterClass) {
+        if (filterClass === "__none__") {
+          if (effectiveClass) return false;
+        } else if (effectiveClass.toLowerCase() !== filterClass) {
+          return false;
+        }
+      }
 
       if (filterGroup) {
         if (filterGroup === "__none__") {
@@ -2390,14 +2431,14 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
       if (searchTerm) {
-        const matches = sName.includes(searchTerm) || sGroup.includes(searchTerm) || sAlias.includes(searchTerm);
+        const matches = sName.includes(searchTerm) || sGroup.includes(searchTerm) || sAlias.includes(searchTerm) || effectiveClass.toLowerCase().includes(searchTerm);
         if (!matches) return false;
       }
       return true;
     });
 
     if (filtered.length === 0) {
-      credTableBody.innerHTML = `<tr><td colspan="7" style="color: var(--text-muted); text-align:center; padding: 2rem;">No students found matching current filters.</td></tr>`;
+      credTableBody.innerHTML = `<tr><td colspan="8" style="color: var(--text-muted); text-align:center; padding: 2rem;">No students found matching current filters.</td></tr>`;
       return;
     }
 
@@ -2409,6 +2450,19 @@ document.addEventListener("DOMContentLoaded", () => {
         : (isNerd ? ["Accountancy", "Economics", "Business Studies"] : []);
       const subjsText = subjsList.join(", ");
       const isActive = s.is_active !== false;
+
+      // Effective class & options
+      const currentClass = (s.class_name || resolveDefaultClass(s.class_name, s.group_name) || "").trim();
+      let classOptionsHtml = `<option value="">-- No Class --</option>`;
+      let foundInClassStandard = false;
+      STANDARD_CLASSES.forEach(c => {
+        const isSel = currentClass.toLowerCase() === c.toLowerCase();
+        if (isSel) foundInClassStandard = true;
+        classOptionsHtml += `<option value="${escapeHtml(c)}" ${isSel ? "selected" : ""}>${escapeHtml(c)}</option>`;
+      });
+      if (currentClass && !foundInClassStandard && currentClass !== "-- No Class --") {
+        classOptionsHtml += `<option value="${escapeHtml(currentClass)}" selected>${escapeHtml(currentClass)}</option>`;
+      }
 
       // Group options
       const currentGroup = (s.group_name || "").trim();
@@ -2427,6 +2481,11 @@ document.addEventListener("DOMContentLoaded", () => {
         <tr id="cred-row-${s.id}" data-student-id="${s.id}">
           <td style="padding: 0.5rem;">
             <input type="text" class="cred-cell-input cred-cell-name" data-student-id="${s.id}" value="${escapeHtml(s.name)}" placeholder="Student Name" required />
+          </td>
+          <td style="padding: 0.5rem;">
+            <select class="cred-cell-select cred-cell-class" data-student-id="${s.id}">
+              ${classOptionsHtml}
+            </select>
           </td>
           <td style="padding: 0.5rem;">
             <select class="cred-cell-select cred-cell-group" data-student-id="${s.id}">
@@ -2490,6 +2549,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!row) return;
 
     const nameInput = row.querySelector(".cred-cell-name");
+    const classSelect = row.querySelector(".cred-cell-class");
     const groupSelect = row.querySelector(".cred-cell-group");
     const subjectsInput = row.querySelector(".cred-cell-subjects");
     const aliasInput = row.querySelector(".cred-cell-alias");
@@ -2504,6 +2564,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
+    const class_name = classSelect ? classSelect.value.trim() : "";
     const group_name = groupSelect.value.trim();
     const subjsStr = subjectsInput.value;
     const subjects = subjsStr.split(",").map(x => x.trim()).filter(Boolean);
@@ -2525,6 +2586,7 @@ document.addEventListener("DOMContentLoaded", () => {
         body: JSON.stringify({
           id,
           name,
+          class_name,
           group_name,
           subjects,
           student_id_alias,
@@ -2549,6 +2611,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const cached = (window.credentialsStudentsData || []).find(s => s.id === id);
       if (cached) {
         cached.name = name;
+        cached.class_name = class_name;
         cached.group_name = group_name;
         cached.subjects = subjects;
         cached.student_id_alias = student_id_alias;
@@ -2597,6 +2660,7 @@ document.addEventListener("DOMContentLoaded", () => {
     targetRows.forEach(tr => {
       const id = tr.dataset.studentId;
       const name = tr.querySelector(".cred-cell-name")?.value.trim() || "";
+      const class_name = tr.querySelector(".cred-cell-class")?.value.trim() || "";
       const group_name = tr.querySelector(".cred-cell-group")?.value.trim() || "";
       const subjsStr = tr.querySelector(".cred-cell-subjects")?.value || "";
       const subjects = subjsStr.split(",").map(x => x.trim()).filter(Boolean);
@@ -2607,6 +2671,7 @@ document.addEventListener("DOMContentLoaded", () => {
       studentsPayload.push({
         id,
         name,
+        class_name,
         group_name,
         subjects,
         student_id_alias,
@@ -2672,6 +2737,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (credSaveAllBtn) {
     credSaveAllBtn.addEventListener("click", window.saveAllCredentials);
+  }
+  if (credClassFilter) {
+    credClassFilter.addEventListener("change", renderCredentialsSpreadsheet);
   }
   if (credGroupFilter) {
     credGroupFilter.addEventListener("change", renderCredentialsSpreadsheet);

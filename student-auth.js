@@ -193,6 +193,9 @@ document.addEventListener("DOMContentLoaded", () => {
         if (typeof initStudentReport === "function") {
           initStudentReport();
         }
+        if (typeof checkNewNotifications === "function") {
+          checkNewNotifications(true);
+        }
       } catch (e) {
         errEl.textContent = e.message;
         errEl.style.display = "block";

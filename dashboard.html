@@ -45,12 +45,12 @@
 
   <main id="dashboard-main" class="container main-content hidden">
     <!-- Dashboard Tabs -->
-    <div class="dashboard-tabs" style="display: flex; gap: 1rem; margin-bottom: 2rem; border-bottom: 1px solid var(--border); padding-bottom: 1rem; flex-wrap: wrap;">
-      <button class="btn btn-primary" id="nav-tab-resources" style="background: var(--primary); color: white;">Resources & Notifications</button>
-      <button class="btn" id="nav-tab-exams" style="background: var(--surface-card); color: var(--text);">Exams & Marks</button>
-      <button class="btn" id="nav-tab-queries" style="background: var(--surface-card); color: var(--text); display: flex; align-items: center; gap: 0.5rem;">
+    <div class="dashboard-tabs">
+      <button class="btn btn-primary" id="nav-tab-resources">Resources & Notifications</button>
+      <button class="btn" id="nav-tab-exams">Exams & Marks</button>
+      <button class="btn" id="nav-tab-queries">
         <span>Help Desk & Student Queries</span>
-        <span id="tab-queries-unread-badge" style="display: none; background: #ef4444; color: white; border-radius: 99px; padding: 0.1rem 0.5rem; font-size: 0.75rem; font-weight: 700;">0</span>
+        <span id="tab-queries-unread-badge" style="display: none; background: #ef4444; color: white; border-radius: 99px; padding: 0.1rem 0.5rem; font-size: 0.75rem; font-weight: 700; margin-left: 0.35rem;">0</span>
       </button>
     </div>
 
@@ -353,7 +353,7 @@
         <div class="form-group" style="margin-bottom: 1.5rem; margin-top: 1rem;"><label>Groups taking this exam (leave all unchecked to allow everyone)</label><div style="display: flex; gap: 1rem; flex-wrap: wrap;" id="exam-groups-container"><label style="display: flex; align-items: center; gap: 0.25rem;"><input type="checkbox" value="NEPS"> NEPS</label><label style="display: flex; align-items: center; gap: 0.25rem;"><input type="checkbox" value="NEGS"> NEGS</label><label style="display: flex; align-items: center; gap: 0.25rem;"><input type="checkbox" value="Nalanda"> Nalanda</label><label style="display: flex; align-items: center; gap: 0.25rem;"><input type="checkbox" value="Lakshya"> Lakshya</label><label style="display: flex; align-items: center; gap: 0.25rem;"><input type="checkbox" value="Sankalp"> Sankalp</label><label style="display: flex; align-items: center; gap: 0.25rem;"><input type="checkbox" value="Prayas"> Prayas</label><label style="display: flex; align-items: center; gap: 0.25rem;"><input type="checkbox" value="Nerd Tutors"> Nerd Tutors</label><label style="display: flex; align-items: center; gap: 0.25rem;"><input type="checkbox" value="Nerd Tutors Nalanda"> Nerd Tutors Nalanda</label></div></div>      </form>
 
       <!-- Pre-register Student -->
-      <div class="panel-header" style="margin-top: 3rem;"><div><h1>Add New Student</h1><p class="subtitle">Pre-register a student and assign them to a group, along with login credentials.</p></div></div>
+      <div class="panel-header" style="margin-top: 3rem;"><div><h1>Add New Student</h1><p class="subtitle">Pre-register a student and assign them to a class and group, along with login credentials.</p></div></div>
       <div class="submit-card wide-card" style="margin-bottom: 1rem;">
         <div class="form-row">
           <div class="form-group" style="flex: 1.5;">
@@ -361,15 +361,18 @@
             <input type="text" id="add-student-name" placeholder="Enter full name...">
           </div>
           <div class="form-group" style="flex: 1;">
-            <label for="add-student-id-alias">Student ID (e.g. 1508)</label>
-            <input type="text" id="add-student-id-alias" placeholder="Birthday DDMM...">
+            <label for="add-student-class">Class / Institute</label>
+            <select id="add-student-class">
+              <option value="">-- Auto-detect from Group --</option>
+              <option value="Velocity">Velocity</option>
+              <option value="IGNITE coaching class">IGNITE coaching class</option>
+              <option value="Epsilon Classes">Epsilon Classes</option>
+              <option value="Nerd Tutors">Nerd Tutors</option>
+              <option value="Nerd Tutors Nalanda">Nerd Tutors Nalanda</option>
+            </select>
           </div>
           <div class="form-group" style="flex: 1;">
-            <label for="add-student-password">Password</label>
-            <input type="text" id="add-student-password" placeholder="First name...">
-          </div>
-            <div class="form-group" style="flex: 1;">
-            <label for="add-student-group">Select Group</label>
+            <label for="add-student-group">Select Group (Batch)</label>
             <select id="add-student-group">
               <option value="">-- No Group --</option>
               <option value="NEPS">NEPS</option><option value="NEGS">NEGS</option><option value="Nalanda">Nalanda</option>
@@ -380,6 +383,16 @@
             </select>
           </div>
         </div>
+        <div class="form-row">
+          <div class="form-group" style="flex: 1;">
+            <label for="add-student-id-alias">Student ID (e.g. 1508)</label>
+            <input type="text" id="add-student-id-alias" placeholder="Birthday DDMM...">
+          </div>
+          <div class="form-group" style="flex: 1;">
+            <label for="add-student-password">Password</label>
+            <input type="text" id="add-student-password" placeholder="First name...">
+          </div>
+        </div>
         <div id="add-student-subjects-wrapper" style="display: none; margin-bottom: 1rem; padding: 0.75rem 1rem; background: var(--bg); border: 1px solid var(--border); border-radius: 8px;">
           <label style="font-weight: 600; display: block; margin-bottom: 0.5rem; font-size: 0.9rem;">Opted Subjects (Select up to 3):</label>
           <div style="display: flex; gap: 1.5rem; flex-wrap: wrap;">
@@ -388,7 +401,7 @@
             <label style="display: flex; align-items: center; gap: 0.35rem; cursor: pointer;"><input type="checkbox" id="add-subj-bst" value="Business Studies" checked> Business Studies</label>
           </div>
         </div>
-        <button class="btn btn-primary" id="add-student-btn">Add Student</button>
+        <button class="btn btn-primary" id="add-student-btn" style="width: auto; min-width: 160px;">Add Student</button>
         <p id="add-student-status" style="margin-top: 1rem; font-size: 0.9rem; font-weight: 500; display: none;"></p>
       </div>
 
@@ -403,6 +416,15 @@
         <!-- Controls & Bulk Save Toolbar -->
         <div style="margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
           <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+            <select id="credentials-class-filter" style="padding: 0.5rem 0.75rem; border-radius: 6px; border: 1px solid var(--border); background: var(--surface-card); color: var(--text); font-size: 0.88rem;">
+              <option value="">All Classes</option>
+              <option value="Velocity">Velocity</option>
+              <option value="IGNITE coaching class">Ignite</option>
+              <option value="Epsilon Classes">Epsilon Classes</option>
+              <option value="Nerd Tutors">Nerd Tutors</option>
+              <option value="Nerd Tutors Nalanda">Nerd Tutors Nalanda</option>
+              <option value="__NONE__">-- No Class --</option>
+            </select>
             <select id="credentials-group-filter" style="padding: 0.5rem 0.75rem; border-radius: 6px; border: 1px solid var(--border); background: var(--surface-card); color: var(--text); font-size: 0.88rem;">
               <option value="">All Groups</option>
               <option value="__NONE__">-- No Group --</option>
@@ -415,15 +437,15 @@
               <option value="Nerd Tutors">Nerd Tutors</option>
               <option value="Nerd Tutors Nalanda">Nerd Tutors Nalanda</option>
             </select>
-            <input type="text" id="credentials-search" placeholder="Search by name, group, or ID..." style="padding: 0.5rem; border-radius: 6px; border: 1px solid var(--border); width: 260px; background: var(--surface-card); color: var(--text); font-size: 0.88rem;">
+            <input type="text" id="credentials-search" placeholder="Search by name, class, group, or ID..." style="padding: 0.5rem; border-radius: 6px; border: 1px solid var(--border); width: 260px; background: var(--surface-card); color: var(--text); font-size: 0.88rem;">
           </div>
           
           <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
-            <button type="button" class="btn btn-primary" id="cred-save-all-btn" style="padding: 0.5rem 1.25rem; border-radius: 8px; background: linear-gradient(135deg, #10b981, #059669); color: white; display: flex; align-items: center; gap: 0.5rem; font-weight: 600; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);">
+            <button type="button" class="btn btn-primary" id="cred-save-all-btn" style="padding: 0.5rem 1.25rem; border-radius: 8px; background: linear-gradient(135deg, #10b981, #059669); color: white; display: flex; align-items: center; gap: 0.5rem; font-weight: 600; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3); width: auto;">
               <span>💾</span>
               <span>Save All Changes</span>
             </button>
-            <button class="btn btn-primary" id="export-credentials-excel-btn" style="padding: 0.5rem 1rem; border-radius: 8px; background: #059669; display: flex; align-items: center; gap: 0.5rem; font-weight: 600;">
+            <button class="btn btn-primary" id="export-credentials-excel-btn" style="padding: 0.5rem 1rem; border-radius: 8px; background: #059669; display: flex; align-items: center; gap: 0.5rem; font-weight: 600; width: auto;">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
               <span>Download Excel</span>
             </button>
@@ -436,9 +458,10 @@
           <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.88rem;">
             <thead style="border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--surface-card); z-index: 10;">
               <tr>
-                <th style="padding: 0.85rem 0.75rem; color: var(--text-muted); min-width: 160px;">Student Name</th>
-                <th style="padding: 0.85rem 0.75rem; color: var(--text-muted); min-width: 140px;">Group</th>
-                <th style="padding: 0.85rem 0.75rem; color: var(--text-muted); min-width: 200px;">Subjects</th>
+                <th style="padding: 0.85rem 0.75rem; color: var(--text-muted); min-width: 150px;">Student Name</th>
+                <th style="padding: 0.85rem 0.75rem; color: var(--text-muted); min-width: 140px;">Class / Institute</th>
+                <th style="padding: 0.85rem 0.75rem; color: var(--text-muted); min-width: 130px;">Group (Batch)</th>
+                <th style="padding: 0.85rem 0.75rem; color: var(--text-muted); min-width: 180px;">Subjects</th>
                 <th style="padding: 0.85rem 0.75rem; color: var(--text-muted); min-width: 120px;">Student ID</th>
                 <th style="padding: 0.85rem 0.75rem; color: var(--text-muted); min-width: 120px;">Password</th>
                 <th style="padding: 0.85rem 0.75rem; color: var(--text-muted); min-width: 110px;">Status</th>
@@ -446,12 +469,12 @@
               </tr>
             </thead>
             <tbody id="credentials-table-body">
-              <tr><td colspan="7" style="padding: 1.5rem; color: var(--text-muted); text-align: center;">Loading student credentials...</td></tr>
+              <tr><td colspan="8" style="padding: 1.5rem; color: var(--text-muted); text-align: center;">Loading student credentials...</td></tr>
             </tbody>
           </table>
         </div>
         <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: -1.5rem; margin-bottom: 2.5rem;">
-          💡 <strong>Tip:</strong> You can edit any cell directly (name, group dropdown, subjects, ID alias, password, or active status). Click <strong>Save</strong> on any row or <strong>Save All Changes</strong> above to apply updates.
+          💡 <strong>Tip:</strong> You can edit any cell directly (name, class dropdown, group dropdown, subjects, ID alias, password, or active status). Click <strong>Save</strong> on any row or <strong>Save All Changes</strong> above to apply updates.
         </p>
       </div>
 

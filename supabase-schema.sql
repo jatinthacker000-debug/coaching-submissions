@@ -142,4 +142,8 @@ CREATE INDEX IF NOT EXISTS student_queries_created_at_idx ON student_queries(cre
 CREATE INDEX IF NOT EXISTS student_queries_student_id_idx ON student_queries(student_id);
 CREATE INDEX IF NOT EXISTS student_queries_status_idx ON student_queries(status);
 
+-- NEW COACHING CLASS / INSTITUTE COLUMN FOR TARGETED PUSH NOTIFICATIONS
+ALTER TABLE students ADD COLUMN IF NOT EXISTS class_name TEXT DEFAULT '';
+CREATE INDEX IF NOT EXISTS students_class_name_idx ON students(class_name);
+
 

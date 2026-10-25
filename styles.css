@@ -876,3 +876,102 @@ input:focus, select:focus, textarea:focus {
   padding: 0.85rem 1rem;
   margin-top: 0.75rem;
 }
+
+/* Dashboard Navigation Tabs Bar (Horizontal Layout) */
+.dashboard-tabs {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 1rem !important;
+  margin-bottom: 2rem !important;
+  border-bottom: 1px solid var(--border) !important;
+  padding-bottom: 1rem !important;
+  align-items: center !important;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.dashboard-tabs::-webkit-scrollbar {
+  display: none;
+}
+.dashboard-tabs .btn {
+  width: auto !important;
+  flex: 1 1 0 !important;
+  min-width: 180px;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  padding: 0.85rem 1rem !important;
+  white-space: nowrap;
+}
+
+/* In-App Push Notification Toast Banner */
+.push-toast-banner {
+  position: fixed;
+  top: 1.25rem;
+  left: 50%;
+  transform: translateX(-50%) translateY(-150%);
+  background: var(--surface-card);
+  color: var(--text);
+  border: 1px solid var(--primary);
+  border-left: 5px solid var(--primary);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+  padding: 0.9rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  z-index: 10000;
+  max-width: 90vw;
+  width: 520px;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.35s ease;
+  opacity: 0;
+  pointer-events: none;
+}
+.push-toast-banner.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+.push-toast-banner .toast-icon {
+  font-size: 1.5rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.push-toast-banner .toast-content {
+  flex: 1;
+  min-width: 0;
+}
+.push-toast-banner .toast-title {
+  font-weight: 700;
+  font-size: 0.92rem;
+  margin-bottom: 0.2rem;
+  color: var(--primary);
+}
+.push-toast-banner .toast-message {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.push-toast-banner .toast-action-btn {
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.push-toast-banner .toast-close-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0.2rem;
+  line-height: 1;
+}
+

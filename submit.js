@@ -496,15 +496,124 @@ if (typeFilter) {
 
 // Notifications Logic
 let allNotifications = [];
+
+function getStudentTargetClass() {
+  try {
+    const raw = localStorage.getItem("student_info");
+    if (!raw) return "";
+    const info = JSON.parse(raw);
+    if (info.class_name && info.class_name.trim()) return info.class_name.trim();
+    const g = (info.group_name || "").trim().toLowerCase();
+    if (["lakshya", "prayas", "sankalp"].includes(g)) return "Velocity";
+    if (g === "nalanda") return "IGNITE coaching class";
+    if (g.startsWith("nerd tutors")) return info.group_name.trim();
+    return "";
+  } catch (_) {
+    return "";
+  }
+}
+
+function isNoticeForStudent(notice, studentClass) {
+  if (!notice) return false;
+  const subj = (notice.subject || "").trim().toLowerCase();
+  if (!subj || subj.includes("all institutes") || subj === "all" || subj === "general") {
+    return true;
+  }
+  if (!studentClass) return true;
+
+  const sc = studentClass.toLowerCase();
+  if (sc.includes("velocity") && subj.includes("velocity")) return true;
+  if ((sc.includes("ignite") || sc.includes("nalanda")) && (subj.includes("ignite") || subj.includes("nalanda"))) return true;
+  if (sc.includes("epsilon") && subj.includes("epsilon")) return true;
+  if (sc.includes("nerd tutors nalanda") && subj.includes("nerd tutors nalanda")) return true;
+  if (sc.includes("nerd tutors") && subj.includes("nerd tutors")) return true;
+
+  return subj.includes(sc);
+}
+
+function requestPushNotificationPermission() {
+  if ("Notification" in window && Notification.permission === "default") {
+    if (localStorage.getItem("student_token")) {
+      try {
+        Notification.requestPermission().then(() => {});
+      } catch (_) {}
+    }
+  }
+}
+
+function triggerPushNotification(latestNotice, targetClass) {
+  if (!latestNotice) return;
+  const lastPushedId = localStorage.getItem("padhrahi_last_pushed_notif_id");
+  if (lastPushedId === latestNotice.id) return;
+
+  localStorage.setItem("padhrahi_last_pushed_notif_id", latestNotice.id);
+
+  // 1. Browser Native Push Notification
+  if ("Notification" in window && Notification.permission === "granted") {
+    try {
+      new Notification(`📢 New Notice (${targetClass || 'Announcement'})`, {
+        body: latestNotice.title,
+        icon: "logo.jpg",
+        badge: "logo.jpg",
+        tag: latestNotice.id
+      });
+    } catch (_) {}
+  }
+
+  // 2. In-App Slide-Down Toast Banner
+  showInAppToastBanner(latestNotice, targetClass);
+}
+
+function showInAppToastBanner(notice, targetClass) {
+  let toast = document.getElementById("push-toast-banner");
+  if (!toast) {
+    toast = document.createElement("div");
+    toast.id = "push-toast-banner";
+    toast.className = "push-toast-banner";
+    toast.innerHTML = `
+      <div class="toast-icon">🔔</div>
+      <div class="toast-content">
+        <div class="toast-title" id="toast-banner-title">New Announcement</div>
+        <div class="toast-message" id="toast-banner-msg"></div>
+      </div>
+      <button class="toast-action-btn" id="toast-banner-view-btn">View</button>
+      <button class="toast-close-btn" id="toast-banner-close-btn">&times;</button>
+    `;
+    document.body.appendChild(toast);
+
+    document.getElementById("toast-banner-close-btn")?.addEventListener("click", () => {
+      toast.classList.remove("show");
+    });
+    document.getElementById("toast-banner-view-btn")?.addEventListener("click", () => {
+      toast.classList.remove("show");
+      const notifBell = document.getElementById("notif-bell-btn");
+      if (notifBell) notifBell.click();
+    });
+  }
+
+  const titleEl = document.getElementById("toast-banner-title");
+  const msgEl = document.getElementById("toast-banner-msg");
+  if (titleEl) titleEl.textContent = `📢 Notice for ${targetClass || "You"}`;
+  if (msgEl) msgEl.textContent = notice.title;
+
+  toast.classList.add("show");
+  setTimeout(() => {
+    toast.classList.remove("show");
+  }, 9000);
+}
+
 function renderNotifications(notesList) {
   allNotifications = (notesList || []).filter(n => n.grade === "NOTIFICATION");
+  const studentClass = getStudentTargetClass();
+  const relevantNotifs = allNotifications.filter(n => isNoticeForStudent(n, studentClass));
+
   const badge = document.getElementById("notif-badge");
   if (badge) {
     let unreadCount = 0;
     const lastSeenStr = localStorage.getItem("padhrahi_last_notif_seen");
     const lastSeenTime = lastSeenStr ? new Date(lastSeenStr).getTime() : 0;
     
-    allNotifications.forEach(n => {
+    relevantNotifs.forEach(n => {
       const notifTime = new Date(n.created_at).getTime();
       if (notifTime > lastSeenTime) {
         unreadCount++;
@@ -518,7 +627,12 @@ function renderNotifications(notesList) {
       badge.style.display = "none";
     }
   }
-  updateNotificationList("all");
+
+  // Request browser push permission on notification render
+  requestPushNotificationPermission();
+
+  // If student has a specific class, pre-filter notification view to their class or all
+  updateNotificationList(studentClass ? studentClass : "all");
 }
 
 function updateNotificationList(filterInst) {
@@ -526,10 +640,17 @@ function updateNotificationList(filterInst) {
   if (!notifList) return;
   notifList.innerHTML = "";
   
-  const filtered = allNotifications.filter(n => filterInst === "all" || (n.subject && n.subject.includes(filterInst)) || n.subject === "All Institutes");
+  const studentClass = getStudentTargetClass();
+  const filtered = allNotifications.filter(n => {
+    if (filterInst === "all") {
+      // If student is logged in, show notices matching their class or All Institutes
+      return isNoticeForStudent(n, studentClass);
+    }
+    return (n.subject && n.subject.toLowerCase().includes(filterInst.toLowerCase())) || n.subject === "All Institutes";
+  });
   
   if (filtered.length === 0) {
-    notifList.innerHTML = `<p class="muted-text text-center" style="margin-top: 1rem;">No new notifications.</p>`;
+    notifList.innerHTML = `<p class="muted-text text-center" style="margin-top: 1rem;">No new notifications for your class.</p>`;
     return;
   }
   
@@ -552,6 +673,53 @@ function updateNotificationList(filterInst) {
     notifList.appendChild(li);
   });
 }
+
+// Background checking for push notifications (Calm interval to stay well within Vercel limits)
+let lastNotificationCheckTime = Date.now();
+async function checkNewNotifications(force = false) {
+  const studentToken = localStorage.getItem("student_token");
+  if (!studentToken) return;
+
+  const now = Date.now();
+  // 3-minute cooldown to prevent excess function calls
+  if (!force && (now - lastNotificationCheckTime < 180000)) {
+    return;
+  }
+  lastNotificationCheckTime = now;
+
+  try {
+    const res = await fetch("/api/notes", { cache: "no-store" });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.notes) {
+        renderNotifications(data.notes);
+        
+        const studentClass = getStudentTargetClass();
+        const relevant = data.notes.filter(n => n.grade === "NOTIFICATION" && isNoticeForStudent(n, studentClass));
+        if (relevant.length > 0) {
+          relevant.sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+          const latest = relevant[0];
+          const lastSeenStr = localStorage.getItem("padhrahi_last_notif_seen");
+          const lastSeenTime = lastSeenStr ? new Date(lastSeenStr).getTime() : 0;
+          if (new Date(latest.created_at).getTime() > lastSeenTime) {
+            triggerPushNotification(latest, studentClass);
+          }
+        }
+      }
+    }
+  } catch (_) {}
+}
+window.checkNewNotifications = checkNewNotifications;
+
+// Calm 5-minute background check while tab is open
+setInterval(() => checkNewNotifications(false), 300000);
+
+// Check when student returns to tab
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") {
+    checkNewNotifications(false);
+  }
+});
 
 const notifBellBtn = document.getElementById("notif-bell-btn");
 const notifModal = document.getElementById("notif-modal");
