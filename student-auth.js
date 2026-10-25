@@ -193,13 +193,6 @@ document.addEventListener("DOMContentLoaded", () => {
         if (typeof initStudentReport === "function") {
           initStudentReport();
         }
-
-        // Trigger celebratory 3D countdown reveal on login
-        if (typeof window.triggerCountdownRevealModal === "function") {
-          setTimeout(() => {
-            window.triggerCountdownRevealModal();
-          }, 350);
-        }
       } catch (e) {
         errEl.textContent = e.message;
         errEl.style.display = "block";
