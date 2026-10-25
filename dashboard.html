@@ -783,48 +783,101 @@
           </div>
         </div>
       </div>
-      <!-- Homework Tracking Section -->
-      <div class="panel-header" style="margin-top: 3rem;">
+      <!-- Homework Tracking Section (Spreadsheet Grid) -->
+      <div class="panel-header" id="hw-track-header" style="margin-top: 3rem; display: flex; justify-content: space-between; align-items: flex-end; cursor: pointer; user-select: none;">
         <div>
-          <h1>Homework Tracking</h1>
-          <p class="subtitle">Select a group and date to track student homework.</p>
+          <h1 style="display: flex; align-items: center; gap: 0.5rem;">
+            <span>Homework Tracking (Spreadsheet Editor)</span>
+          </h1>
+          <p class="subtitle">Select date range and group to track student homework. Tick all with one click or select per cell, then save in bulk.</p>
         </div>
       </div>
-      <div class="submit-card" style="padding: 1.5rem;">
-        <div style="margin-bottom: 1.5rem; display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap;">
-          <div class="form-group" style="flex: 1; min-width: 200px;">
-            <label for="hw-track-date">Select Date</label>
-            <input type="date" id="hw-track-date">
+
+      <div class="submit-card wide-card" style="padding: 1.5rem; margin-bottom: 2rem;">
+        <!-- Filter Controls -->
+        <div style="display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap; margin-bottom: 1.25rem;">
+          <div class="form-group" style="flex: 1; min-width: 150px;">
+            <label for="hw-track-start-date">Start Date</label>
+            <input type="date" id="hw-track-start-date">
           </div>
-          <div class="form-group" style="flex: 1; min-width: 200px;">
+          <div class="form-group" style="flex: 1; min-width: 150px;">
+            <label for="hw-track-end-date">End Date</label>
+            <input type="date" id="hw-track-end-date">
+          </div>
+          <div class="form-group" style="flex: 1.2; min-width: 180px;">
             <label for="hw-track-group">Select Group</label>
             <select id="hw-track-group">
-              <option value="">Choose a group...</option>
-              <option value="NEPS">NEPS</option><option value="NEGS">NEGS</option><option value="Nalanda">Nalanda</option>
+              <option value="">All Groups</option>
+              <option value="Ignite">Ignite</option>
+              <option value="Velocity">Velocity</option>
+              <option value="Epsilon">Epsilon</option>
+              <option value="Nerd Tutors">Nerd Tutors</option>
+              <option value="Nerd Tutors Nalanda">Nerd Tutors Nalanda</option>
+              <option value="NEPS">NEPS</option>
+              <option value="NEGS">NEGS</option>
+              <option value="Nalanda">Nalanda</option>
               <option value="Lakshya">Lakshya</option>
               <option value="Sankalp">Sankalp</option>
               <option value="Prayas">Prayas</option>
-              <option value="Nerd Tutors">Nerd Tutors</option><option value="Nerd Tutors Nalanda">Nerd Tutors Nalanda</option>
             </select>
           </div>
-          <button id="hw-track-load-btn" class="btn btn-primary" style="width: auto; padding: 0.75rem 2rem;">Load Students</button>
+          <div class="form-group" style="flex: 1.2; min-width: 180px;">
+            <label for="hw-track-search">Search Student</label>
+            <input type="text" id="hw-track-search" placeholder="Search by name...">
+          </div>
+          <div style="display: flex; gap: 0.5rem; align-items: center; padding-bottom: 2px;">
+            <button id="hw-track-load-btn" class="btn btn-primary" style="padding: 0.75rem 1.5rem; font-weight: 600;">Load Records</button>
+          </div>
+        </div>
+
+        <!-- Date Presets & Action Toolbar -->
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border); margin-bottom: 1.25rem;">
+          <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+            <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 500;">Presets:</span>
+            <button type="button" id="hw-preset-today" class="btn" style="padding: 0.3rem 0.75rem; font-size: 0.82rem; background: var(--surface); border: 1px solid var(--border); color: var(--text);">Today</button>
+            <button type="button" id="hw-preset-yesterday" class="btn" style="padding: 0.3rem 0.75rem; font-size: 0.82rem; background: var(--surface); border: 1px solid var(--border); color: var(--text);">Yesterday</button>
+            <button type="button" id="hw-preset-week" class="btn" style="padding: 0.3rem 0.75rem; font-size: 0.82rem; background: var(--surface); border: 1px solid var(--border); color: var(--text);">Last 7 Days</button>
+          </div>
+
+          <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+            <button type="button" id="hw-track-tick-all-btn" class="btn" style="padding: 0.5rem 1rem; border-radius: 8px; background: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; color: #059669; font-weight: 600; display: flex; align-items: center; gap: 0.35rem;" title="Mark all loaded students as Done">
+              <span>✓</span> <span>Tick All as Done</span>
+            </button>
+            <button type="button" id="hw-track-save-btn" class="btn btn-primary" style="padding: 0.5rem 1.25rem; border-radius: 8px; background: linear-gradient(135deg, #10b981, #059669); font-weight: 600; display: flex; align-items: center; gap: 0.4rem;">
+              <span>💾</span> <span>Save All Changes</span>
+            </button>
+            <button type="button" id="hw-track-export-btn" class="btn btn-primary" style="padding: 0.5rem 1rem; border-radius: 8px; background: #059669; font-weight: 600; display: flex; align-items: center; gap: 0.4rem;">
+              <span>📊</span> <span>Export Excel</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Status message -->
+        <div id="hw-track-save-status" style="display: none; padding: 0.65rem 1rem; border-radius: 6px; margin-bottom: 1rem; font-size: 0.88rem; font-weight: 500;"></div>
+
+        <!-- Status Legend Guide -->
+        <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; margin-bottom: 1rem; font-size: 0.8rem; color: var(--text-muted); background: var(--bg); padding: 0.5rem 0.75rem; border-radius: 6px; border: 1px solid var(--border);">
+          <span style="font-weight: 600;">Status Legend:</span>
+          <span style="display: inline-flex; align-items: center; gap: 0.3rem;"><span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #059669;"></span> Done</span>
+          <span style="display: inline-flex; align-items: center; gap: 0.3rem;"><span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #7c3aed;"></span> Completed but late</span>
+          <span style="display: inline-flex; align-items: center; gap: 0.3rem;"><span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #d97706;"></span> Partial</span>
+          <span style="display: inline-flex; align-items: center; gap: 0.3rem;"><span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #dc2626;"></span> Incomplete</span>
+          <span style="display: inline-flex; align-items: center; gap: 0.3rem;"><span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #64748b;"></span> Absent</span>
         </div>
         
-        <div id="hw-track-container" style="display: none; overflow-x: auto;">
-          <table class="grid-table" style="width: 100%; border-collapse: collapse; text-align: left;">
-            <thead>
-              <tr>
-                <th style="width: 50px; text-align: center; padding: 0.5rem;">Sl no</th>
-                <th style="min-width: 150px; padding: 0.5rem;">Name of the student</th>
-                <th style="padding: 0.5rem;">Homework Status</th>
+        <!-- Spreadsheet Matrix -->
+        <div id="hw-track-container" style="display: none; overflow-x: auto; max-height: 540px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px;">
+          <table class="grid-table" style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.88rem;">
+            <thead style="position: sticky; top: 0; background: var(--surface-card); z-index: 10; border-bottom: 2px solid var(--border);">
+              <tr id="hw-track-thead-row">
+                <th style="width: 50px; text-align: center; padding: 0.75rem 0.5rem;">#</th>
+                <th style="min-width: 160px; padding: 0.75rem 0.75rem;">Student Name</th>
+                <th style="min-width: 120px; padding: 0.75rem 0.75rem;">Group</th>
+                <!-- Dynamic date columns injected here -->
               </tr>
             </thead>
             <tbody id="hw-track-body"></tbody>
           </table>
-          <div style="margin-top: 1.5rem; text-align: right;">
-            <span id="hw-track-save-status" style="margin-right: 1rem; font-weight: 500;"></span>
-            <button id="hw-track-save-btn" class="btn btn-primary" style="background: #059669;">Save Homework Status</button>
-          </div>
         </div>
       </div>
 

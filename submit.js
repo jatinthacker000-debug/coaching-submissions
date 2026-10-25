@@ -622,6 +622,206 @@ let publicExams = [];
 let publicMarks = [];
 let studentReportChart = null;
 
+function renderStudentReportChart({ isNerdStudent, distinctTerms, applicableExams, studentMarks, displaySubjects }) {
+  const canvas = document.getElementById("student-report-chart");
+  if (!canvas || typeof Chart === "undefined") return;
+
+  if (studentReportChart) {
+    try {
+      studentReportChart.destroy();
+    } catch (_) {}
+    studentReportChart = null;
+  }
+
+  const ctx = canvas.getContext("2d");
+
+  if (isNerdStudent) {
+    // GRADE 12 NERD TUTORS: 3-IN-1 STACKED BAR GRAPH (100% SCALE)
+    // Accountancy, Business Studies, Economics data combined in one single bar per exam term
+    const nerdSubjects = ["Accountancy", "Business Studies", "Economics"];
+    const subjectColors = {
+      "Accountancy": { bg: "rgba(59, 130, 246, 0.85)", border: "#2563eb" },
+      "Business Studies": { bg: "rgba(16, 185, 129, 0.85)", border: "#059669" },
+      "Economics": { bg: "rgba(245, 158, 11, 0.85)", border: "#d97706" }
+    };
+
+    // Store raw percentages for tooltips
+    const rawSubjectData = {};
+    nerdSubjects.forEach(s => { rawSubjectData[s] = []; });
+
+    const datasets = nerdSubjects.map(subj => {
+      const data = distinctTerms.map(term => {
+        const ex = applicableExams.find(e => e.name === term && e.subject === subj);
+        if (!ex) {
+          rawSubjectData[subj].push(null);
+          return 0;
+        }
+        const markObj = studentMarks.find(m => m.exam_id === ex.id);
+        if (!markObj || markObj.marks_obtained === null || markObj.marks_obtained === undefined) {
+          rawSubjectData[subj].push(null);
+          return 0;
+        }
+
+        const perc = (markObj.marks_obtained / ex.total_marks) * 100;
+        rawSubjectData[subj].push({
+          obtained: markObj.marks_obtained,
+          total: ex.total_marks,
+          perc: perc
+        });
+        // Scale by 1/3 so that all 3 subjects combined stack to 100%
+        return Number((perc / 3).toFixed(2));
+      });
+
+      return {
+        label: subj,
+        data: data,
+        backgroundColor: subjectColors[subj].bg,
+        borderColor: subjectColors[subj].border,
+        borderWidth: 1.5,
+        borderRadius: 4,
+        stack: 'nerdStack'
+      };
+    });
+
+    studentReportChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: distinctTerms,
+        datasets: datasets
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: {
+            stacked: true,
+            grid: { display: false },
+            ticks: { color: 'var(--text-muted, #64748b)', font: { weight: '600' } }
+          },
+          y: {
+            stacked: true,
+            min: 0,
+            max: 100,
+            ticks: {
+              callback: (v) => v + '%',
+              color: 'var(--text-muted, #64748b)',
+              stepSize: 20
+            },
+            grid: { color: 'rgba(148, 163, 184, 0.15)' }
+          }
+        },
+        plugins: {
+          legend: {
+            position: 'top',
+            labels: {
+              boxWidth: 12,
+              font: { weight: '600' },
+              color: 'var(--text, #1e293b)'
+            }
+          },
+          tooltip: {
+            backgroundColor: 'rgba(15, 23, 42, 0.95)',
+            padding: 10,
+            titleFont: { weight: 'bold', size: 13 },
+            callbacks: {
+              label: function(context) {
+                const subj = context.dataset.label;
+                const idx = context.dataIndex;
+                const rawObj = rawSubjectData[subj] && rawSubjectData[subj][idx];
+                const share = (context.raw || 0).toFixed(1);
+                if (rawObj) {
+                  return ` ${subj}: ${rawObj.obtained}/${rawObj.total} (${rawObj.perc.toFixed(1)}%) → Share: ${share}%`;
+                }
+                return ` ${subj}: Not Appeared (0%)`;
+              },
+              footer: function(tooltipItems) {
+                let totalHeight = 0;
+                tooltipItems.forEach(item => { totalHeight += (item.raw || 0); });
+                return `Total 3-Subject Combined Score: ${totalHeight.toFixed(1)}% / 100%`;
+              }
+            }
+          }
+        }
+      }
+    });
+  } else {
+    // GRADE 10: PROGRESS LINE GRAPH OVER EXAM TERMS
+    const progressData = [];
+    const rawScores = [];
+
+    distinctTerms.forEach(term => {
+      const ex = applicableExams.find(e => e.name === term);
+      const markObj = ex ? studentMarks.find(m => m.exam_id === ex.id) : null;
+      if (markObj && markObj.marks_obtained !== null && markObj.marks_obtained !== undefined) {
+        const perc = (markObj.marks_obtained / ex.total_marks) * 100;
+        progressData.push(Number(perc.toFixed(1)));
+        rawScores.push({ obtained: markObj.marks_obtained, total: ex.total_marks, perc: perc });
+      } else {
+        progressData.push(null);
+        rawScores.push(null);
+      }
+    });
+
+    studentReportChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: distinctTerms,
+        datasets: [{
+          label: 'Progress (%)',
+          data: progressData,
+          borderColor: '#3b82f6',
+          backgroundColor: 'rgba(59, 130, 246, 0.12)',
+          fill: true,
+          tension: 0.35,
+          borderWidth: 3,
+          pointBackgroundColor: '#3b82f6',
+          pointBorderColor: '#ffffff',
+          pointBorderWidth: 2,
+          pointRadius: 6,
+          pointHoverRadius: 9
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: {
+            grid: { display: false },
+            ticks: { color: 'var(--text-muted, #64748b)', font: { weight: '600' } }
+          },
+          y: {
+            min: 0,
+            max: 100,
+            ticks: {
+              callback: (v) => v + '%',
+              color: 'var(--text-muted, #64748b)',
+              stepSize: 20
+            },
+            grid: { color: 'rgba(148, 163, 184, 0.15)' }
+          }
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: 'rgba(15, 23, 42, 0.95)',
+            padding: 10,
+            callbacks: {
+              label: function(context) {
+                const idx = context.dataIndex;
+                const rawObj = rawScores[idx];
+                if (rawObj) {
+                  return ` Score: ${rawObj.obtained}/${rawObj.total} (${context.raw}%)`;
+                }
+                return ` Score: N/A`;
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+}
+
 function getExamTermRank(name = "") {
   const n = (name || "").toLowerCase().trim();
 
@@ -1069,6 +1269,22 @@ function renderStudentReportContent(forcedStudentId = null) {
           </div>
         </div>
         ` : ''}
+
+        <!-- PERFORMANCE / PROGRESS GRAPH -->
+        <div style="margin-top: 1.5rem; border-top: 1px solid var(--border); padding-top: 1.25rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+            <p style="margin: 0; font-weight: 700; font-size: 1rem; color: var(--text); display: flex; align-items: center; gap: 0.5rem;">
+              <span>📊</span>
+              <span>${isNerdStudent ? '3-Subject Performance Bar Graph' : 'Progress & Performance Graph'}</span>
+            </p>
+            <span style="font-size: 0.8rem; font-weight: 600; color: var(--primary); background: rgba(59, 130, 246, 0.1); padding: 0.25rem 0.65rem; border-radius: 99px; border: 1px solid rgba(59, 130, 246, 0.25);">
+              ${isNerdStudent ? 'All 3 Subjects in 1 Bar (100% Scale)' : '0% - 100% Progress Scale'}
+            </span>
+          </div>
+          <div style="position: relative; height: 280px; width: 100%;">
+            <canvas id="student-report-chart"></canvas>
+          </div>
+        </div>
       </div>
       `;
     }
@@ -1078,50 +1294,74 @@ function renderStudentReportContent(forcedStudentId = null) {
   html += `<div id="hw-report-container"></div>`;
   container.innerHTML = html;
 
+  if (hasExams && applicableExams.length > 0) {
+    renderStudentReportChart({ isNerdStudent, distinctTerms, applicableExams, studentMarks, displaySubjects });
+  }
+
   // Fetch and render homework status
   fetch(`/api/homework?student_id=${studentId}`)
     .then(res => res.json())
     .then(data => {
       if (data.statuses && data.statuses.length > 0) {
         let hwHtml = `
-        <div style="margin-top: 2rem;">
-          <h3 style="margin-bottom: 1rem; color: var(--text);">Homework Record</h3>
-          <div class="submit-card" style="padding: 0; overflow-x: auto;">
-            <table style="width: 100%; border-collapse: collapse; text-align: left; background: var(--surface);">
-              <thead>
-                <tr style="border-bottom: 2px solid var(--border);">
-                  <th style="padding: 1rem; color: var(--text-muted); font-weight: 600;">Date</th>
-                  <th style="padding: 1rem; color: var(--text-muted); font-weight: 600;">Status</th>
-                </tr>
-              </thead>
-              <tbody>
+        <details class="hw-collapsible-card" style="background: var(--surface-card); border: 1px solid var(--border); border-radius: 12px; margin-top: 1.5rem; box-shadow: var(--shadow);">
+          <summary style="padding: 1.1rem 1.25rem; cursor: pointer; list-style: none; display: flex; align-items: center; justify-content: space-between; outline: none; user-select: none;">
+            <div style="display: flex; align-items: center; gap: 0.6rem;">
+              <span style="font-size: 1.2rem;">📋</span>
+              <h3 style="margin: 0; font-size: 1.05rem; color: var(--text);">Homework Records (${data.statuses.length} entries)</h3>
+            </div>
+            <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 500;">Click to view / collapse &#9660;</span>
+          </summary>
+          <div style="padding: 0 1.25rem 1.25rem 1.25rem; border-top: 1px solid var(--border);">
+            <div class="submit-card" style="padding: 0; overflow-x: auto; margin-top: 1rem; border: none; box-shadow: none;">
+              <table style="width: 100%; border-collapse: collapse; text-align: left; background: var(--surface);">
+                <thead>
+                  <tr style="border-bottom: 2px solid var(--border);">
+                    <th style="padding: 0.85rem 1rem; color: var(--text-muted); font-weight: 600; font-size: 0.85rem;">Date</th>
+                    <th style="padding: 0.85rem 1rem; color: var(--text-muted); font-weight: 600; font-size: 0.85rem;">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
         `;
         
         data.statuses.forEach(st => {
           let badgeColor = "#059669";
           let badgeBg = "#dcfce7";
-          if (st.status === 'Partial') {
+          let badgeIcon = "✓";
+
+          if (st.status === 'Completed but late') {
+            badgeColor = "#7c3aed";
+            badgeBg = "#ede9fe";
+            badgeIcon = "⏰";
+          } else if (st.status === 'Partial') {
             badgeColor = "#d97706";
             badgeBg = "#fef3c7";
+            badgeIcon = "⚠️";
           } else if (st.status === 'Incomplete') {
             badgeColor = "#dc2626";
             badgeBg = "#fee2e2";
+            badgeIcon = "✗";
+          } else if (st.status === 'Absent') {
+            badgeColor = "#475569";
+            badgeBg = "#f1f5f9";
+            badgeIcon = "🚫";
           }
           
           hwHtml += `
             <tr style="border-bottom: 1px solid var(--border);">
-              <td style="padding: 1rem; font-weight: 500;">${st.homework_date}</td>
-              <td style="padding: 1rem;">
-                <span style="background: ${badgeBg}; color: ${badgeColor}; padding: 0.25rem 0.75rem; border-radius: 9999px; font-weight: 600; font-size: 0.85rem;">
-                  ${escapeHtml(st.status)}
+              <td style="padding: 0.85rem 1rem; font-weight: 500; font-size: 0.9rem;">${st.homework_date}</td>
+              <td style="padding: 0.85rem 1rem;">
+                <span style="background: ${badgeBg}; color: ${badgeColor}; padding: 0.25rem 0.75rem; border-radius: 9999px; font-weight: 600; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 0.35rem;">
+                  <span>${badgeIcon}</span> <span>${escapeHtml(st.status)}</span>
                 </span>
               </td>
             </tr>
           `;
         });
         
-        hwHtml += `</tbody></table></div></div>`;
-        document.getElementById("hw-report-container").innerHTML = hwHtml;
+        hwHtml += `</tbody></table></div></div></details>`;
+        const hwContainer = document.getElementById("hw-report-container");
+        if (hwContainer) hwContainer.innerHTML = hwHtml;
       }
     })
     .catch(err => console.error("Failed to load homework tracking:", err));

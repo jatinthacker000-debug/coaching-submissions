@@ -3210,8 +3210,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const todayStr = new Date().toISOString().split('T')[0];
   const hwDateInput = document.getElementById('hw-date');
   if (hwDateInput && !hwDateInput.value) hwDateInput.value = todayStr;
-  const hwTrackDateInput = document.getElementById('hw-track-date');
-  if (hwTrackDateInput && !hwTrackDateInput.value) hwTrackDateInput.value = todayStr;
+  const hwTrackStartDate = document.getElementById('hw-track-start-date');
+  if (hwTrackStartDate && !hwTrackStartDate.value) hwTrackStartDate.value = todayStr;
+  const hwTrackEndDate = document.getElementById('hw-track-end-date');
+  if (hwTrackEndDate && !hwTrackEndDate.value) hwTrackEndDate.value = todayStr;
 
   const hwGroupSelect = document.getElementById('hw-group');
   const hwLinkInput = document.getElementById('hw-link');
@@ -3608,126 +3610,462 @@ window.deleteCalendarEvent = async function(id) {
 };
 
 
-// --- HOMEWORK TRACKING ---
-const hwTrackDateInput = document.getElementById("hw-track-date");
+// --- HOMEWORK TRACKING (SPREADSHEET EDITOR) ---
+const hwTrackStartDateInput = document.getElementById("hw-track-start-date");
+const hwTrackEndDateInput = document.getElementById("hw-track-end-date");
 const hwTrackGroupSelect = document.getElementById("hw-track-group");
+const hwTrackSearchInput = document.getElementById("hw-track-search");
 const hwTrackLoadBtn = document.getElementById("hw-track-load-btn");
 const hwTrackContainer = document.getElementById("hw-track-container");
+const hwTrackTheadRow = document.getElementById("hw-track-thead-row");
 const hwTrackBody = document.getElementById("hw-track-body");
 const hwTrackSaveBtn = document.getElementById("hw-track-save-btn");
 const hwTrackSaveStatus = document.getElementById("hw-track-save-status");
+const hwTrackTickAllBtn = document.getElementById("hw-track-tick-all-btn");
+const hwTrackExportBtn = document.getElementById("hw-track-export-btn");
 
+const hwPresetToday = document.getElementById("hw-preset-today");
+const hwPresetYesterday = document.getElementById("hw-preset-yesterday");
+const hwPresetWeek = document.getElementById("hw-preset-week");
+
+const HW_STATUS_OPTIONS = [
+  { value: "Done", label: "Done", icon: "✓", color: "#059669", bg: "rgba(16, 185, 129, 0.12)", border: "#10b981" },
+  { value: "Completed but late", label: "Completed but late", icon: "⏰", color: "#7c3aed", bg: "rgba(124, 58, 237, 0.12)", border: "#8b5cf6" },
+  { value: "Partial", label: "Partial", icon: "⚠️", color: "#d97706", bg: "rgba(245, 158, 11, 0.12)", border: "#f59e0b" },
+  { value: "Incomplete", label: "Incomplete", icon: "✗", color: "#dc2626", bg: "rgba(239, 68, 68, 0.12)", border: "#ef4444" },
+  { value: "Absent", label: "Absent", icon: "🚫", color: "#64748b", bg: "rgba(100, 116, 139, 0.12)", border: "#94a3b8" }
+];
+
+let currentHwStudents = [];
+let currentHwStatuses = {}; // key: `${studentId}_${date}` -> status value
+let currentHwDates = [];
+let dirtyHwCells = new Set();
+
+function getHwStatusStyle(statusVal) {
+  const opt = HW_STATUS_OPTIONS.find(o => o.value === statusVal) || HW_STATUS_OPTIONS[0];
+  return `color: ${opt.color}; background: ${opt.bg}; border-color: ${opt.border}; font-weight: 600;`;
+}
+
+function generateDateRange(startStr, endStr) {
+  const dates = [];
+  let curr = new Date(startStr);
+  const end = new Date(endStr);
+  if (isNaN(curr.getTime()) || isNaN(end.getTime())) return dates;
+  if (curr > end) {
+    // Swap if end is before start
+    const temp = curr;
+    curr = end;
+    end = temp;
+  }
+  // Max 31 days safeguard
+  let count = 0;
+  while (curr <= end && count < 31) {
+    dates.push(curr.toISOString().split("T")[0]);
+    curr.setDate(curr.getDate() + 1);
+    count++;
+  }
+  return dates;
+}
+
+function formatDateHeader(dateStr) {
+  const d = new Date(dateStr + "T00:00:00");
+  const day = d.getDate();
+  const month = d.toLocaleString("default", { month: "short" });
+  const weekday = d.toLocaleString("default", { weekday: "short" });
+  return `${day} ${month} (${weekday})`;
+}
+
+function renderHwGrid() {
+  if (!hwTrackContainer || !hwTrackTheadRow || !hwTrackBody) return;
+
+  const searchQuery = (hwTrackSearchInput ? hwTrackSearchInput.value : "").trim().toLowerCase();
+  const filteredStudents = currentHwStudents.filter(st => {
+    if (!searchQuery) return true;
+    return (st.name || "").toLowerCase().includes(searchQuery) ||
+           (st.group_name || "").toLowerCase().includes(searchQuery);
+  });
+
+  // 1. Build Header Row
+  let theadHtml = `
+    <th style="width: 50px; text-align: center; padding: 0.75rem 0.5rem;">#</th>
+    <th style="min-width: 170px; padding: 0.75rem 0.75rem;">Student Name</th>
+    <th style="min-width: 130px; padding: 0.75rem 0.75rem;">Group</th>
+  `;
+
+  currentHwDates.forEach(date => {
+    theadHtml += `
+      <th style="text-align: center; min-width: 160px; padding: 0.6rem 0.5rem; background: var(--surface-card);">
+        <div style="font-size: 0.85rem; font-weight: 700; color: var(--text);">${formatDateHeader(date)}</div>
+        <div style="margin-top: 0.35rem;">
+          <button type="button" class="btn hw-col-tick-btn" data-date="${date}" style="padding: 0.2rem 0.55rem; font-size: 0.75rem; background: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; color: #059669; border-radius: 4px; font-weight: 600; cursor: pointer;" title="Tick all as Done for ${date}">
+            ✓ Tick All
+          </button>
+        </div>
+      </th>
+    `;
+  });
+  hwTrackTheadRow.innerHTML = theadHtml;
+
+  // 2. Build Body Rows
+  if (filteredStudents.length === 0) {
+    const colCount = 3 + currentHwDates.length;
+    hwTrackBody.innerHTML = `<tr><td colspan="${colCount}" style="text-align: center; padding: 2rem; color: var(--text-muted);">No students found matching your filters.</td></tr>`;
+    hwTrackContainer.style.display = "block";
+    return;
+  }
+
+  let bodyHtml = "";
+  filteredStudents.forEach((st, idx) => {
+    bodyHtml += `
+      <tr style="border-bottom: 1px solid var(--border);">
+        <td style="text-align: center; padding: 0.6rem 0.5rem; font-weight: 600; color: var(--text-muted);">${idx + 1}</td>
+        <td style="padding: 0.6rem 0.75rem; font-weight: 600; color: var(--text);">${escapeHtml(st.name)}</td>
+        <td style="padding: 0.6rem 0.75rem;">
+          <span style="font-size: 0.8rem; background: var(--bg); padding: 0.2rem 0.55rem; border-radius: 4px; border: 1px solid var(--border); color: var(--text-muted); font-weight: 500;">
+            ${escapeHtml(st.group_name || "Unassigned")}
+          </span>
+        </td>
+    `;
+
+    currentHwDates.forEach(date => {
+      const key = `${st.id}_${date}`;
+      const statusVal = currentHwStatuses[key] || "Done";
+      const isDirty = dirtyHwCells.has(key);
+      const styleStr = getHwStatusStyle(statusVal);
+
+      bodyHtml += `
+        <td style="padding: 0.5rem; text-align: center; ${isDirty ? 'background: rgba(59, 130, 246, 0.05);' : ''}">
+          <select class="hw-cell-select" data-student-id="${st.id}" data-date="${date}" style="width: 100%; max-width: 155px; padding: 0.4rem 0.5rem; border-radius: 6px; font-size: 0.82rem; cursor: pointer; border: 1.5px solid; transition: all 0.2s; ${styleStr}">
+            ${HW_STATUS_OPTIONS.map(opt => `
+              <option value="${opt.value}" ${opt.value === statusVal ? 'selected' : ''} style="color: ${opt.color}; background: var(--surface);">
+                ${opt.icon} ${opt.label}
+              </option>
+            `).join("")}
+          </select>
+        </td>
+      `;
+    });
+
+    bodyHtml += `</tr>`;
+  });
+
+  hwTrackBody.innerHTML = bodyHtml;
+  hwTrackContainer.style.display = "block";
+
+  // Attach Change Listeners to each cell select
+  document.querySelectorAll(".hw-cell-select").forEach(sel => {
+    sel.addEventListener("change", (e) => {
+      const target = e.target;
+      const sId = target.dataset.studentId;
+      const dStr = target.dataset.date;
+      const newVal = target.value;
+      const key = `${sId}_${dStr}`;
+
+      currentHwStatuses[key] = newVal;
+      dirtyHwCells.add(key);
+
+      // Update styling directly
+      const opt = HW_STATUS_OPTIONS.find(o => o.value === newVal) || HW_STATUS_OPTIONS[0];
+      target.style.color = opt.color;
+      target.style.backgroundColor = opt.bg;
+      target.style.borderColor = opt.border;
+
+      if (hwTrackSaveStatus) {
+        hwTrackSaveStatus.style.display = "block";
+        hwTrackSaveStatus.textContent = `Unsaved changes (${dirtyHwCells.size} cells). Click 'Save All Changes' when done.`;
+        hwTrackSaveStatus.style.color = "#d97706";
+        hwTrackSaveStatus.style.background = "rgba(245, 158, 11, 0.1)";
+        hwTrackSaveStatus.style.border = "1px solid rgba(245, 158, 11, 0.3)";
+      }
+    });
+  });
+
+  // Attach Column Tick Listeners
+  document.querySelectorAll(".hw-col-tick-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const targetDate = btn.dataset.date;
+      if (!targetDate) return;
+
+      filteredStudents.forEach(st => {
+        const key = `${st.id}_${targetDate}`;
+        currentHwStatuses[key] = "Done";
+        dirtyHwCells.add(key);
+      });
+
+      // Update DOM selects for that column immediately
+      document.querySelectorAll(`.hw-cell-select[data-date="${targetDate}"]`).forEach(sel => {
+        sel.value = "Done";
+        const opt = HW_STATUS_OPTIONS[0];
+        sel.style.color = opt.color;
+        sel.style.backgroundColor = opt.bg;
+        sel.style.borderColor = opt.border;
+      });
+
+      if (hwTrackSaveStatus) {
+        hwTrackSaveStatus.style.display = "block";
+        hwTrackSaveStatus.textContent = `Ticked all as Done for ${formatDateHeader(targetDate)}. Remember to click 'Save All Changes'.`;
+        hwTrackSaveStatus.style.color = "#059669";
+        hwTrackSaveStatus.style.background = "rgba(16, 185, 129, 0.1)";
+        hwTrackSaveStatus.style.border = "1px solid rgba(16, 185, 129, 0.3)";
+      }
+    });
+  });
+}
+
+// LOAD HOMEWORK DATA
 if (hwTrackLoadBtn) {
-  let currentHwTrackingData = [];
-  
   hwTrackLoadBtn.addEventListener("click", async () => {
-    const date = hwTrackDateInput.value;
+    const startDate = hwTrackStartDateInput.value;
+    const endDate = hwTrackEndDateInput.value || startDate;
     const group = hwTrackGroupSelect.value;
-    
-    if (!date || !group) {
-      return alert("Please select both a date and a group.");
+
+    if (!startDate) {
+      return alert("Please select at least a Start Date.");
     }
-    
+
     hwTrackLoadBtn.disabled = true;
     hwTrackLoadBtn.textContent = "Loading...";
-    
+
     try {
-      const res = await fetch(`/api/homework?homework_date=${date}&group_name=${encodeURIComponent(group)}`, {
+      currentHwDates = generateDateRange(startDate, endDate);
+      if (currentHwDates.length === 0) {
+        alert("Invalid date range selected.");
+        hwTrackLoadBtn.disabled = false;
+        hwTrackLoadBtn.textContent = "Load Records";
+        return;
+      }
+
+      let url = `/api/homework?start_date=${encodeURIComponent(startDate)}&end_date=${encodeURIComponent(endDate)}`;
+      if (group) {
+        url += `&group_name=${encodeURIComponent(group)}`;
+      }
+
+      const res = await fetch(url, {
         headers: { "Authorization": `Bearer ${getCoachPassword()}` }
       });
       const data = await res.json();
-      
+
       if (res.ok) {
-        currentHwTrackingData = data.students || [];
+        currentHwStudents = data.students || [];
         const existingStatuses = data.statuses || [];
-        
-        let bodyHtml = "";
-        currentHwTrackingData.forEach((st, idx) => {
-          const existingRecord = existingStatuses.find(s => s.student_id === st.id);
-          const statusVal = existingRecord ? existingRecord.status : "Done";
-          
-          bodyHtml += `<tr>
-            <td style="text-align: center; padding: 0.5rem;">${idx + 1}</td>
-            <td style="font-weight: 500; padding: 0.5rem;">${escapeHtml(st.name)}</td>
-            <td style="padding: 0.5rem;">
-              <select class="hw-status-select" data-student-id="${st.id}" style="padding: 0.5rem; border-radius: 4px; border: 1px solid var(--border); background: var(--surface);">
-                <option value="Done" ${statusVal === 'Done' ? 'selected' : ''}>Done</option>
-                <option value="Partial" ${statusVal === 'Partial' ? 'selected' : ''}>Partial</option>
-                <option value="Incomplete" ${statusVal === 'Incomplete' ? 'selected' : ''}>Incomplete</option>
-              </select>
-            </td>
-          </tr>`;
+
+        // Map statuses by studentId_date
+        currentHwStatuses = {};
+        dirtyHwCells.clear();
+
+        existingStatuses.forEach(st => {
+          if (st.student_id && st.homework_date) {
+            currentHwStatuses[`${st.student_id}_${st.homework_date}`] = st.status || "Done";
+          }
         });
-        
-        if (currentHwTrackingData.length === 0) {
-          bodyHtml = `<tr><td colspan="3" style="text-align: center; padding: 1.5rem; color: var(--text-muted);">No students found in this group.</td></tr>`;
-          hwTrackSaveBtn.style.display = "none";
-        } else {
-          hwTrackSaveBtn.style.display = "inline-block";
+
+        renderHwGrid();
+
+        if (hwTrackSaveStatus) {
+          hwTrackSaveStatus.style.display = "none";
         }
-        
-        hwTrackBody.innerHTML = bodyHtml;
-        hwTrackContainer.style.display = "block";
       } else {
-        alert(data.error || "Failed to load students.");
+        alert(data.error || "Failed to load homework records.");
       }
     } catch (e) {
       alert("Error loading homework tracking data.");
     }
-    
+
     hwTrackLoadBtn.disabled = false;
-    hwTrackLoadBtn.textContent = "Load Students";
+    hwTrackLoadBtn.textContent = "Load Records";
   });
-  
-  if (hwTrackSaveBtn) {
-    hwTrackSaveBtn.addEventListener("click", async () => {
-      const date = hwTrackDateInput.value;
-      if (!date) return alert("Please select a date.");
-      
-      const selects = document.querySelectorAll(".hw-status-select");
-      const updates = [];
-      selects.forEach(sel => {
+}
+
+// SEARCH FILTER LISTENER
+if (hwTrackSearchInput) {
+  hwTrackSearchInput.addEventListener("input", () => {
+    if (currentHwStudents.length > 0 && currentHwDates.length > 0) {
+      renderHwGrid();
+    }
+  });
+}
+
+// DATE PRESETS
+if (hwPresetToday) {
+  hwPresetToday.addEventListener("click", () => {
+    const todayStr = new Date().toISOString().split("T")[0];
+    hwTrackStartDateInput.value = todayStr;
+    hwTrackEndDateInput.value = todayStr;
+    if (hwTrackLoadBtn) hwTrackLoadBtn.click();
+  });
+}
+
+if (hwPresetYesterday) {
+  hwPresetYesterday.addEventListener("click", () => {
+    const yest = new Date();
+    yest.setDate(yest.getDate() - 1);
+    const yestStr = yest.toISOString().split("T")[0];
+    hwTrackStartDateInput.value = yestStr;
+    hwTrackEndDateInput.value = yestStr;
+    if (hwTrackLoadBtn) hwTrackLoadBtn.click();
+  });
+}
+
+if (hwPresetWeek) {
+  hwPresetWeek.addEventListener("click", () => {
+    const today = new Date();
+    const todayStr = today.toISOString().split("T")[0];
+    const past = new Date();
+    past.setDate(past.getDate() - 6);
+    const pastStr = past.toISOString().split("T")[0];
+    hwTrackStartDateInput.value = pastStr;
+    hwTrackEndDateInput.value = todayStr;
+    if (hwTrackLoadBtn) hwTrackLoadBtn.click();
+  });
+}
+
+// GLOBAL TICK ALL VISIBLE AS DONE
+if (hwTrackTickAllBtn) {
+  hwTrackTickAllBtn.addEventListener("click", () => {
+    if (currentHwStudents.length === 0 || currentHwDates.length === 0) {
+      return alert("Please load records first.");
+    }
+
+    const searchQuery = (hwTrackSearchInput ? hwTrackSearchInput.value : "").trim().toLowerCase();
+    const visibleStudents = currentHwStudents.filter(st => {
+      if (!searchQuery) return true;
+      return (st.name || "").toLowerCase().includes(searchQuery) ||
+             (st.group_name || "").toLowerCase().includes(searchQuery);
+    });
+
+    visibleStudents.forEach(st => {
+      currentHwDates.forEach(date => {
+        const key = `${st.id}_${date}`;
+        currentHwStatuses[key] = "Done";
+        dirtyHwCells.add(key);
+      });
+    });
+
+    document.querySelectorAll(".hw-cell-select").forEach(sel => {
+      sel.value = "Done";
+      const opt = HW_STATUS_OPTIONS[0];
+      sel.style.color = opt.color;
+      sel.style.backgroundColor = opt.bg;
+      sel.style.borderColor = opt.border;
+    });
+
+    if (hwTrackSaveStatus) {
+      hwTrackSaveStatus.style.display = "block";
+      hwTrackSaveStatus.textContent = `All visible cells marked as Done. Click 'Save All Changes' to save to database.`;
+      hwTrackSaveStatus.style.color = "#059669";
+      hwTrackSaveStatus.style.background = "rgba(16, 185, 129, 0.1)";
+      hwTrackSaveStatus.style.border = "1px solid rgba(16, 185, 129, 0.3)";
+    }
+  });
+}
+
+// SAVE ALL CHANGES IN BULK
+if (hwTrackSaveBtn) {
+  hwTrackSaveBtn.addEventListener("click", async () => {
+    if (currentHwStudents.length === 0 || currentHwDates.length === 0) {
+      return alert("Please load homework records first.");
+    }
+
+    // Collect updates from all loaded students and dates
+    const updates = [];
+    currentHwStudents.forEach(st => {
+      currentHwDates.forEach(date => {
+        const key = `${st.id}_${date}`;
+        const statusVal = currentHwStatuses[key] || "Done";
         updates.push({
           homework_date: date,
-          student_id: sel.dataset.studentId,
-          status: sel.value
+          student_id: st.id,
+          status: statusVal
         });
       });
-      
-      if (updates.length === 0) return;
-      
-      hwTrackSaveBtn.disabled = true;
-      hwTrackSaveBtn.textContent = "Saving...";
-      hwTrackSaveStatus.textContent = "Saving...";
-      
-      try {
-        const res = await fetch("/api/homework", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${getCoachPassword()}`
-          },
-          body: JSON.stringify({ updates })
-        });
-        
-        const data = await res.json();
-        if (res.ok) {
-          hwTrackSaveStatus.textContent = "Saved successfully!";
+    });
+
+    if (updates.length === 0) return;
+
+    hwTrackSaveBtn.disabled = true;
+    hwTrackSaveBtn.textContent = "Saving...";
+    if (hwTrackSaveStatus) {
+      hwTrackSaveStatus.style.display = "block";
+      hwTrackSaveStatus.textContent = "Saving changes to database...";
+      hwTrackSaveStatus.style.color = "var(--primary)";
+      hwTrackSaveStatus.style.background = "var(--surface)";
+      hwTrackSaveStatus.style.border = "1px solid var(--border)";
+    }
+
+    try {
+      const res = await fetch("/api/homework", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${getCoachPassword()}`
+        },
+        body: JSON.stringify({ updates })
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        dirtyHwCells.clear();
+        if (hwTrackSaveStatus) {
+          hwTrackSaveStatus.textContent = `✓ Successfully saved ${updates.length} records!`;
           hwTrackSaveStatus.style.color = "#059669";
-          setTimeout(() => { hwTrackSaveStatus.textContent = ""; }, 3000);
-        } else {
+          hwTrackSaveStatus.style.background = "rgba(16, 185, 129, 0.15)";
+          hwTrackSaveStatus.style.border = "1px solid #10b981";
+          setTimeout(() => {
+            if (dirtyHwCells.size === 0 && hwTrackSaveStatus) {
+              hwTrackSaveStatus.style.display = "none";
+            }
+          }, 4000);
+        }
+      } else {
+        if (hwTrackSaveStatus) {
           hwTrackSaveStatus.textContent = data.error || "Failed to save.";
           hwTrackSaveStatus.style.color = "#ef4444";
+          hwTrackSaveStatus.style.background = "rgba(239, 68, 68, 0.1)";
+          hwTrackSaveStatus.style.border = "1px solid #ef4444";
         }
-      } catch (e) {
-        hwTrackSaveStatus.textContent = "Error saving data.";
+      }
+    } catch (e) {
+      if (hwTrackSaveStatus) {
+        hwTrackSaveStatus.textContent = "Error saving homework data.";
         hwTrackSaveStatus.style.color = "#ef4444";
       }
-      
-      hwTrackSaveBtn.disabled = false;
-      hwTrackSaveBtn.textContent = "Save Homework Status";
+    }
+
+    hwTrackSaveBtn.disabled = false;
+    hwTrackSaveBtn.textContent = "Save All Changes";
+  });
+}
+
+// EXPORT EXCEL (CSV)
+if (hwTrackExportBtn) {
+  hwTrackExportBtn.addEventListener("click", () => {
+    if (currentHwStudents.length === 0 || currentHwDates.length === 0) {
+      return alert("Please load homework records before exporting.");
+    }
+
+    const headers = ["Sl No", "Student Name", "Group", ...currentHwDates.map(d => formatDateHeader(d))];
+    const rows = [headers];
+
+    currentHwStudents.forEach((st, idx) => {
+      const row = [idx + 1, `"${st.name.replace(/"/g, '""')}"`, `"${(st.group_name || '').replace(/"/g, '""')}"`];
+      currentHwDates.forEach(date => {
+        const val = currentHwStatuses[`${st.id}_${date}`] || "Done";
+        row.push(`"${val.replace(/"/g, '""')}"`);
+      });
+      rows.push(row);
     });
-  }
+
+    const csvContent = "data:text/csv;charset=utf-8," + rows.map(e => e.join(",")).join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    const sDate = currentHwDates[0] || "start";
+    const eDate = currentHwDates[currentHwDates.length - 1] || "end";
+    link.setAttribute("download", `homework_tracking_${sDate}_to_${eDate}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  });
 }
 
 // ==========================================
