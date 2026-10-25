@@ -2,6 +2,32 @@ document.addEventListener("DOMContentLoaded", () => {
   const currentGrade = document.body.dataset.grade || (window.location.pathname.includes("grade10") ? "10" : "12");
   const isGrade12 = currentGrade === "12";
 
+  const isCoachLoggedIn = () => {
+    return Boolean(sessionStorage.getItem("coach_password") || localStorage.getItem("coach_password"));
+  };
+
+  // COACH DASHBOARD BYPASS:
+  // If coach is logged in, grant full unrestricted access to both Grade 10 and Grade 12 without credentials!
+  if (isCoachLoggedIn()) {
+    const mainContent = document.querySelector(".main-content");
+    if (mainContent) mainContent.style.display = "block";
+
+    const headerActions = document.querySelector(".header-right-actions");
+    if (headerActions && !document.getElementById("coach-badge-btn")) {
+      const coachBadge = document.createElement("a");
+      coachBadge.id = "coach-badge-btn";
+      coachBadge.href = "dashboard.html";
+      coachBadge.innerHTML = "<span>👑</span> <span>Coach Mode (Dashboard ⚙️)</span>";
+      coachBadge.style.cssText = "display: inline-flex; align-items: center; gap: 0.35rem; color: #059669; font-weight: 700; padding: 0.4rem 0.85rem; border: 1.5px solid #10b981; border-radius: 99px; background: rgba(16, 185, 129, 0.12); text-decoration: none; font-size: 0.88rem; transition: background 0.2s;";
+      headerActions.prepend(coachBadge);
+    }
+
+    if (typeof initStudentReport === "function") {
+      initStudentReport();
+    }
+    return; // Exit early: coach has full unrestricted access!
+  }
+
   const isNerdTutorsGroup = (groupName) => {
     if (!groupName) return false;
     const g = String(groupName).trim();

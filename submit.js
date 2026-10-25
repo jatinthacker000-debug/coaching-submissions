@@ -941,6 +941,47 @@ async function initStudentReport() {
       return;
     }
 
+    const isCoach = Boolean(sessionStorage.getItem("coach_password") || localStorage.getItem("coach_password"));
+    if (!studentInfoStr && isCoach) {
+      // Coach is logged in without student credentials: show an interactive student picker
+      let coachPicker = document.getElementById("coach-report-picker");
+      if (!coachPicker && container.parentElement) {
+        coachPicker = document.createElement("div");
+        coachPicker.id = "coach-report-picker";
+        coachPicker.style.cssText = "width: 100%; max-width: 480px; margin-bottom: 1rem; display: flex; flex-direction: column; gap: 0.5rem; text-align: left;";
+        
+        const currentGrade = document.body.dataset.grade || (window.location.pathname.includes("grade10") ? "10" : "12");
+        let availableStudents = publicStudents;
+        if (currentGrade === "12") {
+          availableStudents = publicStudents.filter(s => s.group_name && s.group_name.startsWith("Nerd Tutors"));
+        } else {
+          availableStudents = publicStudents.filter(s => !s.group_name || !s.group_name.startsWith("Nerd Tutors"));
+        }
+        availableStudents.sort((a,b) => a.name.localeCompare(b.name));
+
+        coachPicker.innerHTML = `
+          <label style="font-size: 0.85rem; font-weight: 700; color: #059669;">👑 Coach Mode: Inspect Student Report</label>
+          <select id="coach-student-select" style="padding: 0.6rem 0.8rem; border-radius: 8px; border: 1.5px solid #10b981; background: var(--surface); color: var(--text); font-weight: 600; font-size: 0.9rem; cursor: pointer;">
+            <option value="">Select a student to view report...</option>
+            ${availableStudents.map(s => `<option value="${escapeHtml(s.id)}">${escapeHtml(s.name)} (${escapeHtml(s.group_name || 'No Group')})</option>`).join('')}
+          </select>
+        `;
+        container.parentElement.insertBefore(coachPicker, container);
+
+        const selectEl = document.getElementById("coach-student-select");
+        if (selectEl) {
+          selectEl.addEventListener("change", (e) => {
+            if (e.target.value) {
+              renderStudentReportContent(e.target.value);
+            } else {
+              container.style.display = "none";
+            }
+          });
+        }
+      }
+      return;
+    }
+
     if (!studentSelectEl || !groupSelectEl) return;
     
     // Extract unique groups
