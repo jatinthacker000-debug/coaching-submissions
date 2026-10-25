@@ -3,6 +3,15 @@ import jwt from "jsonwebtoken";
 import { getSupabase } from "./_lib/supabase.js";
 import { sendJson, sendError, isCoachAuthorized, coachUnauthorized } from "./_lib/utils.js";
 
+function resolveDefaultClass(className, groupName) {
+  if (className && String(className).trim()) return String(className).trim();
+  const g = (groupName || "").trim().toLowerCase();
+  if (["lakshya", "prayas", "sankalp"].includes(g)) return "Velocity";
+  if (g === "nalanda") return "IGNITE coaching class";
+  if (g.startsWith("nerd tutors")) return groupName.trim();
+  return "";
+}
+
 export default async function handler(req, res) {
   if (req.method === "GET") {
     const { student_id, type, record_session } = req.query || {};
@@ -33,7 +42,7 @@ export default async function handler(req, res) {
       const supabase = getSupabase();
       const { data: student, error } = await supabase
         .from("students")
-        .select("id, name, group_name, student_id_alias, is_active")
+        .select("id, name, group_name, class_name, student_id_alias, is_active")
         .eq("id", student_id)
         .maybeSingle();
 
@@ -57,12 +66,15 @@ export default async function handler(req, res) {
         }
       }
 
+      const effectiveClass = student.class_name || resolveDefaultClass(student.class_name, student.group_name);
+
       return sendJson(res, { 
         is_active: student.is_active !== false,
         student: {
           id: student.id,
           name: student.name,
-          group_name: student.group_name
+          group_name: student.group_name,
+          class_name: effectiveClass
         }
       });
     }
@@ -118,7 +130,7 @@ export default async function handler(req, res) {
 
     const { data: student, error } = await supabase
       .from("students")
-      .select("id, name, group_name, student_id_alias, password, is_active")
+      .select("id, name, group_name, class_name, student_id_alias, password, is_active")
       .eq("student_id_alias", student_id_alias)
       .maybeSingle();
 
@@ -133,6 +145,8 @@ export default async function handler(req, res) {
     if (student.is_active === false) {
       return sendError(res, "Your account has been temporarily suspended. You cannot enter your ID.", 403);
     }
+
+    const effectiveClass = student.class_name || resolveDefaultClass(student.class_name, student.group_name);
 
     // Record login event in student_logins table (non-blocking)
     try {
@@ -152,7 +166,8 @@ export default async function handler(req, res) {
         role: "student", 
         student_id: student.id,
         name: student.name,
-        group_name: student.group_name
+        group_name: student.group_name,
+        class_name: effectiveClass
       }, 
       jwtSecret, 
       { expiresIn: "7d" }
@@ -164,6 +179,7 @@ export default async function handler(req, res) {
         id: student.id,
         name: student.name,
         group_name: student.group_name,
+        class_name: effectiveClass,
         student_id_alias: student.student_id_alias || student_id_alias
       }
     });

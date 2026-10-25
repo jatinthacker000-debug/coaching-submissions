@@ -124,10 +124,21 @@ export default async function handler(req, res) {
   // ==========================================
   // 2. STUDENT MANAGEMENT & CREDENTIALS
   // ==========================================
+  function resolveDefaultClass(className, groupName) {
+    if (className && String(className).trim()) return String(className).trim();
+    const g = (groupName || "").trim().toLowerCase();
+    if (["lakshya", "prayas", "sankalp"].includes(g)) return "Velocity";
+    if (g === "nalanda") return "IGNITE coaching class";
+    if (g.startsWith("nerd tutors")) return groupName.trim();
+    return "";
+  }
+
   if (req.method === "GET") {
     const isCoach = await isCoachAuthorized(req);
     // If coach, fetch credentials too
-    const selectFields = isCoach ? "id, name, group_name, subjects, student_id_alias, password, is_active" : "id, name, group_name, subjects, is_active";
+    const selectFields = isCoach 
+      ? "id, name, group_name, class_name, subjects, student_id_alias, password, is_active" 
+      : "id, name, group_name, class_name, subjects, is_active";
     
     const { data, error } = await supabase
       .from("students")
@@ -135,7 +146,14 @@ export default async function handler(req, res) {
       .order("name", { ascending: true });
 
     if (error) return sendError(res, error.message, 500);
-    return sendJson(res, { students: data });
+
+    // Apply default class mappings dynamically if class_name is currently empty
+    const studentsWithDefaults = (data || []).map(st => ({
+      ...st,
+      class_name: st.class_name || resolveDefaultClass(st.class_name, st.group_name)
+    }));
+
+    return sendJson(res, { students: studentsWithDefaults });
   }
 
   if (req.method === "POST") {
@@ -148,6 +166,8 @@ export default async function handler(req, res) {
     const password = body.password?.trim() || null;
     const subjects = Array.isArray(body.subjects) ? body.subjects : [];
     const isActive = body.is_active !== undefined ? Boolean(body.is_active) : true;
+    const groupName = body.group_name || null;
+    const className = resolveDefaultClass(body.class_name, groupName);
 
     // Check if name already exists
     const { data: existing } = await supabase
@@ -165,7 +185,8 @@ export default async function handler(req, res) {
       .from("students")
       .insert({ 
         name: cleanName, 
-        group_name: body.group_name || null,
+        group_name: groupName,
+        class_name: className,
         subjects: subjects,
         student_id_alias: studentIdAlias,
         password: password,
@@ -237,6 +258,11 @@ export default async function handler(req, res) {
             sUpdates.group_name = grpStr || null;
           }
 
+          if (s.class_name !== undefined) {
+            const clsStr = s.class_name ? String(s.class_name).trim() : "";
+            sUpdates.class_name = clsStr;
+          }
+
           if (s.subjects !== undefined) {
             sUpdates.subjects = Array.isArray(s.subjects) ? s.subjects : [];
           }
@@ -303,6 +329,10 @@ export default async function handler(req, res) {
     if (body.group_name !== undefined) {
       const grpStr = body.group_name ? String(body.group_name).trim() : "";
       updates.group_name = grpStr || null;
+    }
+    if (body.class_name !== undefined) {
+      const clsStr = body.class_name ? String(body.class_name).trim() : "";
+      updates.class_name = clsStr;
     }
     if (body.subjects !== undefined) {
       updates.subjects = Array.isArray(body.subjects) ? body.subjects : [];
