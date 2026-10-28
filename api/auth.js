@@ -8,6 +8,7 @@ function resolveDefaultClass(className, groupName) {
   const g = (groupName || "").trim().toLowerCase();
   if (["lakshya", "prayas", "sankalp"].includes(g)) return "Velocity";
   if (g === "nalanda") return "IGNITE coaching class";
+  if (["neps", "negs"].includes(g)) return "Epsilon Classes";
   if (g.startsWith("nerd tutors")) return groupName.trim();
   return "";
 }
