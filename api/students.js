@@ -41,6 +41,45 @@ export default async function handler(req, res) {
 
     if (req.method === "POST") {
       const body = req.body || {};
+
+      // 1b. Coach sending direct notice to single or multiple students
+      if (body.action === "send_notice" || Array.isArray(body.student_ids) || Array.isArray(body.students)) {
+        if (!await isCoachAuthorized(req)) return coachUnauthorized(res);
+        if (!body.title?.trim() || !body.message?.trim()) {
+          return sendError(res, "Notice title and message are required.");
+        }
+        const studentTargets = Array.isArray(body.students) ? body.students : (body.student_ids || []).map(id => ({ id }));
+        if (studentTargets.length === 0) {
+          return sendError(res, "Please select at least one student.");
+        }
+
+        const rowsToInsert = studentTargets.map(st => ({
+          student_id: st.id || null,
+          student_name: (st.name || "Student").trim().replace(/</g, "&lt;").replace(/>/g, "&gt;"),
+          student_id_alias: st.student_id_alias?.trim() || null,
+          group_name: st.group_name?.trim() || "",
+          subject: body.subject?.trim() || "Notice",
+          title: body.title.trim().replace(/</g, "&lt;").replace(/>/g, "&gt;"),
+          message: body.message.trim().replace(/</g, "&lt;").replace(/>/g, "&gt;"),
+          status: "from_coach",
+          coach_reply: body.message.trim(),
+          replied_at: new Date().toISOString()
+        }));
+
+        try {
+          const { data, error } = await supabase
+            .from("student_queries")
+            .insert(rowsToInsert)
+            .select();
+
+          if (error) return sendError(res, error.message, 500);
+          return sendJson(res, { success: true, count: data ? data.length : 0, queries: data || [] }, 201);
+        } catch (err) {
+          return sendError(res, err.message, 500);
+        }
+      }
+
+      // 1a. Student submitting a query
       if (!body.student_name?.trim() || !body.title?.trim() || !body.message?.trim()) {
         return sendError(res, "Student name, question title, and message are required.");
       }
@@ -129,6 +168,7 @@ export default async function handler(req, res) {
     const g = (groupName || "").trim().toLowerCase();
     if (["lakshya", "prayas", "sankalp"].includes(g)) return "Velocity";
     if (g === "nalanda") return "IGNITE coaching class";
+    if (["neps", "negs"].includes(g)) return "Epsilon Classes";
     if (g.startsWith("nerd tutors")) return groupName.trim();
     return "";
   }

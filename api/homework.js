@@ -5,7 +5,7 @@ export default async function handler(req, res) {
   const supabase = getSupabase();
 
   if (req.method === "GET") {
-    const { student_id, homework_date, group_name, type, start_date, end_date } = req.query;
+    const { student_id, homework_date, group_name, class_name, type, start_date, end_date } = req.query;
 
     // 1. Fetch Student Status (for Student Dashboard)
     if (student_id) {
@@ -38,17 +38,54 @@ export default async function handler(req, res) {
     if (effectiveStart && effectiveEnd) {
       if (!await isCoachAuthorized(req)) return coachUnauthorized(res);
 
-      let studentQuery = supabase
-        .from("students")
-        .select("id, name, group_name")
-        .order("name", { ascending: true });
-
-      if (group_name && group_name !== "ALL" && group_name !== "__ALL__") {
-        studentQuery = studentQuery.eq("group_name", group_name);
+      function resolveDefaultClass(className, groupName) {
+        if (className && String(className).trim()) return String(className).trim();
+        const g = (groupName || "").trim().toLowerCase();
+        if (["lakshya", "prayas", "sankalp"].includes(g)) return "Velocity";
+        if (g === "nalanda") return "IGNITE coaching class";
+        if (["neps", "negs"].includes(g)) return "Epsilon Classes";
+        if (g.startsWith("nerd tutors")) return groupName.trim();
+        return "";
       }
 
-      const { data: students, error: studErr } = await studentQuery;
+      let studentQuery = supabase
+        .from("students")
+        .select("id, name, group_name, class_name")
+        .order("name", { ascending: true });
+
+      if (class_name && class_name !== "ALL" && class_name !== "__ALL__") {
+        const cLower = class_name.toLowerCase().trim();
+        if (cLower.includes("epsilon")) {
+          studentQuery = studentQuery.or("class_name.ilike.%epsilon%,group_name.in.(NEPS,NEGS,Epsilon,EPSILON)");
+        } else if (cLower.includes("velocity")) {
+          studentQuery = studentQuery.or("class_name.ilike.%velocity%,group_name.in.(Lakshya,Prayas,Sankalp,Velocity)");
+        } else if (cLower.includes("ignite")) {
+          studentQuery = studentQuery.or("class_name.ilike.%ignite%,group_name.in.(Nalanda,Ignite)");
+        } else {
+          studentQuery = studentQuery.ilike("class_name", `%${class_name}%`);
+        }
+      }
+
+      if (group_name && group_name !== "ALL" && group_name !== "__ALL__") {
+        const gLower = group_name.toLowerCase().trim();
+        if (gLower === "epsilon" || gLower === "epsilon classes") {
+          studentQuery = studentQuery.or("class_name.ilike.%epsilon%,group_name.in.(NEPS,NEGS,Epsilon,EPSILON)");
+        } else if (gLower === "velocity") {
+          studentQuery = studentQuery.or("class_name.ilike.%velocity%,group_name.in.(Lakshya,Prayas,Sankalp,Velocity)");
+        } else if (gLower === "ignite") {
+          studentQuery = studentQuery.or("class_name.ilike.%ignite%,group_name.in.(Nalanda,Ignite)");
+        } else {
+          studentQuery = studentQuery.eq("group_name", group_name);
+        }
+      }
+
+      const { data: rawStudents, error: studErr } = await studentQuery;
       if (studErr) return sendError(res, studErr.message, 500);
+
+      const students = (rawStudents || []).map(st => ({
+        ...st,
+        class_name: st.class_name || resolveDefaultClass(st.class_name, st.group_name)
+      }));
 
       if (!students || students.length === 0) {
         return sendJson(res, { students: [], statuses: [] });
