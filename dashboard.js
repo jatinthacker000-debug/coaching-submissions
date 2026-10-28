@@ -4230,38 +4230,6 @@ if (hwTrackLoadBtn) {
     hwTrackLoadBtn.textContent = "Load Records";
   });
 }
-      const data = await res.json();
-
-      if (res.ok) {
-        currentHwStudents = data.students || [];
-        const existingStatuses = data.statuses || [];
-
-        // Map statuses by studentId_date
-        currentHwStatuses = {};
-        dirtyHwCells.clear();
-
-        existingStatuses.forEach(st => {
-          if (st.student_id && st.homework_date) {
-            currentHwStatuses[`${st.student_id}_${st.homework_date}`] = st.status || "Done";
-          }
-        });
-
-        renderHwGrid();
-
-        if (hwTrackSaveStatus) {
-          hwTrackSaveStatus.style.display = "none";
-        }
-      } else {
-        alert(data.error || "Failed to load homework records.");
-      }
-    } catch (e) {
-      alert("Error loading homework tracking data.");
-    }
-
-    hwTrackLoadBtn.disabled = false;
-    hwTrackLoadBtn.textContent = "Load Records";
-  });
-}
 
 // SEARCH FILTER LISTENER
 if (hwTrackSearchInput) {
