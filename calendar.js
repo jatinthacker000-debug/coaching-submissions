@@ -110,8 +110,8 @@ document.addEventListener("DOMContentLoaded", () => {
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; width: 100%; gap: 0.5rem;">
         <h3 style="margin: 0; font-size: 1.15rem; font-weight: 700; color: var(--text); white-space: nowrap;">${monthNames[month]} ${year}</h3>
         <div style="display: flex; gap: 0.4rem; align-items: center;">
-          <button class="cal-prev-btn btn" style="padding: 0.35rem 0.75rem; font-size: 0.85rem; background: var(--surface-card); color: var(--text); border: 1px solid var(--border); border-radius: 6px; cursor: pointer;">‹ Prev</button>
-          <button class="cal-next-btn btn" style="padding: 0.35rem 0.75rem; font-size: 0.85rem; background: var(--surface-card); color: var(--text); border: 1px solid var(--border); border-radius: 6px; cursor: pointer;">Next ›</button>
+          <button class="cal-prev-btn btn" style="padding: 0.35rem 0.75rem; font-size: 0.85rem; background: var(--surface-card); color: var(--text); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; white-space: nowrap; height: 32px; min-width: 68px; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box;">‹ Prev</button>
+          <button class="cal-next-btn btn" style="padding: 0.35rem 0.75rem; font-size: 0.85rem; background: var(--surface-card); color: var(--text); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; white-space: nowrap; height: 32px; min-width: 68px; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box;">Next ›</button>
         </div>
       </div>
     `;
@@ -128,7 +128,7 @@ document.addEventListener("DOMContentLoaded", () => {
     let prevDays = daysInPrevMonth - firstDayIndex + 1;
     for (let i = 0; i < firstDayIndex; i++) {
       html += `
-        <div style="min-height: 54px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0.35rem 0.2rem; color: #9ca3af; background: var(--surface-card); opacity: 0.45; border-radius: 6px; font-size: 0.9rem; border: 1px dashed var(--border);">
+        <div style="min-height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0.35rem 0.2rem; color: #9ca3af; background: var(--surface-card); opacity: 0.45; border-radius: 6px; font-size: 0.9rem; border: 1px dashed var(--border);">
           <span>${prevDays++}</span>
           <span style="font-size: 0.75rem; line-height: 1; margin-top: 2px; visibility: hidden;">&nbsp;</span>
         </div>`;
@@ -153,12 +153,12 @@ document.addEventListener("DOMContentLoaded", () => {
       let innerContent = "";
 
       const ec = hasEvent ? (eventColorStyles[event.color] || eventColorStyles.blue) : null;
-      const basePillStyle = `display: block; width: 100%; max-width: 95%; margin-top: 2px; padding: 1px 3px; font-size: 0.62rem; font-weight: 700; line-height: 1.15; border-radius: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; box-sizing: border-box; text-align: center;`;
+      const basePillStyle = `display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; width: 100%; max-width: 98%; margin-top: 2px; padding: 2px 3px; font-size: 0.65rem; font-weight: 700; line-height: 1.15; border-radius: 4px; overflow: hidden; box-sizing: border-box; text-align: center; word-break: break-word;`;
 
       if (hasHomework) {
         // High-contrast vibrant emerald green highlight with white text, shadow
-        cellStyle = "min-height: 54px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0.35rem 0.2rem; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff; border-radius: 6px; cursor: pointer; font-weight: 700; box-shadow: 0 3px 8px rgba(16, 185, 129, 0.35); border: 1px solid #047857; position: relative; transition: transform 0.15s ease, box-shadow 0.15s ease;";
-        const hwEventPill = hasEvent ? `<span class="cal-event-pill" title="${escapeHtml(event.title)}" style="${basePillStyle} background: rgba(255, 255, 255, 0.95); color: #047857; border: 1px solid rgba(255, 255, 255, 0.8); box-shadow: 0 1px 2px rgba(0,0,0,0.1);">${escapeHtml(event.title)}</span>` : '';
+        cellStyle = "min-height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0.35rem 0.2rem; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff; border-radius: 6px; cursor: pointer; font-weight: 700; box-shadow: 0 3px 8px rgba(16, 185, 129, 0.35); border: 1px solid #047857; position: relative; transition: transform 0.15s ease, box-shadow 0.15s ease;";
+        const hwEventPill = hasEvent ? `<span class="cal-event-pill" title="${escapeHtml(event.title)}" style="${basePillStyle} background: rgba(255, 255, 255, 0.95); color: #047857; border: 1px solid rgba(255, 255, 255, 0.8); box-shadow: 0 1px 3px rgba(0,0,0,0.1);">${escapeHtml(event.title)}</span>` : '';
 
         innerContent = `
           ${!isRead ? `<span class="cal-hw-unread-dot" title="New Homework" style="position: absolute; top: 4px; right: 4px; width: 7px; height: 7px; background: #fbbf24; border-radius: 50%; box-shadow: 0 0 0 2px rgba(255,255,255,0.9);"></span>` : ''}
@@ -169,22 +169,22 @@ document.addEventListener("DOMContentLoaded", () => {
           ${hasEvent ? hwEventPill : '<span style="font-size: 0.75rem; line-height: 1; margin-top: 2px; visibility: hidden;">&nbsp;</span>'}
         `;
       } else if (hasEvent) {
-        // Event day with pastel pill and subtle border
-        const eventPill = `<span class="cal-event-pill" title="${escapeHtml(event.title)}" style="${basePillStyle} background: ${ec.bg}; color: ${ec.color}; border: 1px solid ${ec.border};">${escapeHtml(event.title)}</span>`;
+        // Event day with pastel pill and clear border/contrast
+        const eventPill = `<span class="cal-event-pill" title="${escapeHtml(event.title)}" style="${basePillStyle} background: ${ec.bg}; color: ${ec.color}; border: 1.2px solid ${ec.border}; box-shadow: 0 1px 3px rgba(0,0,0,0.06);">${escapeHtml(event.title)}</span>`;
         const bg = isSunday ? '#fef3c7' : 'var(--surface-card)';
-        cellStyle = `min-height: 54px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0.35rem 0.2rem; background: ${bg}; color: var(--text); border: 1.5px solid ${ec.border}; border-radius: 6px; cursor: pointer; font-weight: 600; position: relative; transition: transform 0.15s ease, background 0.15s ease;`;
+        cellStyle = `min-height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0.35rem 0.2rem; background: ${bg}; color: var(--text); border: 1.5px solid ${ec.border}; border-radius: 6px; cursor: pointer; font-weight: 600; position: relative; transition: transform 0.15s ease, background 0.15s ease;`;
         innerContent = `
-          <span style="font-size: 0.95rem; line-height: 1.1;">${day}</span>
+          <span style="font-size: 0.95rem; line-height: 1.1; font-weight: 700;">${day}</span>
           ${eventPill}
         `;
       } else if (isSunday) {
-        cellStyle = "min-height: 54px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0.35rem 0.2rem; background: #fef3c7; color: #92400e; border: 1px solid #fde68a; border-radius: 6px; cursor: pointer; font-weight: 600; position: relative; transition: transform 0.15s ease;";
+        cellStyle = "min-height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0.35rem 0.2rem; background: #fef3c7; color: #92400e; border: 1px solid #fde68a; border-radius: 6px; cursor: pointer; font-weight: 600; position: relative; transition: transform 0.15s ease;";
         innerContent = `
           <span style="font-size: 0.95rem; line-height: 1.1;">${day}</span>
           <span style="font-size: 0.75rem; line-height: 1; margin-top: 2px; visibility: hidden;">&nbsp;</span>
         `;
       } else {
-        cellStyle = "min-height: 54px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0.35rem 0.2rem; background: var(--surface-card); color: var(--text); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; font-weight: 600; position: relative; transition: transform 0.15s ease, background 0.15s ease;";
+        cellStyle = "min-height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0.35rem 0.2rem; background: var(--surface-card); color: var(--text); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; font-weight: 600; position: relative; transition: transform 0.15s ease, background 0.15s ease;";
         innerContent = `
           <span style="font-size: 0.95rem; line-height: 1.1;">${day}</span>
           <span style="font-size: 0.75rem; line-height: 1; margin-top: 2px; visibility: hidden;">&nbsp;</span>
@@ -199,7 +199,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const remaining = Math.ceil(totalCells / 7) * 7 - totalCells;
     for (let i = 1; i <= remaining; i++) {
       html += `
-        <div style="min-height: 54px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0.35rem 0.2rem; color: #9ca3af; background: var(--surface-card); opacity: 0.45; border-radius: 6px; font-size: 0.9rem; border: 1px dashed var(--border);">
+        <div style="min-height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0.35rem 0.2rem; color: #9ca3af; background: var(--surface-card); opacity: 0.45; border-radius: 6px; font-size: 0.9rem; border: 1px dashed var(--border);">
           <span>${i}</span>
           <span style="font-size: 0.75rem; line-height: 1; margin-top: 2px; visibility: hidden;">&nbsp;</span>
         </div>`;

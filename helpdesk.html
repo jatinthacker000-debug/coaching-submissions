@@ -440,6 +440,30 @@
 
           let html = "";
           queries.forEach(q => {
+            if (q.status === "from_coach") {
+              html += `
+                <div class="query-card" style="border: 1.5px solid rgba(37, 99, 235, 0.4); background: linear-gradient(180deg, rgba(37, 99, 235, 0.05) 0%, var(--surface-card) 100%); box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);">
+                  <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.75rem; margin-bottom: 0.5rem; flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                      <span style="background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; padding: 0.2rem 0.6rem; border-radius: 99px; font-weight: 700; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 0.35rem;">
+                        <span>📢</span> <span>Notice from Coach</span>
+                      </span>
+                      <span class="score-pill" style="font-size: 0.72rem; padding: 0.15rem 0.45rem; background: rgba(59, 130, 246, 0.12); color: #2563eb;">${escapeHtml(q.subject || "Notice")}</span>
+                      <span style="font-size: 0.78rem; color: var(--text-muted);">${formatTime(q.created_at)}</span>
+                    </div>
+                  </div>
+                  <h3 style="margin: 0.25rem 0 0.5rem 0; font-size: 1.1rem; color: var(--text);">${escapeHtml(q.title)}</h3>
+                  <div style="font-size: 0.95rem; color: var(--text); line-height: 1.55; white-space: pre-wrap; background: var(--surface); padding: 0.85rem 1rem; border-radius: 8px; border: 1px solid var(--border);">
+                    <div style="font-size: 0.8rem; font-weight: 700; color: #2563eb; margin-bottom: 0.35rem; display: flex; align-items: center; gap: 0.3rem;">
+                      <span>👨‍🏫</span> <span>From Coach:</span>
+                    </div>
+                    ${escapeHtml(q.message)}
+                  </div>
+                </div>
+              `;
+              return;
+            }
+
             const isResolved = q.status === "resolved" || Boolean(q.coach_reply);
             const statusBadge = isResolved
               ? `<span class="status-badge-resolved">✓ Replied / Resolved</span>`
@@ -475,6 +499,11 @@
               </div>
             `;
           });
+
+          // Mark notices as seen
+          try {
+            localStorage.setItem("padhrahi_seen_helpdesk_notices", Date.now().toString());
+          } catch (_) {}
 
           container.innerHTML = html;
         } catch(err) {

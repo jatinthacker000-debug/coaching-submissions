@@ -196,6 +196,19 @@ document.addEventListener("DOMContentLoaded", () => {
         if (typeof checkNewNotifications === "function") {
           checkNewNotifications(true);
         }
+        if (data.student?.id) {
+          try {
+            fetch(`/api/students?type=queries&student_id=${encodeURIComponent(data.student.id)}`)
+              .then(r => r.json())
+              .then(qData => {
+                const notices = (qData.queries || []).filter(q => q.status === "from_coach");
+                const lastSeen = parseInt(localStorage.getItem("padhrahi_seen_helpdesk_notices") || "0", 10);
+                const hasUnread = notices.some(n => new Date(n.created_at).getTime() > lastSeen);
+                const dot = document.getElementById("helpdesk-notif-dot");
+                if (dot && hasUnread) dot.style.display = "block";
+              }).catch(() => {});
+          } catch (_) {}
+        }
       } catch (e) {
         errEl.textContent = e.message;
         errEl.style.display = "block";
@@ -265,6 +278,23 @@ document.addEventListener("DOMContentLoaded", () => {
               }
             }
           }
+
+          // Check for unread coach notices in Help Desk
+          try {
+            const qRes = await fetch(`/api/students?type=queries&student_id=${encodeURIComponent(studentId)}`);
+            if (qRes.ok) {
+              const qData = await qRes.json();
+              const notices = (qData.queries || []).filter(q => q.status === "from_coach");
+              if (notices.length > 0) {
+                const lastSeenNoticeTime = parseInt(localStorage.getItem("padhrahi_seen_helpdesk_notices") || "0", 10);
+                const hasUnread = notices.some(n => new Date(n.created_at).getTime() > lastSeenNoticeTime);
+                const dot = document.getElementById("helpdesk-notif-dot");
+                if (dot && hasUnread) {
+                  dot.style.display = "block";
+                }
+              }
+            }
+          } catch (_) {}
         }
       } catch (err) {
         // Silently ignore background check failures

@@ -857,9 +857,45 @@ function renderStudentReportChart({ isNerdStudent, distinctTerms, applicableExam
         labels: distinctTerms,
         datasets: datasets
       },
+      plugins: [{
+        id: 'topTotalsPlugin',
+        afterDatasetsDraw(chart) {
+          const { ctx, scales: { y } } = chart;
+          distinctTerms.forEach((term, index) => {
+            let totalVal = 0;
+            let hasData = false;
+            chart.data.datasets.forEach(ds => {
+              const val = ds.data[index];
+              if (val) {
+                totalVal += val;
+                hasData = true;
+              }
+            });
+            if (!hasData) return;
+
+            const meta = chart.getDatasetMeta(chart.data.datasets.length - 1);
+            const bar = meta.data[index];
+            if (!bar) return;
+
+            const xPos = bar.x;
+            const yPos = y.getPixelForValue(totalVal);
+
+            ctx.save();
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'bottom';
+            ctx.font = 'bold 12px Inter, system-ui, sans-serif';
+            ctx.fillStyle = '#1e293b';
+            ctx.fillText(`${totalVal.toFixed(1)}%`, xPos, Math.max(14, yPos - 5));
+            ctx.restore();
+          });
+        }
+      }],
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        layout: {
+          padding: { top: 22 }
+        },
         scales: {
           x: {
             stacked: true,
@@ -869,9 +905,9 @@ function renderStudentReportChart({ isNerdStudent, distinctTerms, applicableExam
           y: {
             stacked: true,
             min: 0,
-            max: 100,
+            max: 105,
             ticks: {
-              callback: (v) => v + '%',
+              callback: (v) => v <= 100 ? v + '%' : '',
               color: 'var(--text-muted, #64748b)',
               stepSize: 20
             },

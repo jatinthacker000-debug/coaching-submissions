@@ -2375,6 +2375,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const g = (groupName || "").trim().toLowerCase();
     if (["lakshya", "prayas", "sankalp"].includes(g)) return "Velocity";
     if (g === "nalanda") return "IGNITE coaching class";
+    if (["neps", "negs"].includes(g)) return "Epsilon Classes";
     if (g.startsWith("nerd tutors")) return groupName.trim();
     return "";
   }
@@ -2810,8 +2811,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const filtered = coachQueriesList.filter(q => {
       const isResolved = q.status === "resolved" || Boolean(q.coach_reply);
-      if (filterStatus === "pending" && isResolved) return false;
+      if (filterStatus === "pending" && (isResolved || q.status === "from_coach")) return false;
       if (filterStatus === "resolved" && !isResolved) return false;
+      if (filterStatus === "from_coach" && q.status !== "from_coach") return false;
 
       if (filterGroup && (q.group_name || "").toLowerCase() !== filterGroup.toLowerCase()) {
         return false;
@@ -2832,9 +2834,14 @@ document.addEventListener("DOMContentLoaded", () => {
     let rowsHtml = "";
     filtered.forEach(q => {
       const isResolved = q.status === "resolved" || Boolean(q.coach_reply);
-      const statusBadge = isResolved
-        ? `<span style="background: rgba(16, 185, 129, 0.15); color: #059669; padding: 0.2rem 0.6rem; border-radius: 99px; font-size: 0.75rem; font-weight: 700; border: 1px solid rgba(16, 185, 129, 0.3);">✓ Resolved</span>`
-        : `<span style="background: rgba(245, 158, 11, 0.15); color: #d97706; padding: 0.2rem 0.6rem; border-radius: 99px; font-size: 0.75rem; font-weight: 700; border: 1px solid rgba(245, 158, 11, 0.3);">⏳ Pending</span>`;
+      let statusBadge = "";
+      if (q.status === "from_coach") {
+        statusBadge = `<span style="background: rgba(37, 99, 235, 0.15); color: #2563eb; padding: 0.2rem 0.6rem; border-radius: 99px; font-size: 0.75rem; font-weight: 700; border: 1px solid rgba(37, 99, 235, 0.3);">📢 Notice from Coach</span>`;
+      } else if (isResolved) {
+        statusBadge = `<span style="background: rgba(16, 185, 129, 0.15); color: #059669; padding: 0.2rem 0.6rem; border-radius: 99px; font-size: 0.75rem; font-weight: 700; border: 1px solid rgba(16, 185, 129, 0.3);">✓ Resolved</span>`;
+      } else {
+        statusBadge = `<span style="background: rgba(245, 158, 11, 0.15); color: #d97706; padding: 0.2rem 0.6rem; border-radius: 99px; font-size: 0.75rem; font-weight: 700; border: 1px solid rgba(245, 158, 11, 0.3);">⏳ Pending</span>`;
+      }
 
       let replySnippet = "";
       if (q.coach_reply) {
@@ -3006,6 +3013,228 @@ document.addEventListener("DOMContentLoaded", () => {
   if (qGroupFilter) qGroupFilter.addEventListener("change", window.renderCoachQueries);
   if (qSearchInput) qSearchInput.addEventListener("input", window.renderCoachQueries);
   if (qRefreshBtn) qRefreshBtn.addEventListener("click", window.loadStudentQueries);
+
+  // COACH SEND NOTICE MODAL
+  const openNoticeModalBtn = document.getElementById("open-send-notice-modal-btn");
+  const noticeModal = document.getElementById("coach-notice-modal");
+  const noticeModalCloseBtn = document.getElementById("notice-modal-close-btn");
+  const noticeCancelBtn = document.getElementById("notice-cancel-btn");
+  const noticeForm = document.getElementById("coach-notice-form");
+  const noticeChecklist = document.getElementById("notice-students-checklist");
+  const noticeSelectedCount = document.getElementById("notice-selected-count");
+  const noticeFilterGroup = document.getElementById("notice-filter-group");
+  const noticeSearchStudent = document.getElementById("notice-search-student");
+  const noticeSelectAllBtn = document.getElementById("notice-select-all-btn");
+  const noticeClearAllBtn = document.getElementById("notice-clear-all-btn");
+  const noticeSubmitBtn = document.getElementById("notice-submit-btn");
+  const noticeSubmitStatus = document.getElementById("notice-submit-status");
+
+  const selectedNoticeStudentIds = new Set();
+
+  function updateNoticeSelectedCount() {
+    if (noticeSelectedCount) {
+      noticeSelectedCount.textContent = `(${selectedNoticeStudentIds.size} selected)`;
+    }
+    if (noticeSubmitBtn) {
+      noticeSubmitBtn.textContent = selectedNoticeStudentIds.size > 0 
+        ? `Send Notice (${selectedNoticeStudentIds.size} students)`
+        : "Send Notice";
+    }
+  }
+
+  function renderNoticeStudentsChecklist() {
+    if (!noticeChecklist) return;
+    const allStudents = window.credentialsStudentsData || [];
+    const groupFilter = noticeFilterGroup ? noticeFilterGroup.value.trim().toLowerCase() : "";
+    const searchFilter = noticeSearchStudent ? noticeSearchStudent.value.trim().toLowerCase() : "";
+
+    const visibleStudents = allStudents.filter(st => {
+      if (st.is_active === false) return false;
+      const sGroup = (st.group_name || "").toLowerCase();
+      const sName = (st.name || "").toLowerCase();
+      const sClass = (st.class_name || "").toLowerCase();
+
+      if (groupFilter && !sGroup.includes(groupFilter) && !sClass.includes(groupFilter)) {
+        return false;
+      }
+      if (searchFilter && !sName.includes(searchFilter) && !sGroup.includes(searchFilter)) {
+        return false;
+      }
+      return true;
+    });
+
+    if (visibleStudents.length === 0) {
+      noticeChecklist.innerHTML = `<p style="text-align: center; color: var(--text-muted); font-size: 0.85rem; margin: 0.75rem 0;">No students match filters.</p>`;
+      return;
+    }
+
+    noticeChecklist.innerHTML = visibleStudents.map(st => {
+      const isChecked = selectedNoticeStudentIds.has(st.id);
+      return `
+        <label style="display: flex; align-items: center; justify-content: space-between; padding: 0.35rem 0.5rem; border-radius: 4px; cursor: pointer; border-bottom: 1px solid var(--border); transition: background 0.15s;" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='transparent'">
+          <div style="display: flex; align-items: center; gap: 0.55rem;">
+            <input type="checkbox" class="notice-student-cb" data-id="${st.id}" ${isChecked ? 'checked' : ''} style="cursor: pointer; width: 16px; height: 16px;">
+            <span style="font-weight: 600; font-size: 0.88rem; color: var(--text);">${escapeHtml(st.name)}</span>
+          </div>
+          <span style="font-size: 0.75rem; background: rgba(59, 130, 246, 0.1); color: var(--primary); padding: 0.15rem 0.45rem; border-radius: 4px; font-weight: 600;">
+            ${escapeHtml(st.group_name || 'General')}
+          </span>
+        </label>
+      `;
+    }).join("");
+
+    // Attach listeners
+    noticeChecklist.querySelectorAll(".notice-student-cb").forEach(cb => {
+      cb.addEventListener("change", () => {
+        const id = cb.dataset.id;
+        if (cb.checked) {
+          selectedNoticeStudentIds.add(id);
+        } else {
+          selectedNoticeStudentIds.delete(id);
+        }
+        updateNoticeSelectedCount();
+      });
+    });
+  }
+
+  if (openNoticeModalBtn && noticeModal) {
+    openNoticeModalBtn.addEventListener("click", async () => {
+      if (!window.credentialsStudentsData || window.credentialsStudentsData.length === 0) {
+        if (window.loadCredentialsTable) await window.loadCredentialsTable();
+      }
+      renderNoticeStudentsChecklist();
+      updateNoticeSelectedCount();
+      noticeModal.style.display = "flex";
+      if (noticeSubmitStatus) noticeSubmitStatus.style.display = "none";
+    });
+  }
+
+  const closeNoticeModal = () => {
+    if (noticeModal) noticeModal.style.display = "none";
+  };
+
+  if (noticeModalCloseBtn) noticeModalCloseBtn.addEventListener("click", closeNoticeModal);
+  if (noticeCancelBtn) noticeCancelBtn.addEventListener("click", closeNoticeModal);
+
+  if (noticeFilterGroup) noticeFilterGroup.addEventListener("change", renderNoticeStudentsChecklist);
+  if (noticeSearchStudent) noticeSearchStudent.addEventListener("input", renderNoticeStudentsChecklist);
+
+  if (noticeSelectAllBtn) {
+    noticeSelectAllBtn.addEventListener("click", () => {
+      const allStudents = window.credentialsStudentsData || [];
+      const groupFilter = noticeFilterGroup ? noticeFilterGroup.value.trim().toLowerCase() : "";
+      const searchFilter = noticeSearchStudent ? noticeSearchStudent.value.trim().toLowerCase() : "";
+
+      allStudents.forEach(st => {
+        if (st.is_active === false) return;
+        const sGroup = (st.group_name || "").toLowerCase();
+        const sName = (st.name || "").toLowerCase();
+        const sClass = (st.class_name || "").toLowerCase();
+
+        if (groupFilter && !sGroup.includes(groupFilter) && !sClass.includes(groupFilter)) return;
+        if (searchFilter && !sName.includes(searchFilter) && !sGroup.includes(searchFilter)) return;
+
+        selectedNoticeStudentIds.add(st.id);
+      });
+      renderNoticeStudentsChecklist();
+      updateNoticeSelectedCount();
+    });
+  }
+
+  if (noticeClearAllBtn) {
+    noticeClearAllBtn.addEventListener("click", () => {
+      selectedNoticeStudentIds.clear();
+      renderNoticeStudentsChecklist();
+      updateNoticeSelectedCount();
+    });
+  }
+
+  if (noticeForm) {
+    noticeForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (selectedNoticeStudentIds.size === 0) {
+        alert("Please select at least one student to send this notice to.");
+        return;
+      }
+
+      const title = document.getElementById("notice-title-input")?.value.trim();
+      const message = document.getElementById("notice-message-input")?.value.trim();
+      const subject = document.getElementById("notice-subject-select")?.value || "Notice";
+
+      if (!title || !message) {
+        alert("Please enter both title and message.");
+        return;
+      }
+
+      if (noticeSubmitBtn) {
+        noticeSubmitBtn.disabled = true;
+        noticeSubmitBtn.textContent = "Sending...";
+      }
+
+      const allStudents = window.credentialsStudentsData || [];
+      const targets = [];
+      selectedNoticeStudentIds.forEach(id => {
+        const s = allStudents.find(x => x.id === id);
+        if (s) {
+          targets.push({
+            id: s.id,
+            name: s.name,
+            group_name: s.group_name,
+            student_id_alias: s.student_id_alias
+          });
+        }
+      });
+
+      try {
+        const res = await fetch("/api/students?type=queries", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${getCoachPassword()}`
+          },
+          body: JSON.stringify({
+            action: "send_notice",
+            students: targets,
+            title: title,
+            message: message,
+            subject: subject
+          })
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed to send notice.");
+
+        if (noticeSubmitStatus) {
+          noticeSubmitStatus.style.display = "block";
+          noticeSubmitStatus.style.color = "#059669";
+          noticeSubmitStatus.textContent = `✓ Notice sent successfully to ${targets.length} student(s)!`;
+        }
+
+        setTimeout(() => {
+          closeNoticeModal();
+          noticeForm.reset();
+          selectedNoticeStudentIds.clear();
+          updateNoticeSelectedCount();
+          if (noticeSubmitBtn) {
+            noticeSubmitBtn.disabled = false;
+            noticeSubmitBtn.textContent = "Send Notice";
+          }
+          window.loadStudentQueries();
+        }, 1200);
+
+      } catch (err) {
+        if (noticeSubmitStatus) {
+          noticeSubmitStatus.style.display = "block";
+          noticeSubmitStatus.style.color = "#dc2626";
+          noticeSubmitStatus.textContent = "Error: " + err.message;
+        }
+        if (noticeSubmitBtn) {
+          noticeSubmitBtn.disabled = false;
+          noticeSubmitBtn.textContent = "Send Notice";
+        }
+      }
+    });
+  }
 
   if (hasCoachPassword()) {
     window.loadCredentialsTable();
@@ -3681,6 +3910,7 @@ window.deleteCalendarEvent = async function(id) {
 // --- HOMEWORK TRACKING (SPREADSHEET EDITOR) ---
 const hwTrackStartDateInput = document.getElementById("hw-track-start-date");
 const hwTrackEndDateInput = document.getElementById("hw-track-end-date");
+const hwTrackClassSelect = document.getElementById("hw-track-class");
 const hwTrackGroupSelect = document.getElementById("hw-track-group");
 const hwTrackSearchInput = document.getElementById("hw-track-search");
 const hwTrackLoadBtn = document.getElementById("hw-track-load-btn");
@@ -3695,6 +3925,10 @@ const hwTrackExportBtn = document.getElementById("hw-track-export-btn");
 const hwPresetToday = document.getElementById("hw-preset-today");
 const hwPresetYesterday = document.getElementById("hw-preset-yesterday");
 const hwPresetWeek = document.getElementById("hw-preset-week");
+const hwIncompleteToggleBtn = document.getElementById("hw-incomplete-toggle-btn");
+const hwFilterBadge = document.getElementById("hw-filter-badge");
+
+let hwFilterIncompleteOnly = false;
 
 const HW_STATUS_OPTIONS = [
   { value: "Done", label: "Done", icon: "✓", color: "#059669", bg: "rgba(16, 185, 129, 0.12)", border: "#10b981" },
@@ -3747,25 +3981,50 @@ function renderHwGrid() {
   if (!hwTrackContainer || !hwTrackTheadRow || !hwTrackBody) return;
 
   const searchQuery = (hwTrackSearchInput ? hwTrackSearchInput.value : "").trim().toLowerCase();
-  const filteredStudents = currentHwStudents.filter(st => {
+  let filteredStudents = currentHwStudents.filter(st => {
     if (!searchQuery) return true;
     return (st.name || "").toLowerCase().includes(searchQuery) ||
-           (st.group_name || "").toLowerCase().includes(searchQuery);
+           (st.group_name || "").toLowerCase().includes(searchQuery) ||
+           (st.class_name || "").toLowerCase().includes(searchQuery);
   });
 
-  // 1. Build Header Row
+  if (hwFilterIncompleteOnly) {
+    filteredStudents = filteredStudents.filter(st => {
+      return currentHwDates.some(date => {
+        const key = `${st.id}_${date}`;
+        const status = currentHwStatuses[key];
+        return status === "Incomplete" || status === "Partial" || status === "Absent";
+      });
+    });
+  }
+
+  if (hwFilterBadge) {
+    if (hwFilterIncompleteOnly) {
+      hwFilterBadge.style.display = "inline-block";
+      hwFilterBadge.textContent = `(${filteredStudents.length} student${filteredStudents.length === 1 ? '' : 's'} with incomplete work)`;
+    } else {
+      hwFilterBadge.style.display = "none";
+    }
+  }
+
+  // 1. Build Header Row with Sticky student column and clear Day headers
   let theadHtml = `
-    <th style="width: 50px; text-align: center; padding: 0.75rem 0.5rem;">#</th>
-    <th style="min-width: 170px; padding: 0.75rem 0.75rem;">Student Name</th>
-    <th style="min-width: 130px; padding: 0.75rem 0.75rem;">Group</th>
+    <th style="width: 44px; text-align: center; padding: 0.65rem 0.35rem; position: sticky; left: 0; background: var(--surface-card); z-index: 6; border-right: 1px solid var(--border);">#</th>
+    <th style="min-width: 155px; padding: 0.65rem 0.75rem; position: sticky; left: 44px; background: var(--surface-card); z-index: 6; border-right: 2px solid var(--border); box-shadow: 2px 0 5px rgba(0,0,0,0.06);">Student & Batch</th>
   `;
 
   currentHwDates.forEach(date => {
+    const d = new Date(date + "T00:00:00");
+    const day = d.getDate();
+    const month = d.toLocaleString("default", { month: "short" });
+    const weekday = d.toLocaleString("default", { weekday: "short" });
+
     theadHtml += `
-      <th style="text-align: center; min-width: 160px; padding: 0.6rem 0.5rem; background: var(--surface-card);">
-        <div style="font-size: 0.85rem; font-weight: 700; color: var(--text);">${formatDateHeader(date)}</div>
+      <th style="text-align: center; min-width: 155px; padding: 0.6rem 0.5rem; background: var(--surface-card); border-right: 1px solid var(--border);">
+        <div style="font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--primary); font-weight: 700;">Day: ${weekday}</div>
+        <div style="font-size: 0.92rem; font-weight: 800; color: var(--text); margin-top: 1px;">${day} ${month}</div>
         <div style="margin-top: 0.35rem;">
-          <button type="button" class="btn hw-col-tick-btn" data-date="${date}" style="padding: 0.2rem 0.55rem; font-size: 0.75rem; background: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; color: #059669; border-radius: 4px; font-weight: 600; cursor: pointer;" title="Tick all as Done for ${date}">
+          <button type="button" class="btn hw-col-tick-btn" data-date="${date}" style="padding: 0.2rem 0.55rem; font-size: 0.74rem; background: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; color: #059669; border-radius: 4px; font-weight: 600; cursor: pointer;" title="Tick all as Done for ${weekday}, ${day} ${month}">
             ✓ Tick All
           </button>
         </div>
@@ -3776,8 +4035,11 @@ function renderHwGrid() {
 
   // 2. Build Body Rows
   if (filteredStudents.length === 0) {
-    const colCount = 3 + currentHwDates.length;
-    hwTrackBody.innerHTML = `<tr><td colspan="${colCount}" style="text-align: center; padding: 2rem; color: var(--text-muted);">No students found matching your filters.</td></tr>`;
+    const colCount = 2 + currentHwDates.length;
+    let emptyMsg = hwFilterIncompleteOnly 
+      ? "🎉 Great news! No students with incomplete homework matching your filters."
+      : "No students found matching your filters.";
+    hwTrackBody.innerHTML = `<tr><td colspan="${colCount}" style="text-align: center; padding: 2rem; color: var(--text-muted);">${emptyMsg}</td></tr>`;
     hwTrackContainer.style.display = "block";
     return;
   }
@@ -3786,12 +4048,16 @@ function renderHwGrid() {
   filteredStudents.forEach((st, idx) => {
     bodyHtml += `
       <tr style="border-bottom: 1px solid var(--border);">
-        <td style="text-align: center; padding: 0.6rem 0.5rem; font-weight: 600; color: var(--text-muted);">${idx + 1}</td>
-        <td style="padding: 0.6rem 0.75rem; font-weight: 600; color: var(--text);">${escapeHtml(st.name)}</td>
-        <td style="padding: 0.6rem 0.75rem;">
-          <span style="font-size: 0.8rem; background: var(--bg); padding: 0.2rem 0.55rem; border-radius: 4px; border: 1px solid var(--border); color: var(--text-muted); font-weight: 500;">
-            ${escapeHtml(st.group_name || "Unassigned")}
-          </span>
+        <td style="text-align: center; padding: 0.6rem 0.35rem; font-weight: 600; color: var(--text-muted); position: sticky; left: 0; background: var(--surface); z-index: 4; border-right: 1px solid var(--border); font-size: 0.85rem;">${idx + 1}</td>
+        <td style="padding: 0.6rem 0.75rem; position: sticky; left: 44px; background: var(--surface); z-index: 4; border-right: 2px solid var(--border); box-shadow: 2px 0 5px rgba(0,0,0,0.06);">
+          <div style="font-weight: 700; color: var(--text); font-size: 0.9rem; line-height: 1.25;">
+            ${escapeHtml(st.name)}
+          </div>
+          <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 500; margin-top: 2px;">
+            <span style="background: var(--bg); padding: 0.1rem 0.4rem; border-radius: 4px; border: 1px solid var(--border);">
+              ${escapeHtml(st.group_name || st.class_name || "Unassigned")}
+            </span>
+          </div>
         </td>
     `;
 
@@ -3802,8 +4068,8 @@ function renderHwGrid() {
       const styleStr = getHwStatusStyle(statusVal);
 
       bodyHtml += `
-        <td style="padding: 0.5rem; text-align: center; ${isDirty ? 'background: rgba(59, 130, 246, 0.05);' : ''}">
-          <select class="hw-cell-select" data-student-id="${st.id}" data-date="${date}" style="width: 100%; max-width: 155px; padding: 0.4rem 0.5rem; border-radius: 6px; font-size: 0.82rem; cursor: pointer; border: 1.5px solid; transition: all 0.2s; ${styleStr}">
+        <td style="padding: 0.45rem 0.5rem; text-align: center; border-right: 1px solid var(--border); ${isDirty ? 'background: rgba(59, 130, 246, 0.05);' : ''}">
+          <select class="hw-cell-select" data-student-id="${st.id}" data-date="${date}" style="width: 100%; max-width: 155px; min-height: 38px; padding: 0.4rem 0.5rem; border-radius: 6px; font-size: 0.82rem; cursor: pointer; border: 1.5px solid; transition: all 0.2s; ${styleStr}">
             ${HW_STATUS_OPTIONS.map(opt => `
               <option value="${opt.value}" ${opt.value === statusVal ? 'selected' : ''} style="color: ${opt.color}; background: var(--surface);">
                 ${opt.icon} ${opt.label}
@@ -3880,11 +4146,29 @@ function renderHwGrid() {
   });
 }
 
+// INCOMPLETE TOGGLE LISTENER
+if (hwIncompleteToggleBtn) {
+  hwIncompleteToggleBtn.addEventListener("click", () => {
+    hwFilterIncompleteOnly = !hwFilterIncompleteOnly;
+    if (hwFilterIncompleteOnly) {
+      hwIncompleteToggleBtn.style.background = "#dc2626";
+      hwIncompleteToggleBtn.style.color = "white";
+      hwIncompleteToggleBtn.innerHTML = "<span>✓</span> <span>Showing Incomplete Only</span>";
+    } else {
+      hwIncompleteToggleBtn.style.background = "var(--surface-card)";
+      hwIncompleteToggleBtn.style.color = "#dc2626";
+      hwIncompleteToggleBtn.innerHTML = "<span>⚠️</span> <span>Show Incomplete Only</span>";
+    }
+    renderHwGrid();
+  });
+}
+
 // LOAD HOMEWORK DATA
 if (hwTrackLoadBtn) {
   hwTrackLoadBtn.addEventListener("click", async () => {
     const startDate = hwTrackStartDateInput.value;
     const endDate = hwTrackEndDateInput.value || startDate;
+    const className = hwTrackClassSelect ? hwTrackClassSelect.value : "";
     const group = hwTrackGroupSelect.value;
 
     if (!startDate) {
@@ -3904,6 +4188,9 @@ if (hwTrackLoadBtn) {
       }
 
       let url = `/api/homework?start_date=${encodeURIComponent(startDate)}&end_date=${encodeURIComponent(endDate)}`;
+      if (className) {
+        url += `&class_name=${encodeURIComponent(className)}`;
+      }
       if (group) {
         url += `&group_name=${encodeURIComponent(group)}`;
       }
@@ -3911,6 +4198,38 @@ if (hwTrackLoadBtn) {
       const res = await fetch(url, {
         headers: { "Authorization": `Bearer ${getCoachPassword()}` }
       });
+      const data = await res.json();
+
+      if (res.ok) {
+        currentHwStudents = data.students || [];
+        const existingStatuses = data.statuses || [];
+
+        // Map statuses by studentId_date
+        currentHwStatuses = {};
+        dirtyHwCells.clear();
+
+        existingStatuses.forEach(st => {
+          if (st.student_id && st.homework_date) {
+            currentHwStatuses[`${st.student_id}_${st.homework_date}`] = st.status || "Done";
+          }
+        });
+
+        renderHwGrid();
+
+        if (hwTrackSaveStatus) {
+          hwTrackSaveStatus.style.display = "none";
+        }
+      } else {
+        alert(data.error || "Failed to load homework records.");
+      }
+    } catch (e) {
+      alert("Error loading homework tracking data.");
+    }
+
+    hwTrackLoadBtn.disabled = false;
+    hwTrackLoadBtn.textContent = "Load Records";
+  });
+}
       const data = await res.json();
 
       if (res.ok) {
@@ -4144,6 +4463,8 @@ let activeLoginFilter = 'today'; // 'today' | 'yesterday' | 'custom' | 'all'
 let customLoginFilterDate = '';
 let loginSortDescending = true; // true = newest first, false = oldest first
 let loginSearchQuery = '';
+let loginViewMode = 'unique'; // 'unique' | 'not_logged'
+let loginStudentFilterValue = '';
 
 function getLocalDateString(dateObj = new Date()) {
   const year = dateObj.getFullYear();
@@ -4177,12 +4498,51 @@ async function loadStudentLogins() {
     if (!res.ok) throw new Error(data.error || 'Failed to fetch student logins');
 
     cachedStudentLogins = Array.isArray(data.logins) ? data.logins : [];
+
+    // Ensure student roster is loaded for "Not Logged In" view and dropdown
+    if (!window.credentialsStudentsData || window.credentialsStudentsData.length === 0) {
+      try {
+        const sRes = await fetch("/api/students", {
+          cache: "no-store",
+          headers: { "Authorization": `Bearer ${getCoachPassword()}` }
+        });
+        const sData = await sRes.json();
+        if (sData.students) {
+          window.credentialsStudentsData = sData.students.map(st => ({
+            ...st,
+            class_name: st.class_name || resolveDefaultClass(st.class_name, st.group_name)
+          }));
+        }
+      } catch (_) {}
+    }
+
+    populateLoginStudentFilter();
     renderStudentLogins();
   } catch (err) {
     if (tbody) {
       tbody.innerHTML = `<tr><td colspan="7" style="padding: 1.5rem; text-align: center; color: #ef4444;">Error loading logins: ${escapeHtml(err.message)}</td></tr>`;
     }
   }
+}
+
+function populateLoginStudentFilter() {
+  const sel = document.getElementById('login-student-filter');
+  if (!sel) return;
+
+  const currentVal = sel.value;
+  let students = [];
+  if (window.credentialsStudentsData && window.credentialsStudentsData.length > 0) {
+    students = window.credentialsStudentsData.map(s => s.name).filter(Boolean);
+  } else {
+    students = Array.from(new Set(cachedStudentLogins.map(l => l.student_name).filter(Boolean)));
+  }
+  students.sort((a, b) => a.localeCompare(b));
+
+  let html = `<option value="">All Students</option>`;
+  students.forEach(name => {
+    html += `<option value="${escapeHtml(name)}" ${name === currentVal ? 'selected' : ''}>${escapeHtml(name)}</option>`;
+  });
+  sel.innerHTML = html;
 }
 
 function renderStudentLogins() {
@@ -4194,8 +4554,8 @@ function renderStudentLogins() {
   yesterdayObj.setDate(yesterdayObj.getDate() - 1);
   const yesterdayDateStr = getLocalDateString(yesterdayObj);
 
-  // 1. Day filtering
-  let filtered = cachedStudentLogins.filter(item => {
+  // 1. Day filtering on raw logins
+  let dayFiltered = cachedStudentLogins.filter(item => {
     if (!item.logged_in_at) return false;
     const itemDate = new Date(item.logged_in_at);
     const itemDateStr = getLocalDateString(itemDate);
@@ -4212,7 +4572,134 @@ function renderStudentLogins() {
     return true;
   });
 
-  // 2. Search query filtering
+  const rawDayTotal = dayFiltered.length;
+
+  // VIEW MODE: NOT LOGGED IN
+  if (loginViewMode === 'not_logged') {
+    const loggedInKeys = new Set();
+    dayFiltered.forEach(l => {
+      if (l.student_id) loggedInKeys.add(String(l.student_id).toLowerCase());
+      if (l.student_name) loggedInKeys.add(String(l.student_name).trim().toLowerCase());
+    });
+
+    const allRoster = (window.credentialsStudentsData && window.credentialsStudentsData.length > 0)
+      ? window.credentialsStudentsData
+      : [];
+
+    let notLoggedIn = allRoster.filter(st => {
+      if (st.is_active === false) return false;
+      const idMatch = st.id && loggedInKeys.has(String(st.id).toLowerCase());
+      const nameMatch = st.name && loggedInKeys.has(String(st.name).trim().toLowerCase());
+      return !idMatch && !nameMatch;
+    });
+
+    if (loginStudentFilterValue) {
+      notLoggedIn = notLoggedIn.filter(st => (st.name || '').toLowerCase() === loginStudentFilterValue.toLowerCase());
+    }
+
+    if (loginSearchQuery) {
+      const q = loginSearchQuery.toLowerCase();
+      notLoggedIn = notLoggedIn.filter(st => {
+        return (st.name || '').toLowerCase().includes(q) ||
+               (st.group_name || '').toLowerCase().includes(q) ||
+               (st.student_id_alias || '').toLowerCase().includes(q);
+      });
+    }
+
+    notLoggedIn.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
+    const statusSummary = document.getElementById('login-status-summary');
+    const countPill = document.getElementById('login-count-pill');
+    if (statusSummary) {
+      let label = 'Today';
+      if (activeLoginFilter === 'yesterday') label = 'Yesterday';
+      else if (activeLoginFilter === 'custom') label = customLoginFilterDate ? `Date: ${customLoginFilterDate}` : 'Selected Date';
+      else if (activeLoginFilter === 'all') label = 'All Recent Days';
+      statusSummary.innerHTML = `Showing students who have <strong>NOT logged in</strong> for <strong>${escapeHtml(label)}</strong>`;
+    }
+
+    if (countPill) {
+      countPill.innerHTML = `<span style="color: #dc2626; font-weight: 700;">${notLoggedIn.length} student${notLoggedIn.length === 1 ? '' : 's'} not logged in</span>`;
+    }
+
+    if (notLoggedIn.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7" style="padding: 2.5rem; text-align: center; color: #059669; font-weight: 600;">🎉 Great news! All enrolled students have logged in for this timeframe.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = notLoggedIn.map((st, idx) => {
+      // Find latest previous login in all records
+      const past = cachedStudentLogins.filter(l => {
+        return (l.student_id && l.student_id === st.id) ||
+               ((l.student_name || '').toLowerCase().trim() === (st.name || '').toLowerCase().trim());
+      });
+
+      let lastSeenText = "Never";
+      if (past.length > 0) {
+        past.sort((a, b) => new Date(b.logged_in_at).getTime() - new Date(a.logged_in_at).getTime());
+        const lastDate = new Date(past[0].logged_in_at);
+        lastSeenText = `${lastDate.toLocaleDateString([], { day: 'numeric', month: 'short' })} (${getRelativeTime(past[0].logged_in_at)})`;
+      }
+
+      return `
+        <tr style="border-bottom: 1px solid var(--border); background: rgba(239, 68, 68, 0.02);">
+          <td style="padding: 0.75rem; text-align: center; color: var(--text-muted); font-size: 0.85rem;">${idx + 1}</td>
+          <td style="padding: 0.75rem; font-weight: 600; color: var(--text);">
+            <div style="display: flex; align-items: center; gap: 0.4rem;">
+              <span style="font-size: 1rem;">👤</span>
+              <span>${escapeHtml(st.name)}</span>
+            </div>
+          </td>
+          <td style="padding: 0.75rem;">
+            <span style="background: rgba(59, 130, 246, 0.1); color: var(--primary); padding: 0.2rem 0.55rem; border-radius: 99px; font-size: 0.75rem; font-weight: 600;">
+              ${escapeHtml(st.group_name || 'Grade 12')}
+            </span>
+          </td>
+          <td style="padding: 0.75rem; font-family: monospace; font-weight: 500; color: var(--text-muted);">
+            ${escapeHtml(st.student_id_alias || '-')}
+          </td>
+          <td style="padding: 0.75rem;">
+            <span style="background: rgba(239, 68, 68, 0.12); color: #dc2626; border: 1px solid rgba(239, 68, 68, 0.25); padding: 0.2rem 0.65rem; border-radius: 99px; font-weight: 600; font-size: 0.78rem;">
+              ⚠️ No Login
+            </span>
+          </td>
+          <td style="padding: 0.75rem; font-size: 0.82rem; color: var(--text-muted);">
+            Last seen: <strong>${escapeHtml(lastSeenText)}</strong>
+          </td>
+          <td style="padding: 0.75rem; text-align: right; color: var(--text-muted); font-size: 0.85rem;">
+            -
+          </td>
+        </tr>
+      `;
+    }).join('');
+    return;
+  }
+
+  // VIEW MODE: UNIQUE LOGINS (Keep only the latest login per student)
+  const latestByStudent = new Map();
+  dayFiltered.forEach(item => {
+    const sKey = (item.student_id || item.student_name || '').toLowerCase().trim();
+    if (!sKey) return;
+    const existing = latestByStudent.get(sKey);
+    if (!existing) {
+      latestByStudent.set(sKey, item);
+    } else {
+      const existingTime = new Date(existing.logged_in_at).getTime();
+      const currTime = new Date(item.logged_in_at).getTime();
+      if (currTime > existingTime) {
+        latestByStudent.set(sKey, item);
+      }
+    }
+  });
+
+  let filtered = Array.from(latestByStudent.values());
+
+  // Filter by selected student dropdown if any
+  if (loginStudentFilterValue) {
+    filtered = filtered.filter(item => (item.student_name || '').toLowerCase() === loginStudentFilterValue.toLowerCase());
+  }
+
+  // Filter by search query
   if (loginSearchQuery) {
     const q = loginSearchQuery.toLowerCase();
     filtered = filtered.filter(item => {
@@ -4223,7 +4710,7 @@ function renderStudentLogins() {
     });
   }
 
-  // 3. Chronological Time Sorting
+  // Chronological Time Sorting
   filtered.sort((a, b) => {
     const timeA = new Date(a.logged_in_at).getTime();
     const timeB = new Date(b.logged_in_at).getTime();
@@ -4238,12 +4725,11 @@ function renderStudentLogins() {
     if (activeLoginFilter === 'yesterday') label = 'Yesterday';
     else if (activeLoginFilter === 'custom') label = customLoginFilterDate ? `Date: ${customLoginFilterDate}` : 'Selected Date';
     else if (activeLoginFilter === 'all') label = 'All Recent Days';
-    statusSummary.innerHTML = `Showing logins for <strong>${escapeHtml(label)}</strong>`;
+    statusSummary.innerHTML = `Showing unique logins for <strong>${escapeHtml(label)}</strong>`;
   }
 
   if (countPill) {
-    const uniqueStudents = new Set(filtered.map(f => f.student_name || f.student_id)).size;
-    countPill.textContent = `${filtered.length} login${filtered.length === 1 ? '' : 's'} (${uniqueStudents} unique student${uniqueStudents === 1 ? '' : 's'})`;
+    countPill.textContent = `${filtered.length} unique student${filtered.length === 1 ? '' : 's'} (${rawDayTotal} total sessions)`;
   }
 
   if (filtered.length === 0) {
@@ -4251,7 +4737,8 @@ function renderStudentLogins() {
     if (activeLoginFilter === 'yesterday') emptyMsg = "No student logins recorded for yesterday.";
     else if (activeLoginFilter === 'custom') emptyMsg = customLoginFilterDate ? `No student logins recorded for ${customLoginFilterDate}.` : "Please pick a date to view logins.";
     else if (activeLoginFilter === 'all') emptyMsg = "No student logins recorded yet.";
-    if (loginSearchQuery) emptyMsg = `No student logins matching "${escapeHtml(loginSearchQuery)}".`;
+    if (loginStudentFilterValue) emptyMsg = `No logins found for student "${escapeHtml(loginStudentFilterValue)}".`;
+    else if (loginSearchQuery) emptyMsg = `No student logins matching "${escapeHtml(loginSearchQuery)}".`;
 
     tbody.innerHTML = `<tr><td colspan="7" style="padding: 2rem; text-align: center; color: var(--text-muted);">${emptyMsg}</td></tr>`;
     return;
@@ -4330,6 +4817,56 @@ function setupStudentLoginsUI() {
   const sortBtn = document.getElementById('login-sort-btn');
   const sortLabel = document.getElementById('login-sort-label');
   const refreshBtn = document.getElementById('login-refresh-btn');
+  const viewLoggedBtn = document.getElementById('login-view-logged');
+  const viewNotLoggedBtn = document.getElementById('login-view-not-logged');
+  const studentFilterSel = document.getElementById('login-student-filter');
+
+  const updateViewModeBtns = () => {
+    if (viewLoggedBtn && viewNotLoggedBtn) {
+      if (loginViewMode === 'unique') {
+        viewLoggedBtn.className = "btn btn-primary";
+        viewLoggedBtn.style.background = "";
+        viewLoggedBtn.style.color = "";
+        viewLoggedBtn.style.border = "";
+        viewNotLoggedBtn.className = "btn";
+        viewNotLoggedBtn.style.background = "var(--surface-card)";
+        viewNotLoggedBtn.style.color = "var(--danger)";
+        viewNotLoggedBtn.style.border = "1px solid var(--border)";
+      } else {
+        viewNotLoggedBtn.className = "btn btn-primary";
+        viewNotLoggedBtn.style.background = "#dc2626";
+        viewNotLoggedBtn.style.color = "white";
+        viewNotLoggedBtn.style.border = "none";
+        viewLoggedBtn.className = "btn";
+        viewLoggedBtn.style.background = "var(--surface-card)";
+        viewLoggedBtn.style.color = "var(--text)";
+        viewLoggedBtn.style.border = "1px solid var(--border)";
+      }
+    }
+  };
+
+  if (viewLoggedBtn) {
+    viewLoggedBtn.addEventListener('click', () => {
+      loginViewMode = 'unique';
+      updateViewModeBtns();
+      renderStudentLogins();
+    });
+  }
+
+  if (viewNotLoggedBtn) {
+    viewNotLoggedBtn.addEventListener('click', () => {
+      loginViewMode = 'not_logged';
+      updateViewModeBtns();
+      renderStudentLogins();
+    });
+  }
+
+  if (studentFilterSel) {
+    studentFilterSel.addEventListener('change', (e) => {
+      loginStudentFilterValue = e.target.value;
+      renderStudentLogins();
+    });
+  }
 
   const setFilterActive = (activeType) => {
     activeLoginFilter = activeType;
