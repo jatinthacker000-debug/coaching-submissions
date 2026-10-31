@@ -219,6 +219,30 @@
         </table>
       </div>
 
+      <!-- Grade 12 Class Test Results Link Manager -->
+      <div class="panel-header" style="margin-top: 3rem;">
+        <div>
+          <h1>Grade 12 Class Test Results Link</h1>
+          <p class="subtitle">Set the Google Drive / document link for the "Class Test Results" button shown above the calendar on Grade 12.</p>
+        </div>
+      </div>
+
+      <div class="submit-card wide-card" style="margin-bottom: 3rem;">
+        <form id="class-test-results-form">
+          <div class="form-row">
+            <div class="form-group" style="flex: 2;">
+              <label for="class-test-results-link">Results Link (Google Drive / Sheet / Web URL)</label>
+              <input type="url" id="class-test-results-link" placeholder="https://drive.google.com/..." required>
+            </div>
+          </div>
+          <div style="display: flex; gap: 1rem; align-items: center; margin-top: 1rem; flex-wrap: wrap;">
+            <button type="submit" class="btn btn-primary" id="class-test-results-save-btn" style="width: auto; min-width: 180px;">Save Results Link</button>
+            <a id="class-test-results-preview-link" href="#" target="_blank" rel="noopener noreferrer" class="btn" style="display: none; background: var(--surface-card); border: 1px solid var(--border); color: var(--text); text-decoration: none;">🔗 Open Current Link</a>
+          </div>
+          <p id="class-test-results-status" style="margin-top: 1rem; display: none; font-weight: 500;"></p>
+        </form>
+      </div>
+
       <div class="panel-header">
         <div>
           <h1>Resources Manager</h1>

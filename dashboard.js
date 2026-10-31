@@ -92,6 +92,21 @@ async function renderNotes() {
     const { notes } = await fetchNotes();
     notesList.innerHTML = "";
 
+    // Populate Class Test Results link if present
+    const resultsNote = (notes || []).find(n => n.grade === "XII-Results" || (n.title && n.title.toLowerCase().includes("class test results")));
+    const resLinkInput = document.getElementById("class-test-results-link");
+    const resPreviewBtn = document.getElementById("class-test-results-preview-link");
+    if (resLinkInput && resultsNote && resultsNote.link) {
+      if (!resLinkInput.value || resLinkInput.value === resLinkInput.defaultValue) {
+        resLinkInput.value = resultsNote.link;
+        resLinkInput.defaultValue = resultsNote.link;
+      }
+      if (resPreviewBtn) {
+        resPreviewBtn.href = resultsNote.link;
+        resPreviewBtn.style.display = "inline-flex";
+      }
+    }
+
     // Show Grade 10 (X), Grade 12 (XII) notes, worksheets, other materials, notifications, and CBSE resources
     const gradeXNotes = (notes || []).filter(note => 
       note.grade === "X" || note.grade === "X-Worksheet" || 
@@ -326,6 +341,66 @@ if (notifForm) {
     } finally {
       btn.disabled = false;
       btn.textContent = "Send Notification";
+    }
+  });
+}
+
+const classTestForm = document.getElementById("class-test-results-form");
+if (classTestForm) {
+  classTestForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const linkInput = document.getElementById("class-test-results-link");
+    const saveBtn = document.getElementById("class-test-results-save-btn");
+    const statusEl = document.getElementById("class-test-results-status");
+    const previewBtn = document.getElementById("class-test-results-preview-link");
+
+    const link = linkInput ? linkInput.value.trim() : "";
+    if (!link) return;
+
+    if (saveBtn) {
+      saveBtn.disabled = true;
+      saveBtn.textContent = "Saving...";
+    }
+    if (statusEl) statusEl.style.display = "none";
+
+    try {
+      if (typeof updateNote === "function") {
+        await updateNote({
+          title: "Class Test Results",
+          grade: "XII-Results",
+          subject: "Results",
+          link: link
+        });
+      } else {
+        await createNote({
+          title: "Class Test Results",
+          grade: "XII-Results",
+          subject: "Results",
+          link: link
+        });
+      }
+
+      if (statusEl) {
+        statusEl.textContent = "✓ Class test results link saved successfully!";
+        statusEl.style.color = "#059669";
+        statusEl.style.display = "block";
+      }
+      if (previewBtn) {
+        previewBtn.href = link;
+        previewBtn.style.display = "inline-flex";
+      }
+      linkInput.defaultValue = link;
+    } catch (err) {
+      if (statusEl) {
+        statusEl.textContent = "Error: " + (err.message || "Could not save link.");
+        statusEl.style.color = "#dc2626";
+        statusEl.style.display = "block";
+      }
+    } finally {
+      if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.textContent = "Save Results Link";
+      }
     }
   });
 }

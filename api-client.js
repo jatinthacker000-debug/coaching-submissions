@@ -219,6 +219,18 @@ async function createNote(payload) {
   return parseResponse(response);
 }
 
+async function updateNote(payload) {
+  const response = await fetch("/api/notes", {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${getCoachPassword()}`,
+    },
+    body: JSON.stringify(payload),
+  });
+  return parseResponse(response);
+}
+
 async function deleteNote(id) {
   const response = await fetch(`/api/notes?id=${encodeURIComponent(id)}`, {
     method: "DELETE",

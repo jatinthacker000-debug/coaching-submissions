@@ -44,6 +44,26 @@ async function loadPDFNotes() {
   const loadingIndicator = document.getElementById("loading-indicator");
 
   function renderNotesToDOM(notesList) {
+    const classTestBtn = document.getElementById("class-test-results-btn");
+    if (classTestBtn) {
+      const resultsNote = (notesList || []).find(n => n.grade === "XII-Results" || (n.title && n.title.toLowerCase().includes("class test results")));
+      if (resultsNote && resultsNote.link) {
+        classTestBtn.href = resultsNote.link;
+        classTestBtn.removeAttribute("data-empty");
+      } else {
+        classTestBtn.href = "#";
+        classTestBtn.setAttribute("data-empty", "true");
+      }
+      if (!classTestBtn._hasListener) {
+        classTestBtn._hasListener = true;
+        classTestBtn.addEventListener("click", (e) => {
+          if (classTestBtn.getAttribute("data-empty") === "true" || classTestBtn.getAttribute("href") === "#") {
+            e.preventDefault();
+            alert("Class test results link will be updated soon by the coach.");
+          }
+        });
+      }
+    }
     if (notesXContainer) {
       const notesXHistory = document.getElementById("notes-x-history");
       const notesXGeography = document.getElementById("notes-x-geography");
