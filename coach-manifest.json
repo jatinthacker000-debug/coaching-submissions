@@ -1,0 +1,25 @@
+{
+  "name": "Padh rahi public - Coach Portal",
+  "short_name": "Coach App",
+  "description": "Coach Dashboard for managing notes, exams, marks, homework, and student queries",
+  "start_url": "/dashboard.html",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0b0f19",
+  "theme_color": "#8b5cf6",
+  "icons": [
+    {
+      "src": "logo.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "logo.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ]
+}

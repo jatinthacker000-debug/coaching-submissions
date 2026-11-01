@@ -1,15 +1,31 @@
 const COACH_KEY = "coach_password";
+const COACH_REMEMBER_KEY = "coach_remember_device";
 
 function getCoachPassword() {
-  return sessionStorage.getItem(COACH_KEY) || "";
+  // Check localStorage first (persistent login), fallback to sessionStorage
+  return localStorage.getItem(COACH_KEY) || sessionStorage.getItem(COACH_KEY) || "";
 }
 
-function setCoachPassword(password) {
-  sessionStorage.setItem(COACH_KEY, password);
+function setCoachPassword(password, remember = false) {
+  if (remember) {
+    localStorage.setItem(COACH_KEY, password);
+    localStorage.setItem(COACH_REMEMBER_KEY, "true");
+    sessionStorage.removeItem(COACH_KEY);
+  } else {
+    sessionStorage.setItem(COACH_KEY, password);
+    localStorage.removeItem(COACH_KEY);
+    localStorage.removeItem(COACH_REMEMBER_KEY);
+  }
 }
 
 function clearCoachPassword() {
   sessionStorage.removeItem(COACH_KEY);
+  localStorage.removeItem(COACH_KEY);
+  localStorage.removeItem(COACH_REMEMBER_KEY);
+}
+
+function isCoachRemembered() {
+  return localStorage.getItem(COACH_REMEMBER_KEY) === "true";
 }
 
 function hasCoachPassword() {

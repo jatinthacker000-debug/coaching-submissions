@@ -1,3 +1,52 @@
+// ==========================================
+// COACH APP PWA & APP SHELL REGISTRATION
+// (Scoped strictly to Coach Portal)
+// ==========================================
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw-coach.js', { scope: '/' })
+      .then((reg) => console.log('Coach PWA registered with scope:', reg.scope))
+      .catch((err) => console.warn('Coach PWA registration failed:', err));
+  });
+}
+
+let deferredInstallPrompt = null;
+const btnInstallApp = document.getElementById("btn-install-app");
+const btnInstallLogin = document.getElementById("btn-install-login");
+
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  if (btnInstallApp) btnInstallApp.classList.remove("hidden");
+  if (btnInstallLogin) btnInstallLogin.classList.remove("hidden");
+});
+
+async function triggerCoachAppInstall() {
+  if (!deferredInstallPrompt) return;
+  deferredInstallPrompt.prompt();
+  const { outcome } = await deferredInstallPrompt.userChoice;
+  console.log("Coach App install outcome:", outcome);
+  deferredInstallPrompt = null;
+  if (btnInstallApp) btnInstallApp.classList.add("hidden");
+  if (btnInstallLogin) btnInstallLogin.classList.add("hidden");
+}
+
+if (btnInstallApp) btnInstallApp.addEventListener("click", triggerCoachAppInstall);
+if (btnInstallLogin) btnInstallLogin.addEventListener("click", triggerCoachAppInstall);
+
+window.addEventListener("appinstalled", () => {
+  console.log("Coach App installed successfully!");
+  if (btnInstallApp) btnInstallApp.classList.add("hidden");
+  if (btnInstallLogin) btnInstallLogin.classList.add("hidden");
+  deferredInstallPrompt = null;
+});
+
+// Check if running in standalone mode (already installed app)
+if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
+  if (btnInstallApp) btnInstallApp.classList.add("hidden");
+  if (btnInstallLogin) btnInstallLogin.classList.add("hidden");
+}
+
 const loginScreen = document.getElementById("login-screen");
 const dashboardMain = document.getElementById("dashboard-main");
 const loginForm = document.getElementById("login-form");
@@ -15,12 +64,29 @@ const notesList = document.getElementById("notes-list");
 function showDashboard() {
   loginScreen.classList.add("hidden");
   dashboardMain.classList.remove("hidden");
+  const btnLogout = document.getElementById("btn-coach-logout");
+  if (btnLogout) btnLogout.classList.remove("hidden");
 }
 
 function showLogin() {
   loginScreen.classList.remove("hidden");
   dashboardMain.classList.add("hidden");
+  const btnLogout = document.getElementById("btn-coach-logout");
+  if (btnLogout) btnLogout.classList.add("hidden");
 }
+
+function handleCoachLogout() {
+  if (confirm("Are you sure you want to log out of Coach Portal?")) {
+    clearCoachPassword();
+    showLogin();
+  }
+}
+
+const btnCoachLogout = document.getElementById("btn-coach-logout");
+if (btnCoachLogout) btnCoachLogout.addEventListener("click", handleCoachLogout);
+
+const mobNavLogout = document.getElementById("mob-nav-logout");
+if (mobNavLogout) mobNavLogout.addEventListener("click", handleCoachLogout);
 
 // Helper to parse "[Ch X]" or "[Sl X]" Title format
 function parseResourceTitle(rawTitle) {
@@ -69,7 +135,8 @@ loginForm.addEventListener("submit", async (e) => {
     if (!res.ok) {
       throw new Error(data.error || "Login failed");
     }
-    setCoachPassword(data.token);
+    const rememberMe = document.getElementById("coach-remember-me") ? document.getElementById("coach-remember-me").checked : true;
+    setCoachPassword(data.token, rememberMe);
     await fetchSubmissions();
     showDashboard();
     await renderNotes();
@@ -447,18 +514,27 @@ function switchDashboardTab(tab) {
     navTabQueries.style.color = "var(--text)";
   }
 
+  // Update mobile bottom nav items
+  const mobNotes = document.getElementById("mob-nav-notes");
+  const mobExams = document.getElementById("mob-nav-exams");
+  const mobQueries = document.getElementById("mob-nav-queries");
+  const mobAnalytics = document.getElementById("mob-nav-analytics");
+  [mobNotes, mobExams, mobQueries, mobAnalytics].forEach(el => el && el.classList.remove("active"));
+
   if (tab === "resources") {
     if (tabNotes) tabNotes.classList.remove("hidden");
     if (navTabResources) {
       navTabResources.style.background = "var(--primary)";
       navTabResources.style.color = "white";
     }
+    if (mobNotes) mobNotes.classList.add("active");
   } else if (tab === "exams") {
     if (tabExams) tabExams.classList.remove("hidden");
     if (navTabExams) {
       navTabExams.style.background = "var(--primary)";
       navTabExams.style.color = "white";
     }
+    if (mobExams) mobExams.classList.add("active");
     loadExamData();
     if (typeof loadStudentLogins === 'function') loadStudentLogins();
   } else if (tab === "queries") {
@@ -467,6 +543,7 @@ function switchDashboardTab(tab) {
       navTabQueries.style.background = "var(--primary)";
       navTabQueries.style.color = "white";
     }
+    if (mobQueries) mobQueries.classList.add("active");
     if (typeof loadStudentQueries === 'function') loadStudentQueries();
   }
 }
@@ -474,6 +551,42 @@ function switchDashboardTab(tab) {
 if (navTabResources) navTabResources.addEventListener("click", () => switchDashboardTab("resources"));
 if (navTabExams) navTabExams.addEventListener("click", () => switchDashboardTab("exams"));
 if (navTabQueries) navTabQueries.addEventListener("click", () => switchDashboardTab("queries"));
+
+// Mobile Navigation Event Listeners
+const mobNavNotes = document.getElementById("mob-nav-notes");
+const mobNavExams = document.getElementById("mob-nav-exams");
+const mobNavQueries = document.getElementById("mob-nav-queries");
+const mobNavAnalytics = document.getElementById("mob-nav-analytics");
+
+if (mobNavNotes) {
+  mobNavNotes.addEventListener("click", () => {
+    switchDashboardTab("resources");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+}
+if (mobNavExams) {
+  mobNavExams.addEventListener("click", () => {
+    switchDashboardTab("exams");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+}
+if (mobNavQueries) {
+  mobNavQueries.addEventListener("click", () => {
+    switchDashboardTab("queries");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+}
+if (mobNavAnalytics) {
+  mobNavAnalytics.addEventListener("click", () => {
+    switchDashboardTab("exams");
+    [mobNavNotes, mobNavExams, mobNavQueries].forEach(el => el && el.classList.remove("active"));
+    mobNavAnalytics.classList.add("active");
+    const target = document.getElementById("overview-header") || document.getElementById("analytics-header");
+    if (target) {
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  });
+}
 
 // --- EXAM MANAGEMENT ---
 const examForm = document.getElementById("exam-form");
@@ -2867,6 +2980,22 @@ document.addEventListener("DOMContentLoaded", () => {
           unreadBadge.style.display = "inline-block";
         } else {
           unreadBadge.style.display = "none";
+        }
+      }
+      const mobBadge = document.getElementById("mobile-queries-badge");
+      if (mobBadge) {
+        if (pendingCount > 0) {
+          mobBadge.textContent = pendingCount;
+          mobBadge.style.display = "inline-block";
+        } else {
+          mobBadge.style.display = "none";
+        }
+      }
+      if ('setAppBadge' in navigator) {
+        if (pendingCount > 0) {
+          navigator.setAppBadge(pendingCount).catch(() => {});
+        } else {
+          navigator.clearAppBadge().catch(() => {});
         }
       }
 
