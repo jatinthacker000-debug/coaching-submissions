@@ -90,45 +90,53 @@
       </div>
 <section id="tab-notes" class="tab-panel">
       <!-- Notification Manager -->
-      <div class="panel-header">
+      <div class="panel-header accordion-header" id="notif-header">
         <div>
-          <h1>Notification Manager</h1>
+          <h1 class="accordion-title">
+            <span>Notification Manager</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="accordion-icon" id="notif-toggle-icon" style="transform: rotate(0deg);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </h1>
           <p class="subtitle">Broadcast announcements to students.</p>
         </div>
       </div>
-      <form id="notif-form" class="submit-card wide-card" style="margin-bottom: 3rem;">
-        <div class="form-row">
-          <div class="form-group" style="flex: 1;">
-            <label>Institutes (Check all that apply)</label>
-            <div id="notif-institutes-container" style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 0.5rem;">
-              <label style="display: flex; align-items: center; gap: 0.25rem;"><input type="checkbox" value="IGNITE coaching class"> IGNITE coaching class</label>
-              <label style="display: flex; align-items: center; gap: 0.25rem;"><input type="checkbox" value="Epsilon Classes"> Epsilon Classes</label>
-              <label style="display: flex; align-items: center; gap: 0.25rem;"><input type="checkbox" value="Velocity"> Velocity</label>
-              <label style="display: flex; align-items: center; gap: 0.25rem;"><input type="checkbox" value="Nerd Tutors"> Nerd Tutors</label><label style="display: flex; align-items: center; gap: 0.25rem;"><input type="checkbox" value="Nerd Tutors Nalanda"> Nerd Tutors Nalanda</label>
+      <div id="notif-content" style="display: none;">
+        <form id="notif-form" class="submit-card wide-card" style="margin-bottom: 2rem;">
+          <div class="form-group" style="margin-bottom: 1.25rem;">
+            <label>Institutes (Check all that apply):</label>
+            <div id="notif-institutes-container" class="checkbox-pill-group">
+              <label class="checkbox-pill"><input type="checkbox" value="IGNITE coaching class"> <span>IGNITE coaching class</span></label>
+              <label class="checkbox-pill"><input type="checkbox" value="Epsilon Classes"> <span>Epsilon Classes</span></label>
+              <label class="checkbox-pill"><input type="checkbox" value="Velocity"> <span>Velocity</span></label>
+              <label class="checkbox-pill"><input type="checkbox" value="Nerd Tutors"> <span>Nerd Tutors</span></label>
+              <label class="checkbox-pill"><input type="checkbox" value="Nerd Tutors Nalanda"> <span>Nerd Tutors Nalanda</span></label>
             </div>
           </div>
-          <div class="form-group" style="flex: 2;">
+          <div class="form-group">
             <label for="notif-message">Notification Message</label>
             <input type="text" id="notif-message" placeholder="e.g. New test series starting tomorrow!" required>
           </div>
-        </div>
-        <div class="form-group">
-          <label for="notif-link">Link (Optional)</label>
-          <input type="url" id="notif-link" placeholder="https://..." >
-        </div>
-        <button type="submit" class="btn btn-primary" id="notif-submit-btn" style="width: auto; min-width: 180px;">
-          Send Notification
-        </button>
-      </form>
+          <div class="form-group">
+            <label for="notif-link">Link (Optional)</label>
+            <input type="url" id="notif-link" placeholder="https://...">
+          </div>
+          <button type="submit" class="btn btn-primary" id="notif-submit-btn" style="width: auto; min-width: 180px;">
+            Send Notification
+          </button>
+        </form>
+      </div>
 
       <!-- Homework Links Manager -->
-      <div class="panel-header" style="margin-top: 3rem;">
+      <div class="panel-header accordion-header" id="hw-links-header">
         <div>
-          <h1>Homework Links Manager</h1>
+          <h1 class="accordion-title">
+            <span>Homework Links Manager</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="accordion-icon" id="hw-links-toggle-icon" style="transform: rotate(0deg);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </h1>
           <p class="subtitle">Set Google Drive homework links for Grade 10 & Grade 12 calendars.</p>
         </div>
       </div>
-      <div class="submit-card wide-card" style="margin-bottom: 3rem;">
+      <div id="hw-links-content" style="display: none;">
+        <div class="submit-card wide-card" style="margin-bottom: 3rem;">
         <div class="form-row">
           <div class="form-group" style="flex: 1;">
             <label for="hw-date">Select Date</label>
@@ -182,15 +190,20 @@
           </tbody>
         </table>
       </div>
+      </div> <!-- /#hw-links-content -->
 
       <!-- Calendar Events & Test Dates Manager -->
-      <div class="panel-header" style="margin-top: 3rem;">
+      <div class="panel-header accordion-header" id="cal-events-header">
         <div>
-          <h1>Calendar Events & Test Dates Manager</h1>
+          <h1 class="accordion-title">
+            <span>Calendar Events & Test Dates Manager</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="accordion-icon" id="cal-events-toggle-icon" style="transform: rotate(0deg);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </h1>
           <p class="subtitle">Add tests, holidays, and important dates for student calendars.</p>
         </div>
       </div>
-      <div class="submit-card wide-card" style="margin-bottom: 3rem;">
+      <div id="cal-events-content" style="display: none;">
+        <div class="submit-card wide-card" style="margin-bottom: 3rem;">
         <div class="form-row">
           <div class="form-group" style="flex: 1;">
             <label for="cal-event-date">Select Date</label>
@@ -252,15 +265,20 @@
           </tbody>
         </table>
       </div>
+      </div> <!-- /#cal-events-content -->
 
       <!-- Grade 12 Class Test Results Link -->
-      <div class="panel-header" style="margin-top: 3rem;">
+      <div class="panel-header accordion-header" id="test-results-header">
         <div>
-          <h1>Grade 12 Class Test Results Link</h1>
-          <p class="subtitle">Set the Google Drive or sheet link for Grade 12 test results button.</p>
+          <h1 class="accordion-title">
+            <span>Grade 12 Class Test Results Link</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="accordion-icon" id="test-results-toggle-icon" style="transform: rotate(0deg);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </h1>
+          <p class="subtitle">Manage the Google Drive link for Grade 12 students to view their class test results.</p>
         </div>
       </div>
-      <form id="class-test-results-form" class="submit-card wide-card" style="margin-bottom: 3rem;">
+      <div id="test-results-content" style="display: none;">
+        <form id="class-test-results-form" class="submit-card wide-card" style="margin-bottom: 3rem;">
         <div class="form-group">
           <label for="class-test-results-link">Class Test Results Drive/Sheet URL</label>
           <input type="url" id="class-test-results-link" placeholder="https://drive.google.com/..." required>
@@ -271,16 +289,20 @@
         </div>
         <p id="class-test-results-status" style="margin-top: 1rem; display: none; font-weight: 500;"></p>
       </form>
-
-      <!-- Resources Manager -->
-      <div class="panel-header">
-        <div>
-          <h1>Resources Manager</h1>
-          <p class="subtitle">Add new chapter-wise study materials, revision files, or practice worksheets for your students.</p>
-        </div>
       </div>
 
-      <form id="note-form" class="submit-card wide-card">
+      <!-- Resources Manager -->
+      <div class="panel-header accordion-header" id="resources-header">
+        <div>
+          <h1 class="accordion-title">
+            <span>Resources Manager</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="accordion-icon" id="resources-toggle-icon" style="transform: rotate(0deg);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </h1>
+          <p class="subtitle">Upload or link question banks, assignments, and sample papers.</p>
+        </div>
+      </div>
+      <div id="resources-content" style="display: none;">
+        <form id="note-form" class="submit-card wide-card">
         <div class="form-row">
           <div class="form-group" style="flex: 0 0 110px;">
             <label for="note-chapter">Ch. / Sl. No</label>
@@ -328,16 +350,21 @@
           Add Resource
         </button>
       </form>
+      </div>
 
       <!-- CBSE Resources Manager -->
-      <div class="panel-header" style="margin-top: 3rem;">
+      <div class="panel-header accordion-header" id="cbse-header">
         <div>
-          <h1>CBSE Resources Manager</h1>
+          <h1 class="accordion-title">
+            <span>CBSE Resources Manager</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="accordion-icon" id="cbse-toggle-icon" style="transform: rotate(0deg);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </h1>
           <p class="subtitle">Add year-wise drive folders for CBSE resources.</p>
         </div>
-        <button class="btn btn-danger" id="delete-all-cbse-btn" style="margin-top:1rem;">Delete All CBSE Resources</button>
       </div>
-      <form id="cbse-form" class="submit-card wide-card" style="margin-bottom: 3rem;">
+      <div id="cbse-content" style="display: none;">
+        <button class="btn btn-danger" id="delete-all-cbse-btn" style="margin-top:1rem;">Delete All CBSE Resources</button>
+        <form id="cbse-form" class="submit-card wide-card" style="margin-bottom: 3rem;">
         <div class="form-row">
           <div class="form-group" style="flex: 1;">
             <label for="cbse-grade">Grade</label>
@@ -359,75 +386,93 @@
           Add CBSE Folder
         </button>
       </form>
+      </div>
 
-      <div class="section-divider"></div>
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
-        <h2 class="section-title" style="margin-bottom: 0;">Active Resources</h2>
-        <div class="search-input-wrapper" style="max-width: 300px; width: 100%;">
-          <span class="search-icon">🔍</span>
-          <input type="text" id="dashboard-search-input" placeholder="Search resources..." class="search-input" autocomplete="off">
+      <div class="panel-header accordion-header" id="active-resources-header">
+        <div>
+          <h1 class="accordion-title">
+            <span>Active Resources</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="accordion-icon" id="active-resources-toggle-icon" style="transform: rotate(0deg);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </h1>
+          <p class="subtitle">Search and browse all uploaded study resources.</p>
+        </div>
+        <div class="filter-toolbar-group" onclick="event.stopPropagation();">
+          <div class="search-input-wrapper" style="max-width: 280px; width: 100%;">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="dashboard-search-input" placeholder="Search resources..." class="search-input toolbar-input" autocomplete="off" style="padding-left: 2.2rem;">
+          </div>
         </div>
       </div>
-      <div class="papers-list" id="notes-list">
+      <div id="active-resources-content" style="display: none;">
+        <div class="papers-list" id="notes-list">
         <p class="muted-text">Loading notes...</p>
+      </div>
       </div>
     </section>
 
-    <!-- NEW EXAMS TAB -->
+        <!-- NEW EXAMS TAB -->
     <section id="tab-exams" class="tab-panel hidden">
-      <div class="panel-header">
+      <div class="panel-header accordion-header" id="exam-mgmt-header">
         <div>
-          <h1>Exam Management</h1>
+          <h1 class="accordion-title">
+            <span>Exam Management</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="accordion-icon" id="exam-mgmt-toggle-icon" style="transform: rotate(0deg);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </h1>
           <p class="subtitle">Create and manage exams for your students.</p>
         </div>
       </div>
-      
-      <form id="exam-form" class="submit-card wide-card" style="margin-bottom: 3rem;">
-        <div class="form-row">
-          <div class="form-group" style="flex: 2;">
-            <label for="exam-name">Exam Name</label>
-            <input type="text" id="exam-name" placeholder="e.g. Periodic Test 1" required>
+      <div id="exam-mgmt-content" style="display: none;">
+        <form id="exam-form" class="submit-card wide-card" style="margin-bottom: 2rem;">
+          <div class="form-row">
+            <div class="form-group" style="flex: 2;">
+              <label for="exam-name">Exam Name</label>
+              <input type="text" id="exam-name" placeholder="e.g. Periodic Test 1" required>
+            </div>
+            <div class="form-group" style="flex: 1;">
+              <label for="exam-total">Total Marks</label>
+              <input type="number" id="exam-total" placeholder="e.g. 20" required min="1" step="0.5">
+            </div>
+            <div class="form-group" style="flex: 1;">
+              <label for="exam-subject">Subject</label>
+              <select id="exam-subject">
+                <option value="Economics">Economics</option>
+                <option value="Accountancy">Accountancy</option>
+                <option value="Business Studies">Business Studies</option>
+                <option value="Social Science">Social Science</option>
+              </select>
+            </div>
           </div>
-          <div class="form-group" style="flex: 1;">
-            <label for="exam-total">Total Marks</label>
-            <input type="number" id="exam-total" placeholder="e.g. 20" required min="1" step="0.5">
+          <div class="form-group" style="margin-bottom: 1.5rem; margin-top: 0.5rem;">
+            <label>Groups taking this exam (leave all unchecked to allow everyone):</label>
+            <div class="checkbox-pill-group" id="exam-groups-container">
+              <label class="checkbox-pill"><input type="checkbox" value="NEPS"> <span>NEPS</span></label>
+              <label class="checkbox-pill"><input type="checkbox" value="NEGS"> <span>NEGS</span></label>
+              <label class="checkbox-pill"><input type="checkbox" value="Nalanda"> <span>Nalanda</span></label>
+              <label class="checkbox-pill"><input type="checkbox" value="Lakshya"> <span>Lakshya</span></label>
+              <label class="checkbox-pill"><input type="checkbox" value="Sankalp"> <span>Sankalp</span></label>
+              <label class="checkbox-pill"><input type="checkbox" value="Prayas"> <span>Prayas</span></label>
+              <label class="checkbox-pill"><input type="checkbox" value="Nerd Tutors"> <span>Nerd Tutors</span></label>
+              <label class="checkbox-pill"><input type="checkbox" value="Nerd Tutors Nalanda"> <span>Nerd Tutors Nalanda</span></label>
+            </div>
           </div>
-          <div class="form-group" style="flex: 1;">
-            <label for="exam-subject">Subject</label>
-            <select id="exam-subject">
-              <option value="Economics">Economics</option>
-              <option value="Accountancy">Accountancy</option>
-              <option value="Business Studies">Business Studies</option>
-              <option value="Social Science">Social Science</option>
-            </select>
-          </div>
-        </div>
-        <button type="submit" class="btn btn-primary" id="exam-submit-btn" style="width: auto; min-width: 180px;">
-          Create Exam
-        </button>
-        <div class="form-group" style="margin-bottom: 1.5rem; margin-top: 1rem;">
-          <label>Groups taking this exam (leave all unchecked to allow everyone)</label>
-          <div style="display: flex; gap: 1rem; flex-wrap: wrap;" id="exam-groups-container">
-            <label style="display: flex; align-items: center; gap: 0.25rem;"><input type="checkbox" value="NEPS"> NEPS</label>
-            <label style="display: flex; align-items: center; gap: 0.25rem;"><input type="checkbox" value="NEGS"> NEGS</label>
-            <label style="display: flex; align-items: center; gap: 0.25rem;"><input type="checkbox" value="Nalanda"> Nalanda</label>
-            <label style="display: flex; align-items: center; gap: 0.25rem;"><input type="checkbox" value="Lakshya"> Lakshya</label>
-            <label style="display: flex; align-items: center; gap: 0.25rem;"><input type="checkbox" value="Sankalp"> Sankalp</label>
-            <label style="display: flex; align-items: center; gap: 0.25rem;"><input type="checkbox" value="Prayas"> Prayas</label>
-            <label style="display: flex; align-items: center; gap: 0.25rem;"><input type="checkbox" value="Nerd Tutors"> Nerd Tutors</label>
-            <label style="display: flex; align-items: center; gap: 0.25rem;"><input type="checkbox" value="Nerd Tutors Nalanda"> Nerd Tutors Nalanda</label>
-          </div>
-        </div>
-      </form>
+          <button type="submit" class="btn btn-primary" id="exam-submit-btn" style="width: auto; min-width: 180px;">
+            Create Exam
+          </button>
+        </form>
+      </div>
 
       <!-- Pre-register Student -->
-      <div class="panel-header" style="margin-top: 3rem;">
+      <div class="panel-header accordion-header" id="add-student-header">
         <div>
-          <h1>Add New Student</h1>
+          <h1 class="accordion-title">
+            <span>Add New Student</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="accordion-icon" id="add-student-toggle-icon" style="transform: rotate(0deg);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </h1>
           <p class="subtitle">Pre-register a student and assign them to a class and group, along with login credentials.</p>
         </div>
       </div>
-      <div class="submit-card wide-card" style="margin-bottom: 1rem;">
+      <div id="add-student-content" style="display: none;">
+        <div class="submit-card wide-card" style="margin-bottom: 1rem;">
         <div class="form-row">
           <div class="form-group" style="flex: 1.5;">
             <label for="add-student-name">Student Name</label>
@@ -466,14 +511,15 @@
         </div>
         <div class="form-group" id="add-student-subjects-wrapper" style="margin-top: 1rem; display: none;">
           <label>Enrolled Subjects (for Commerce / Nerd Tutors batches):</label>
-          <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; margin-top: 0.35rem;">
-            <label style="display: flex; align-items: center; gap: 0.35rem; cursor: pointer;"><input type="checkbox" id="add-subj-acc" value="Accountancy" checked> Accountancy</label>
-            <label style="display: flex; align-items: center; gap: 0.35rem; cursor: pointer;"><input type="checkbox" id="add-subj-eco" value="Economics" checked> Economics</label>
-            <label style="display: flex; align-items: center; gap: 0.35rem; cursor: pointer;"><input type="checkbox" id="add-subj-bst" value="Business Studies" checked> Business Studies</label>
+          <div class="checkbox-pill-group" style="margin-top: 0.35rem;">
+            <label class="checkbox-pill"><input type="checkbox" id="add-subj-acc" value="Accountancy" checked> <span>Accountancy</span></label>
+            <label class="checkbox-pill"><input type="checkbox" id="add-subj-eco" value="Economics" checked> <span>Economics</span></label>
+            <label class="checkbox-pill"><input type="checkbox" id="add-subj-bst" value="Business Studies" checked> <span>Business Studies</span></label>
           </div>
         </div>
         <button class="btn btn-primary" id="add-student-btn" style="width: auto; min-width: 160px;">Add Student</button>
         <p id="add-student-status" style="margin-top: 1rem; font-size: 0.9rem; font-weight: 500; display: none;"></p>
+      </div>
       </div>
 
       <!-- Student Credentials View (Spreadsheet Editable Grid) -->
@@ -566,7 +612,7 @@
         </div>
       </div>
 
-      <div id="logins-content" style="display: block;">
+      <div id="logins-content" style="display: none;">
         <!-- Day Filter Bar & Controls -->
         <div class="submit-card wide-card" style="margin-bottom: 1.25rem; padding: 1.25rem;">
           <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
@@ -627,16 +673,19 @@
             </tbody>
           </table>
         </div>
-      </div>
+      </div> <!-- /#logins-content -->
 
 <!-- Class Performance Overview (Advanced Analytics) -->
-      <div class="panel-header" style="margin-top: 3rem; display: flex; justify-content: space-between; align-items: flex-end;">
+      <div class="panel-header accordion-header" id="class-perf-header">
         <div>
-          <h1>Class Performance Overview</h1>
+          <h1 class="accordion-title">
+            <span>Class Performance Overview</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="accordion-icon" id="class-perf-toggle-icon" style="transform: rotate(0deg);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </h1>
           <p class="subtitle">Quick statistics and grade distribution across all exams.</p>
         </div>
-        <div style="margin-top: 1rem;">
-          <select id="performance-group-filter" style="padding: 0.5rem; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text);">
+        <div class="filter-toolbar-group" onclick="event.stopPropagation();">
+          <select id="performance-group-filter" class="toolbar-select">
             <option value="">All Groups</option>
             <option value="NEPS">NEPS</option><option value="NEGS">NEGS</option><option value="Nalanda">Nalanda</option>
             <option value="Lakshya">Lakshya</option>
@@ -646,8 +695,8 @@
           </select>
         </div>
       </div>
-      
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+      <div id="class-perf-content" style="display: none;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
         <div class="submit-card" style="text-align: center; padding: 1.5rem;">
           <h3 style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem;">Class Average</h3>
           <p id="stat-class-avg" style="font-size: 1.8rem; font-weight: bold; color: var(--primary);">&mdash;</p>
@@ -690,6 +739,7 @@
             <span id="dist-below" style="font-size: 1.2rem; font-weight: bold; color: var(--text);">&mdash;</span>
           </div>
         </div>
+      </div>
       </div>
 
       <!-- Student Performance Overview -->
@@ -862,13 +912,17 @@
       </div>
 
             <!-- Bulk Enter Marks Section -->
-      <div class="panel-header" style="margin-top: 3rem;">
+      <div class="panel-header accordion-header" id="bulk-marks-header">
         <div>
-          <h1>Bulk Enter Marks</h1>
+          <h1 class="accordion-title">
+            <span>Bulk Enter Marks</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="accordion-icon" id="bulk-marks-toggle-icon" style="transform: rotate(0deg);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </h1>
           <p class="subtitle">Select a group to enter marks for all students in a grid format (like an Excel sheet).</p>
         </div>
       </div>
-      <div class="submit-card" style="padding: 1.5rem;">
+      <div id="bulk-marks-content" style="display: none;">
+        <div class="submit-card" style="padding: 1.5rem;">
         <div style="margin-bottom: 1.5rem;">
           <div class="form-group" style="max-width: 300px; margin-bottom: 1rem;">
             <label for="bulk-group-select">Select Group</label>
@@ -894,17 +948,20 @@
           </div>
         </div>
       </div>
+      </div>
+
       <!-- Homework Tracking Section (Spreadsheet Grid) -->
-      <div class="panel-header" id="hw-track-header" style="margin-top: 3rem;">
+      <div class="panel-header accordion-header" id="hw-track-header">
         <div>
-          <h1 style="display: flex; align-items: center; gap: 0.5rem; margin: 0; font-size: 1.4rem; font-weight: 700;">
+          <h1 class="accordion-title">
             <span>Homework Tracking (Spreadsheet Editor)</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="accordion-icon" id="hw-track-toggle-icon" style="transform: rotate(0deg);"><polyline points="6 9 12 15 18 9"></polyline></svg>
           </h1>
           <p class="subtitle">Spreadsheet tracking of student homework completion across dates.</p>
         </div>
       </div>
-
-      <div class="submit-card wide-card" style="padding: 1.5rem; margin-bottom: 2rem;">
+      <div id="hw-track-content" style="display: none;">
+        <div class="submit-card wide-card" style="padding: 1.5rem; margin-bottom: 2rem;">
         <!-- Filter Controls -->
         <div style="display: flex; gap: 0.75rem; align-items: flex-end; flex-wrap: wrap; margin-bottom: 1.25rem;">
           <div class="form-group" style="flex: 1; min-width: 140px;">
@@ -1007,15 +1064,20 @@
           </table>
         </div>
       </div>
+      </div>
 
       <!-- Edit or Delete Marks -->
-      <div class="panel-header" style="margin-top: 3rem;">
+      <div class="panel-header accordion-header" id="edit-marks-header">
         <div>
-          <h1>Edit or Delete Student Marks</h1>
+          <h1 class="accordion-title">
+            <span>Edit or Delete Student Marks</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="accordion-icon" id="edit-marks-toggle-icon" style="transform: rotate(0deg);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </h1>
           <p class="subtitle">Modify an existing mark if there was a mistake, or delete it.</p>
         </div>
       </div>
-      <div class="submit-card wide-card" style="margin-bottom: 3rem;">
+      <div id="edit-marks-content" style="display: none;">
+        <div class="submit-card wide-card" style="margin-bottom: 3rem;">
         <div class="form-row">
           <div class="form-group" style="flex: 1.5;">
             <label for="edit-mark-student">Select Student</label>
@@ -1040,6 +1102,7 @@
           <button class="btn btn-danger" id="edit-mark-delete-btn" disabled>Delete Mark</button>
         </div>
         <p id="edit-mark-status" style="margin-top: 1rem; font-size: 0.9rem; font-weight: 500; display: none;"></p>
+      </div>
       </div>
 
     </section>

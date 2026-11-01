@@ -3891,26 +3891,57 @@ function renderGrowthList(exams, marksByStudent, studentsToUse = globalStudents,
 
 // ACCORDION LOGIC
 document.addEventListener('DOMContentLoaded', () => {
-  function setupAccordion(headerId, contentId, iconId, displayType = 'block') {
+  function setupAccordion(headerId, contentId, iconId, displayType = 'block', onOpen = null) {
     const header = document.getElementById(headerId);
     const content = document.getElementById(contentId);
     const icon = document.getElementById(iconId);
 
-    if (header && content && icon) {
-      header.addEventListener('click', () => {
-        const isHidden = content.style.display === 'none';
-        content.style.display = isHidden ? displayType : 'none';
-        icon.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+    if (header && content) {
+      header.addEventListener('click', (e) => {
+        // Prevent toggle if clicking on interactive elements inside header
+        if (e.target && e.target.closest('input, button, select, a, textarea')) return;
+
+        const isHidden = content.style.display === 'none' || window.getComputedStyle(content).display === 'none';
+        if (isHidden) {
+          content.style.display = displayType;
+          if (icon) icon.style.transform = 'rotate(180deg)';
+          if (typeof onOpen === 'function') {
+            try { onOpen(); } catch (err) { console.error('Error in accordion onOpen:', err); }
+          }
+        } else {
+          content.style.display = 'none';
+          if (icon) icon.style.transform = 'rotate(0deg)';
+        }
       });
     }
   }
 
-  setupAccordion('overview-header', 'overview-content', 'overview-toggle-icon', 'block');
-  setupAccordion('insights-header', 'insights-content', 'insights-toggle-icon', 'grid');
-  setupAccordion('analytics-header', 'analytics-content', 'analytics-toggle-icon', 'block');
-  setupAccordion('exams-header', 'exams-content', 'exams-toggle-icon', 'block');
+  // Upload Resources tab accordions
+  setupAccordion('notif-header', 'notif-content', 'notif-toggle-icon', 'block');
+  setupAccordion('hw-links-header', 'hw-links-content', 'hw-links-toggle-icon', 'block');
+  setupAccordion('cal-events-header', 'cal-events-content', 'cal-events-toggle-icon', 'block');
+  setupAccordion('test-results-header', 'test-results-content', 'test-results-toggle-icon', 'block');
+  setupAccordion('resources-header', 'resources-content', 'resources-toggle-icon', 'block');
+  setupAccordion('cbse-header', 'cbse-content', 'cbse-toggle-icon', 'block');
+  setupAccordion('active-resources-header', 'active-resources-content', 'active-resources-toggle-icon', 'block');
+
+  // Exam & Student Management tab accordions
+  setupAccordion('exam-mgmt-header', 'exam-mgmt-content', 'exam-mgmt-toggle-icon', 'block');
+  setupAccordion('add-student-header', 'add-student-content', 'add-student-toggle-icon', 'block');
   setupAccordion('credentials-header', 'credentials-content', 'credentials-toggle-icon', 'block');
   setupAccordion('logins-header', 'logins-content', 'logins-toggle-icon', 'block');
+  setupAccordion('class-perf-header', 'class-perf-content', 'class-perf-toggle-icon', 'block', () => {
+    window.dispatchEvent(new Event('resize'));
+  });
+  setupAccordion('overview-header', 'overview-content', 'overview-toggle-icon', 'block');
+  setupAccordion('analytics-header', 'analytics-content', 'analytics-toggle-icon', 'block', () => {
+    window.dispatchEvent(new Event('resize'));
+  });
+  setupAccordion('insights-header', 'insights-content', 'insights-toggle-icon', 'grid');
+  setupAccordion('exams-header', 'exams-content', 'exams-toggle-icon', 'block');
+  setupAccordion('bulk-marks-header', 'bulk-marks-content', 'bulk-marks-toggle-icon', 'block');
+  setupAccordion('hw-track-header', 'hw-track-content', 'hw-track-toggle-icon', 'block');
+  setupAccordion('edit-marks-header', 'edit-marks-content', 'edit-marks-toggle-icon', 'block');
 });
 
 // HOMEWORK LINKS LOADING AND DELETION
