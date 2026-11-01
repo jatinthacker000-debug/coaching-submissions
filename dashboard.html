@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Coach Dashboard | Padh rahi public</title>
   <link rel="manifest" href="coach-manifest.json">
   <meta name="theme-color" content="#8b5cf6">
@@ -13,7 +13,7 @@
   <link rel="apple-touch-icon" href="logo.jpg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -29,52 +29,66 @@
     <div class="container header-inner">
       <div class="brand">
         <img src="logo.jpg" alt="Padh rahi public Logo" class="brand-logo">
-        <span class="brand-text gradient-glow">Padh rahi public Coach Portal</span>
+        <span class="brand-text gradient-glow">
+          <span class="brand-title-full">Padh rahi public Coach Portal</span>
+          <span class="brand-title-mobile">Coach Portal</span>
+        </span>
       </div>
-      <div class="header-actions" style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-        <button id="btn-install-app" class="btn btn-sm btn-install-app hidden" type="button" title="Install Coach App on your device">
-          📲 Install App
+      <div class="header-actions">
+        <button id="btn-install-app" class="btn btn-sm btn-install-app btn-header-action hidden" type="button" title="Install Coach App on your device">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          <span>Install App</span>
         </button>
-        <button id="btn-coach-logout" class="btn btn-sm btn-outline hidden" type="button" title="Log out">
-          🚪 Logout
+        <button id="btn-coach-logout" class="btn btn-sm btn-outline btn-header-action hidden" type="button" title="Log out of Coach Portal">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+          <span>Logout</span>
         </button>
-        <a href="index.html" class="nav-link">⬅️ Student Page</a>
+        <a href="index.html" class="nav-link btn-header-action">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+          <span>Student Page</span>
+        </a>
       </div>
     </div>
   </header>
-
-  <div id="login-screen" class="login-screen">
-    <div class="login-card">
-      <h1>Coach Login</h1>
-      <p class="subtitle">Enter your coach password to manage PDF notes & worksheets.</p>
-      <form id="login-form">
-        <div class="form-group">
-          <label for="coach-password">Password</label>
-          <input type="password" id="coach-password" placeholder="Your coach password" required>
+  <main class="container">
+    <div id="login-screen" class="login-container">
+      <div class="login-card">
+        <div class="login-header-brand">
+          <img src="logo.jpg" alt="Padh rahi public Logo" class="login-logo-img">
+          <h2>Padh rahi public Coach Portal</h2>
+          <p class="login-subtitle">Enter your coach master credentials to manage your student cohort.</p>
         </div>
-        <div class="form-group" style="display: flex; align-items: center; gap: 0.5rem; margin-top: -0.25rem; margin-bottom: 1.25rem;">
-          <input type="checkbox" id="coach-remember-me" checked style="width: auto; cursor: pointer; accent-color: var(--primary);">
-          <label for="coach-remember-me" style="margin: 0; font-size: 0.875rem; color: var(--text-muted); cursor: pointer; user-select: none;">Keep me logged in on this device</label>
-        </div>
-        <button type="submit" class="btn btn-primary" style="width: 100%;">Enter Dashboard</button>
-        <button type="button" id="btn-install-login" class="btn btn-outline btn-install-app hidden" style="width: 100%; margin-top: 0.75rem;">📲 Install Coach App</button>
-      </form>
-      <p id="login-error" class="error-text hidden"></p>
-    </div>
-  </div>
-
-  <main id="dashboard-main" class="container main-content hidden">
-    <!-- Dashboard Tabs -->
-    <div class="dashboard-tabs">
-      <button class="btn btn-primary" id="nav-tab-resources">Resources & Notifications</button>
-      <button class="btn" id="nav-tab-exams">Exams & Marks</button>
-      <button class="btn" id="nav-tab-queries">
-        <span>Help Desk & Student Queries</span>
-        <span id="tab-queries-unread-badge" style="display: none; background: #ef4444; color: white; border-radius: 99px; padding: 0.1rem 0.5rem; font-size: 0.75rem; font-weight: 700; margin-left: 0.35rem;">0</span>
-      </button>
+        <form id="login-form">
+          <div class="form-group">
+            <label for="coach-password">Coach Password</label>
+            <input type="password" id="coach-password" placeholder="Enter Coach Password" required autocomplete="current-password">
+          </div>
+          <div class="form-group" style="margin-top: -0.25rem; margin-bottom: 1.25rem;">
+            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.88rem; color: var(--text-muted); font-weight: 500;">
+              <input type="checkbox" id="coach-remember-me" checked style="accent-color: var(--primary); width: 16px; height: 16px; cursor: pointer;">
+              <span>Keep me logged in on this device</span>
+            </label>
+          </div>
+          <button type="submit" class="btn btn-primary" id="coach-login-btn">Login to Coach Portal</button>
+          <button type="button" class="btn btn-outline btn-install-app hidden" id="btn-install-login" style="margin-top: 0.75rem; width: 100%;">
+            📲 Install Coach App
+          </button>
+          <p id="login-error" class="error-msg" style="display: none;"></p>
+        </form>
+      </div>
     </div>
 
-    <section id="tab-notes" class="tab-panel">
+    <!-- MAIN DASHBOARD TABS (VISIBLE AFTER LOGIN) -->
+    <div id="dashboard-main" class="hidden">
+      <div class="dashboard-tabs">
+        <button class="btn btn-primary" id="nav-tab-resources">Resources & Notifications</button>
+        <button class="btn" id="nav-tab-exams">Exams & Marks</button>
+        <button class="btn" id="nav-tab-queries">
+          Help Desk & Queries
+          <span id="tab-queries-unread-badge" style="display: none; background: #ef4444; color: white; border-radius: 999px; padding: 2px 7px; font-size: 0.75rem; margin-left: 6px; font-weight: bold;">0</span>
+        </button>
+      </div>
+<section id="tab-notes" class="tab-panel">
       <!-- Notification Manager -->
       <div class="panel-header">
         <div>
@@ -169,11 +183,11 @@
         </table>
       </div>
 
-      <!-- Calendar Events & Important Dates Manager -->
+      <!-- Calendar Events & Test Dates Manager -->
       <div class="panel-header" style="margin-top: 3rem;">
         <div>
           <h1>Calendar Events & Test Dates Manager</h1>
-          <p class="subtitle">Mark tests, important dates, and announcements on group calendars (e.g. Eco Test on 4th Nov).</p>
+          <p class="subtitle">Add tests, holidays, and important dates for student calendars.</p>
         </div>
       </div>
       <div class="submit-card wide-card" style="margin-bottom: 3rem;">
@@ -202,18 +216,18 @@
               </optgroup>
             </select>
           </div>
-          <div class="form-group" style="flex: 1.8;">
+          <div class="form-group" style="flex: 2;">
             <label for="cal-event-title">Event / Test Name</label>
-            <input type="text" id="cal-event-title" placeholder="e.g. Eco Test, PT-1, Accounts Exam...">
+            <input type="text" id="cal-event-title" placeholder="e.g. Accountancy Unit Test 1">
           </div>
-          <div class="form-group" style="flex: 1;">
+          <div class="form-group" style="flex: 0.8;">
             <label for="cal-event-color">Color Tag</label>
             <select id="cal-event-color">
-              <option value="blue">Soft Blue (Default)</option>
-              <option value="purple">Soft Purple</option>
-              <option value="green">Soft Green</option>
-              <option value="amber">Soft Amber / Orange</option>
-              <option value="rose">Soft Rose / Red</option>
+              <option value="#ef4444">🔴 Red (Exam/Test)</option>
+              <option value="#3b82f6">🔵 Blue (Class)</option>
+              <option value="#10b981">🟢 Green (Holiday)</option>
+              <option value="#f59e0b">🟡 Yellow (Important)</option>
+              <option value="#8b5cf6">🟣 Purple (Special)</option>
             </select>
           </div>
         </div>
@@ -222,47 +236,43 @@
       </div>
 
       <div class="submit-card wide-card" style="margin-bottom: 3rem; max-height: 400px; overflow-y: auto;">
-        <h3 style="margin-bottom: 1rem;">Existing Calendar Events & Tests</h3>
+        <h3 style="margin-bottom: 1rem;">Existing Calendar Events & Dates</h3>
         <table style="width: 100%; text-align: left; border-collapse: collapse;">
           <thead style="background: var(--bg); position: sticky; top: 0; z-index: 10;">
             <tr>
               <th style="padding: 1rem; border-bottom: 1px solid var(--border);">Date</th>
               <th style="padding: 1rem; border-bottom: 1px solid var(--border);">Group</th>
-              <th style="padding: 1rem; border-bottom: 1px solid var(--border);">Event / Test</th>
+              <th style="padding: 1rem; border-bottom: 1px solid var(--border);">Event Title</th>
               <th style="padding: 1rem; border-bottom: 1px solid var(--border);">Color</th>
               <th style="padding: 1rem; border-bottom: 1px solid var(--border); text-align: right;">Action</th>
             </tr>
           </thead>
           <tbody id="cal-events-tbody">
-            <tr><td colspan="5" style="text-align: center; padding: 1rem; color: var(--text-muted);">Loading events...</td></tr>
+            <tr><td colspan="5" style="text-align: center; padding: 1rem; color: var(--text-muted);">Loading calendar events...</td></tr>
           </tbody>
         </table>
       </div>
 
-      <!-- Grade 12 Class Test Results Link Manager -->
+      <!-- Grade 12 Class Test Results Link -->
       <div class="panel-header" style="margin-top: 3rem;">
         <div>
           <h1>Grade 12 Class Test Results Link</h1>
-          <p class="subtitle">Set the Google Drive / document link for the "Class Test Results" button shown above the calendar on Grade 12.</p>
+          <p class="subtitle">Set the Google Drive or sheet link for Grade 12 test results button.</p>
         </div>
       </div>
+      <form id="class-test-results-form" class="submit-card wide-card" style="margin-bottom: 3rem;">
+        <div class="form-group">
+          <label for="class-test-results-link">Class Test Results Drive/Sheet URL</label>
+          <input type="url" id="class-test-results-link" placeholder="https://drive.google.com/..." required>
+        </div>
+        <div style="display: flex; gap: 1rem; align-items: center; margin-top: 1rem; flex-wrap: wrap;">
+          <button type="submit" class="btn btn-primary" id="class-test-results-save-btn" style="width: auto;">Save Link</button>
+          <a id="class-test-results-preview-link" href="#" target="_blank" class="btn btn-outline" style="width: auto; display: none;">Preview Link ↗</a>
+        </div>
+        <p id="class-test-results-status" style="margin-top: 1rem; display: none; font-weight: 500;"></p>
+      </form>
 
-      <div class="submit-card wide-card" style="margin-bottom: 3rem;">
-        <form id="class-test-results-form">
-          <div class="form-row">
-            <div class="form-group" style="flex: 2;">
-              <label for="class-test-results-link">Results Link (Google Drive / Sheet / Web URL)</label>
-              <input type="url" id="class-test-results-link" placeholder="https://drive.google.com/..." required>
-            </div>
-          </div>
-          <div style="display: flex; gap: 1rem; align-items: center; margin-top: 1rem; flex-wrap: wrap;">
-            <button type="submit" class="btn btn-primary" id="class-test-results-save-btn" style="width: auto; min-width: 180px;">Save Results Link</button>
-            <a id="class-test-results-preview-link" href="#" target="_blank" rel="noopener noreferrer" class="btn" style="display: none; background: var(--surface-card); border: 1px solid var(--border); color: var(--text); text-decoration: none;">🔗 Open Current Link</a>
-          </div>
-          <p id="class-test-results-status" style="margin-top: 1rem; display: none; font-weight: 500;"></p>
-        </form>
-      </div>
-
+      <!-- Resources Manager -->
       <div class="panel-header">
         <div>
           <h1>Resources Manager</h1>
@@ -319,11 +329,13 @@
         </button>
       </form>
 
+      <!-- CBSE Resources Manager -->
       <div class="panel-header" style="margin-top: 3rem;">
         <div>
           <h1>CBSE Resources Manager</h1>
           <p class="subtitle">Add year-wise drive folders for CBSE resources.</p>
-        </div>`n<button class="btn btn-danger" id="delete-all-cbse-btn" style="margin-top:1rem;">Delete All CBSE Resources</button>
+        </div>
+        <button class="btn btn-danger" id="delete-all-cbse-btn" style="margin-top:1rem;">Delete All CBSE Resources</button>
       </div>
       <form id="cbse-form" class="submit-card wide-card" style="margin-bottom: 3rem;">
         <div class="form-row">
@@ -380,10 +392,9 @@
             <label for="exam-total">Total Marks</label>
             <input type="number" id="exam-total" placeholder="e.g. 20" required min="1" step="0.5">
           </div>
-          <div class="form-group" style="flex: 1.5;">
-            <label for="exam-subject">Subject (Optional / Nerd Tutors)</label>
+          <div class="form-group" style="flex: 1;">
+            <label for="exam-subject">Subject</label>
             <select id="exam-subject">
-              <option value="">General / None</option>
               <option value="Economics">Economics</option>
               <option value="Accountancy">Accountancy</option>
               <option value="Business Studies">Business Studies</option>
@@ -394,10 +405,28 @@
         <button type="submit" class="btn btn-primary" id="exam-submit-btn" style="width: auto; min-width: 180px;">
           Create Exam
         </button>
-        <div class="form-group" style="margin-bottom: 1.5rem; margin-top: 1rem;"><label>Groups taking this exam (leave all unchecked to allow everyone)</label><div style="display: flex; gap: 1rem; flex-wrap: wrap;" id="exam-groups-container"><label style="display: flex; align-items: center; gap: 0.25rem;"><input type="checkbox" value="NEPS"> NEPS</label><label style="display: flex; align-items: center; gap: 0.25rem;"><input type="checkbox" value="NEGS"> NEGS</label><label style="display: flex; align-items: center; gap: 0.25rem;"><input type="checkbox" value="Nalanda"> Nalanda</label><label style="display: flex; align-items: center; gap: 0.25rem;"><input type="checkbox" value="Lakshya"> Lakshya</label><label style="display: flex; align-items: center; gap: 0.25rem;"><input type="checkbox" value="Sankalp"> Sankalp</label><label style="display: flex; align-items: center; gap: 0.25rem;"><input type="checkbox" value="Prayas"> Prayas</label><label style="display: flex; align-items: center; gap: 0.25rem;"><input type="checkbox" value="Nerd Tutors"> Nerd Tutors</label><label style="display: flex; align-items: center; gap: 0.25rem;"><input type="checkbox" value="Nerd Tutors Nalanda"> Nerd Tutors Nalanda</label></div></div>      </form>
+        <div class="form-group" style="margin-bottom: 1.5rem; margin-top: 1rem;">
+          <label>Groups taking this exam (leave all unchecked to allow everyone)</label>
+          <div style="display: flex; gap: 1rem; flex-wrap: wrap;" id="exam-groups-container">
+            <label style="display: flex; align-items: center; gap: 0.25rem;"><input type="checkbox" value="NEPS"> NEPS</label>
+            <label style="display: flex; align-items: center; gap: 0.25rem;"><input type="checkbox" value="NEGS"> NEGS</label>
+            <label style="display: flex; align-items: center; gap: 0.25rem;"><input type="checkbox" value="Nalanda"> Nalanda</label>
+            <label style="display: flex; align-items: center; gap: 0.25rem;"><input type="checkbox" value="Lakshya"> Lakshya</label>
+            <label style="display: flex; align-items: center; gap: 0.25rem;"><input type="checkbox" value="Sankalp"> Sankalp</label>
+            <label style="display: flex; align-items: center; gap: 0.25rem;"><input type="checkbox" value="Prayas"> Prayas</label>
+            <label style="display: flex; align-items: center; gap: 0.25rem;"><input type="checkbox" value="Nerd Tutors"> Nerd Tutors</label>
+            <label style="display: flex; align-items: center; gap: 0.25rem;"><input type="checkbox" value="Nerd Tutors Nalanda"> Nerd Tutors Nalanda</label>
+          </div>
+        </div>
+      </form>
 
       <!-- Pre-register Student -->
-      <div class="panel-header" style="margin-top: 3rem;"><div><h1>Add New Student</h1><p class="subtitle">Pre-register a student and assign them to a class and group, along with login credentials.</p></div></div>
+      <div class="panel-header" style="margin-top: 3rem;">
+        <div>
+          <h1>Add New Student</h1>
+          <p class="subtitle">Pre-register a student and assign them to a class and group, along with login credentials.</p>
+        </div>
+      </div>
       <div class="submit-card wide-card" style="margin-bottom: 1rem;">
         <div class="form-row">
           <div class="form-group" style="flex: 1.5;">
@@ -407,16 +436,16 @@
           <div class="form-group" style="flex: 1;">
             <label for="add-student-class">Class / Institute</label>
             <select id="add-student-class">
-              <option value="">-- Auto-detect from Group --</option>
+              <option value="">Auto-resolve from Group</option>
               <option value="Velocity">Velocity</option>
-              <option value="IGNITE coaching class">IGNITE coaching class</option>
+              <option value="IGNITE coaching class">Ignite</option>
               <option value="Epsilon Classes">Epsilon Classes</option>
               <option value="Nerd Tutors">Nerd Tutors</option>
               <option value="Nerd Tutors Nalanda">Nerd Tutors Nalanda</option>
             </select>
           </div>
           <div class="form-group" style="flex: 1;">
-            <label for="add-student-group">Select Group (Batch)</label>
+            <label for="add-student-group">Select Group</label>
             <select id="add-student-group">
               <option value="">-- No Group --</option>
               <option value="NEPS">NEPS</option><option value="NEGS">NEGS</option><option value="Nalanda">Nalanda</option>
@@ -426,8 +455,6 @@
               <option value="Nerd Tutors">Nerd Tutors</option><option value="Nerd Tutors Nalanda">Nerd Tutors Nalanda</option>
             </select>
           </div>
-        </div>
-        <div class="form-row">
           <div class="form-group" style="flex: 1;">
             <label for="add-student-id-alias">Student ID (e.g. 1508)</label>
             <input type="text" id="add-student-id-alias" placeholder="Birthday DDMM...">
@@ -437,9 +464,9 @@
             <input type="text" id="add-student-password" placeholder="First name...">
           </div>
         </div>
-        <div id="add-student-subjects-wrapper" style="display: none; margin-bottom: 1rem; padding: 0.75rem 1rem; background: var(--bg); border: 1px solid var(--border); border-radius: 8px;">
-          <label style="font-weight: 600; display: block; margin-bottom: 0.5rem; font-size: 0.9rem;">Opted Subjects (Select up to 3):</label>
-          <div style="display: flex; gap: 1.5rem; flex-wrap: wrap;">
+        <div class="form-group" id="add-student-subjects-wrapper" style="margin-top: 1rem; display: none;">
+          <label>Enrolled Subjects (for Commerce / Nerd Tutors batches):</label>
+          <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; margin-top: 0.35rem;">
             <label style="display: flex; align-items: center; gap: 0.35rem; cursor: pointer;"><input type="checkbox" id="add-subj-acc" value="Accountancy" checked> Accountancy</label>
             <label style="display: flex; align-items: center; gap: 0.35rem; cursor: pointer;"><input type="checkbox" id="add-subj-eco" value="Economics" checked> Economics</label>
             <label style="display: flex; align-items: center; gap: 0.35rem; cursor: pointer;"><input type="checkbox" id="add-subj-bst" value="Business Studies" checked> Business Studies</label>
@@ -450,17 +477,20 @@
       </div>
 
       <!-- Student Credentials View (Spreadsheet Editable Grid) -->
-      <div class="panel-header" id="credentials-header" style="margin-top: 3rem; display: flex; justify-content: space-between; align-items: flex-end; cursor: pointer; user-select: none;">
+      <div class="panel-header accordion-header" id="credentials-header">
         <div>
-          <h1 style="display: flex; align-items: center;">Student Credentials (Spreadsheet Editor) <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="accordion-icon" id="credentials-toggle-icon" style="transform: rotate(0deg);"><polyline points="6 9 12 15 18 9"></polyline></svg></h1>
+          <h1 class="accordion-title">
+            <span>Student Credentials (Spreadsheet Editor)</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="accordion-icon" id="credentials-toggle-icon" style="transform: rotate(0deg);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </h1>
           <p class="subtitle">Click and edit any cell directly (table-style). Save per row or save all changes in bulk.</p>
         </div>
       </div>
       <div id="credentials-content" style="display: none;">
         <!-- Controls & Bulk Save Toolbar -->
-        <div style="margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
-          <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
-            <select id="credentials-class-filter" style="padding: 0.5rem 0.75rem; border-radius: 6px; border: 1px solid var(--border); background: var(--surface-card); color: var(--text); font-size: 0.88rem;">
+        <div class="filter-toolbar-group" style="margin-bottom: 1rem; justify-content: space-between;">
+          <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+            <select id="credentials-class-filter" class="toolbar-select">
               <option value="">All Classes</option>
               <option value="Velocity">Velocity</option>
               <option value="IGNITE coaching class">Ignite</option>
@@ -469,7 +499,7 @@
               <option value="Nerd Tutors Nalanda">Nerd Tutors Nalanda</option>
               <option value="__NONE__">-- No Class --</option>
             </select>
-            <select id="credentials-group-filter" style="padding: 0.5rem 0.75rem; border-radius: 6px; border: 1px solid var(--border); background: var(--surface-card); color: var(--text); font-size: 0.88rem;">
+            <select id="credentials-group-filter" class="toolbar-select">
               <option value="">All Groups</option>
               <option value="__NONE__">-- No Group --</option>
               <option value="NEPS">NEPS</option>
@@ -481,16 +511,16 @@
               <option value="Nerd Tutors">Nerd Tutors</option>
               <option value="Nerd Tutors Nalanda">Nerd Tutors Nalanda</option>
             </select>
-            <input type="text" id="credentials-search" placeholder="Search by name, class, group, or ID..." style="padding: 0.5rem; border-radius: 6px; border: 1px solid var(--border); width: 260px; background: var(--surface-card); color: var(--text); font-size: 0.88rem;">
+            <input type="text" id="credentials-search" class="toolbar-input" placeholder="Search by name, class, group, or ID..." style="min-width: 240px;">
           </div>
           
-          <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
-            <button type="button" class="btn btn-primary" id="cred-save-all-btn" style="padding: 0.5rem 1.25rem; border-radius: 8px; background: linear-gradient(135deg, #10b981, #059669); color: white; display: flex; align-items: center; gap: 0.5rem; font-weight: 600; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3); width: auto;">
+          <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+            <button type="button" class="btn btn-primary toolbar-btn" id="cred-save-all-btn" style="background: linear-gradient(135deg, #10b981, #059669); color: white; display: flex; align-items: center; gap: 0.4rem; font-weight: 600; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);">
               <span>💾</span>
               <span>Save All Changes</span>
             </button>
-            <button class="btn btn-primary" id="export-credentials-excel-btn" style="padding: 0.5rem 1rem; border-radius: 8px; background: #059669; display: flex; align-items: center; gap: 0.5rem; font-weight: 600; width: auto;">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            <button class="btn btn-primary toolbar-btn" id="export-credentials-excel-btn" style="background: #059669; display: flex; align-items: center; gap: 0.4rem; font-weight: 600;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
               <span>Download Excel</span>
             </button>
           </div>
@@ -525,12 +555,12 @@
       <button class="btn btn-danger" id="delete-all-students-btn" style="margin-bottom: 3rem;">Delete All Students</button>
 
       <!-- Student Logins Tracker (Grade 12 Login Activity) -->
-      <div class="panel-header" id="logins-header" style="margin-top: 3rem; display: flex; justify-content: space-between; align-items: flex-end; cursor: pointer; user-select: none;">
+      <div class="panel-header accordion-header" id="logins-header">
         <div>
-          <h1 style="display: flex; align-items: center; gap: 0.5rem;">
+          <h1 class="accordion-title">
             <span>Student Logins Tracker</span>
-            <span id="logins-badge-pill" style="font-size: 0.75rem; background: rgba(16, 185, 129, 0.15); color: #059669; border: 1px solid #10b981; padding: 0.2rem 0.65rem; border-radius: 99px; font-weight: 600;">Grade 12</span>
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="accordion-icon" id="logins-toggle-icon" style="transform: rotate(0deg);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            <span id="logins-badge-pill" class="badge-pill">Grade 12</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="accordion-icon" id="logins-toggle-icon" style="transform: rotate(0deg);"><polyline points="6 9 12 15 18 9"></polyline></svg>
           </h1>
           <p class="subtitle">Track which students have logged in, filtered by day and arranged chronologically by time.</p>
         </div>
@@ -544,30 +574,30 @@
             <!-- Day Filter Tabs & View Modes -->
             <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
               <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-right: 0.25rem;">Filter Day:</span>
-              <button type="button" class="btn btn-primary login-day-btn" data-filter="today" id="login-filter-today" style="padding: 0.4rem 0.85rem; font-size: 0.85rem; border-radius: 6px;">Today</button>
-              <button type="button" class="btn login-day-btn" data-filter="yesterday" id="login-filter-yesterday" style="padding: 0.4rem 0.85rem; font-size: 0.85rem; border-radius: 6px; background: var(--surface-card); color: var(--text); border: 1px solid var(--border);">Yesterday</button>
-              <button type="button" class="btn login-day-btn" data-filter="custom" id="login-filter-custom-btn" style="padding: 0.4rem 0.85rem; font-size: 0.85rem; border-radius: 6px; background: var(--surface-card); color: var(--text); border: 1px solid var(--border);">Any Day</button>
-              <button type="button" class="btn login-day-btn" data-filter="all" id="login-filter-all" style="padding: 0.4rem 0.85rem; font-size: 0.85rem; border-radius: 6px; background: var(--surface-card); color: var(--text); border: 1px solid var(--border);">All Recent</button>
-              <input type="date" id="login-filter-date" style="padding: 0.35rem 0.6rem; font-size: 0.85rem; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text); display: none;">
+              <button type="button" class="btn btn-primary login-day-btn toolbar-btn" data-filter="today" id="login-filter-today">Today</button>
+              <button type="button" class="btn login-day-btn toolbar-btn" data-filter="yesterday" id="login-filter-yesterday" style="background: var(--surface-card); color: var(--text); border: 1px solid var(--border);">Yesterday</button>
+              <button type="button" class="btn login-day-btn toolbar-btn" data-filter="custom" id="login-filter-custom-btn" style="background: var(--surface-card); color: var(--text); border: 1px solid var(--border);">Any Day</button>
+              <button type="button" class="btn login-day-btn toolbar-btn" data-filter="all" id="login-filter-all" style="background: var(--surface-card); color: var(--text); border: 1px solid var(--border);">All Recent</button>
+              <input type="date" id="login-filter-date" class="toolbar-input" style="display: none;">
               
               <div style="height: 24px; width: 1px; background: var(--border); margin: 0 0.35rem;"></div>
 
               <!-- View Mode Toggle: Logged In vs Not Logged In -->
               <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">View:</span>
-              <button type="button" class="btn btn-primary" id="login-view-logged" style="padding: 0.4rem 0.85rem; font-size: 0.85rem; border-radius: 6px;">Unique Logins</button>
-              <button type="button" class="btn" id="login-view-not-logged" style="padding: 0.4rem 0.85rem; font-size: 0.85rem; border-radius: 6px; background: var(--surface-card); color: var(--danger); border: 1px solid var(--border);">⚠️ Not Logged In</button>
+              <button type="button" class="btn btn-primary toolbar-btn" id="login-view-logged">Unique Logins</button>
+              <button type="button" class="btn toolbar-btn" id="login-view-not-logged" style="background: var(--surface-card); color: #ef4444; border: 1px solid var(--border);">⚠️ Not Logged In</button>
             </div>
 
             <!-- Search, Student Filter, Sort & Refresh -->
             <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-              <select id="login-student-filter" style="padding: 0.4rem 0.65rem; font-size: 0.85rem; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text); max-width: 170px;">
+              <select id="login-student-filter" class="toolbar-select" style="max-width: 170px;">
                 <option value="">All Students</option>
               </select>
-              <input type="text" id="login-search-input" placeholder="Search student or group..." style="padding: 0.4rem 0.75rem; font-size: 0.85rem; border-radius: 6px; border: 1px solid var(--border); width: 170px; background: var(--surface); color: var(--text);">
-              <button type="button" id="login-sort-btn" class="btn" title="Toggle time sort order" style="padding: 0.4rem 0.75rem; font-size: 0.85rem; border-radius: 6px; background: var(--surface-card); color: var(--text); border: 1px solid var(--border); display: flex; align-items: center; gap: 0.25rem;">
+              <input type="text" id="login-search-input" class="toolbar-input" placeholder="Search student or group..." style="width: 170px;">
+              <button type="button" id="login-sort-btn" class="btn toolbar-btn" title="Toggle time sort order" style="background: var(--surface-card); color: var(--text); border: 1px solid var(--border); display: flex; align-items: center; gap: 0.25rem;">
                 <span id="login-sort-label">Latest First ▾</span>
               </button>
-              <button type="button" id="login-refresh-btn" class="btn" title="Refresh Logins" style="padding: 0.4rem 0.75rem; font-size: 0.85rem; border-radius: 6px; background: var(--surface-card); color: var(--primary); border: 1px solid var(--border);">🔄 Refresh</button>
+              <button type="button" id="login-refresh-btn" class="btn toolbar-btn" title="Refresh Logins" style="background: var(--surface-card); color: var(--primary); border: 1px solid var(--border);">🔄 Refresh</button>
             </div>
 
           </div>
@@ -583,29 +613,29 @@
           <table style="width: 100%; border-collapse: collapse; text-align: left;">
             <thead style="border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--surface-card); z-index: 10;">
               <tr>
-                <th style="padding: 0.75rem; color: var(--text-muted); width: 50px; text-align: center;">#</th>
-                <th style="padding: 0.75rem; color: var(--text-muted);">Student Name</th>
-                <th style="padding: 0.75rem; color: var(--text-muted);">Group</th>
-                <th style="padding: 0.75rem; color: var(--text-muted);">Student ID</th>
-                <th style="padding: 0.75rem; color: var(--text-muted);">Login Time</th>
-                <th style="padding: 0.75rem; color: var(--text-muted);">Date</th>
-                <th style="padding: 0.75rem; color: var(--text-muted); text-align: right;">Action</th>
+                <th style="padding: 0.85rem 0.75rem; color: var(--text-muted); text-align: center; width: 50px;">#</th>
+                <th style="padding: 0.85rem 0.75rem; color: var(--text-muted); min-width: 160px;">Student Name</th>
+                <th style="padding: 0.85rem 0.75rem; color: var(--text-muted); min-width: 130px;">Group</th>
+                <th style="padding: 0.85rem 0.75rem; color: var(--text-muted); min-width: 110px;">Student ID</th>
+                <th style="padding: 0.85rem 0.75rem; color: var(--text-muted); min-width: 140px;">Login Time</th>
+                <th style="padding: 0.85rem 0.75rem; color: var(--text-muted); min-width: 110px;">Date</th>
+                <th style="padding: 0.85rem 0.75rem; color: var(--text-muted); text-align: right; min-width: 90px;">Action</th>
               </tr>
             </thead>
             <tbody id="student-logins-tbody">
-              <tr><td colspan="7" style="padding: 1.5rem; color: var(--text-muted); text-align: center;">Loading login records...</td></tr>
+              <tr><td colspan="7" style="padding: 1.5rem; text-align: center; color: var(--text-muted);">Loading login activity...</td></tr>
             </tbody>
           </table>
         </div>
       </div>
 
-      <!-- Class Performance Overview (Advanced Analytics) -->
+<!-- Class Performance Overview (Advanced Analytics) -->
       <div class="panel-header" style="margin-top: 3rem; display: flex; justify-content: space-between; align-items: flex-end;">
         <div>
           <h1>Class Performance Overview</h1>
           <p class="subtitle">Quick statistics and grade distribution across all exams.</p>
         </div>
-        <div style="margin-top: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <div style="margin-top: 1rem;">
           <select id="performance-group-filter" style="padding: 0.5rem; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text);">
             <option value="">All Groups</option>
             <option value="NEPS">NEPS</option><option value="NEGS">NEGS</option><option value="Nalanda">Nalanda</option>
@@ -613,13 +643,6 @@
             <option value="Sankalp">Sankalp</option>
             <option value="Prayas">Prayas</option>
             <option value="Nerd Tutors">Nerd Tutors</option><option value="Nerd Tutors Nalanda">Nerd Tutors Nalanda</option>
-          </select>
-          <select id="performance-subject-filter" style="padding: 0.5rem; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text);">
-            <option value="">All Subjects</option>
-            <option value="Economics">Economics</option>
-            <option value="Accountancy">Accountancy</option>
-            <option value="Business Studies">Business Studies</option>
-            <option value="Social Science">Social Science</option>
           </select>
         </div>
       </div>
@@ -670,14 +693,17 @@
       </div>
 
       <!-- Student Performance Overview -->
-      <div class="panel-header" id="overview-header" style="margin-top: 3rem; display: flex; justify-content: space-between; align-items: flex-end; cursor: pointer; user-select: none;">
+      <div class="panel-header accordion-header" id="overview-header">
         <div>
-          <h1 style="display: flex; align-items: center;">Student Performance Overview <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="accordion-icon" id="overview-toggle-icon" style="transform: rotate(0deg);"><polyline points="6 9 12 15 18 9"></polyline></svg></h1>
+          <h1 class="accordion-title">
+            <span>Student Performance Overview</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="accordion-icon" id="overview-toggle-icon" style="transform: rotate(0deg);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </h1>
           <p class="subtitle">View and analyze marks across all exams.</p>
         </div>
-        <div style="margin-top: 1rem; display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;" onclick="event.stopPropagation();">
-          <input type="text" id="overview-search" placeholder="Search student name..." style="padding: 0.5rem; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text); min-width: 200px;">
-          <select id="overview-table-group-filter" style="padding: 0.5rem; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text);">
+        <div class="filter-toolbar-group" onclick="event.stopPropagation();">
+          <input type="text" id="overview-search" class="toolbar-input" placeholder="Search student name..." style="min-width: 180px;">
+          <select id="overview-table-group-filter" class="toolbar-select">
             <option value="">All Groups</option>
             <option value="NEPS">NEPS</option><option value="NEGS">NEGS</option><option value="Nalanda">Nalanda</option>
             <option value="Lakshya">Lakshya</option>
@@ -685,21 +711,16 @@
             <option value="Prayas">Prayas</option>
             <option value="Nerd Tutors">Nerd Tutors</option><option value="Nerd Tutors Nalanda">Nerd Tutors Nalanda</option>
           </select>
-          <select id="overview-subject-filter" style="padding: 0.5rem; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text);">
+          <select id="overview-subject-filter" class="toolbar-select">
             <option value="">All Subjects</option>
             <option value="Economics">Economics</option>
             <option value="Accountancy">Accountancy</option>
             <option value="Business Studies">Business Studies</option>
             <option value="Social Science">Social Science</option>
           </select>
-          <button class="btn btn-primary" id="export-excel-btn" style="padding: 0.5rem 1rem; border-radius: 8px; background: #059669; display: flex; align-items: center; gap: 0.5rem; font-weight: 600;">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-            <span>Download Marks (Excel)</span>
-          </button>
         </div>
       </div>
-      
-      <div id="overview-content" style="display: none; overflow-x: auto; max-height: 400px; overflow-y: auto; background: var(--surface-card); border-radius: 12px; border: 1px solid var(--border); box-shadow: var(--shadow);">
+      <div id="overview-content"  style="display: none; overflow-x: auto; max-height: 400px; overflow-y: auto; background: var(--surface-card); border-radius: 12px; border: 1px solid var(--border); box-shadow: var(--shadow);">
         <table id="performance-table" style="width: 100%; text-align: left; border-collapse: collapse; min-width: 600px;">
           <thead style="background: var(--bg); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 10;">
             <tr id="performance-table-head">
@@ -717,13 +738,16 @@
       </div>
       
       <!-- Student Analytics & Growth Comparison -->
-      <div class="panel-header" id="analytics-header" style="margin-top: 3rem; display: flex; justify-content: space-between; align-items: flex-end; cursor: pointer; user-select: none;">
+      <div class="panel-header accordion-header" id="analytics-header">
         <div>
-          <h1 style="display: flex; align-items: center;">Individual Student Analytics <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="accordion-icon" id="analytics-toggle-icon" style="transform: rotate(0deg);"><polyline points="6 9 12 15 18 9"></polyline></svg></h1>
+          <h1 class="accordion-title">
+            <span>Individual Student Analytics</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="accordion-icon" id="analytics-toggle-icon" style="transform: rotate(0deg);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </h1>
           <p class="subtitle">Select a student to view their specific performance and compare exams.</p>
         </div>
-        <div style="margin-top: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;" onclick="event.stopPropagation();">
-          <select id="analytics-group-filter" style="padding: 0.5rem; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text);">
+        <div class="filter-toolbar-group" onclick="event.stopPropagation();">
+          <select id="analytics-group-filter" class="toolbar-select">
             <option value="">All Groups</option>
             <option value="NEPS">NEPS</option><option value="NEGS">NEGS</option><option value="Nalanda">Nalanda</option>
             <option value="Lakshya">Lakshya</option>
@@ -731,7 +755,7 @@
             <option value="Prayas">Prayas</option>
             <option value="Nerd Tutors">Nerd Tutors</option><option value="Nerd Tutors Nalanda">Nerd Tutors Nalanda</option>
           </select>
-          <select id="analytics-subject-filter" style="padding: 0.5rem; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text);">
+          <select id="analytics-subject-filter" class="toolbar-select">
             <option value="">All Subjects</option>
             <option value="Economics">Economics</option>
             <option value="Accountancy">Accountancy</option>
@@ -740,8 +764,7 @@
           </select>
         </div>
       </div>
-      
-      <div id="analytics-content" style="display: none;">
+      <div id="analytics-content"  style="display: none;">
         <div class="submit-card wide-card" style="margin-bottom: 2rem;">
           <div class="form-row">
             <div class="form-group" style="flex: 1;">
@@ -771,13 +794,16 @@
       </div>
 
       <!-- Attention & Growth Container -->
-      <div class="panel-header" id="insights-header" style="margin-top: 3rem; display: flex; justify-content: space-between; align-items: flex-end; cursor: pointer; user-select: none;">
+      <div class="panel-header accordion-header" id="insights-header">
         <div>
-          <h1 style="display: flex; align-items: center;">Performance Insights <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="accordion-icon" id="insights-toggle-icon" style="transform: rotate(0deg);"><polyline points="6 9 12 15 18 9"></polyline></svg></h1>
-          <p class="subtitle">Quickly identify students who need help and those showing the most growth.</p>
+          <h1 class="accordion-title">
+            <span>Performance Insights</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="accordion-icon" id="insights-toggle-icon" style="transform: rotate(0deg);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </h1>
+          <p class="subtitle">Identify topics needing attention and track student growth.</p>
         </div>
-        <div style="margin-top: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;" onclick="event.stopPropagation();">
-          <select id="attention-group-filter" style="padding: 0.5rem; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text);">
+        <div class="filter-toolbar-group" onclick="event.stopPropagation();">
+          <select id="insights-group-filter" class="toolbar-select">
             <option value="">All Groups</option>
             <option value="NEPS">NEPS</option><option value="NEGS">NEGS</option><option value="Nalanda">Nalanda</option>
             <option value="Lakshya">Lakshya</option>
@@ -785,7 +811,7 @@
             <option value="Prayas">Prayas</option>
             <option value="Nerd Tutors">Nerd Tutors</option><option value="Nerd Tutors Nalanda">Nerd Tutors Nalanda</option>
           </select>
-          <select id="attention-subject-filter" style="padding: 0.5rem; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text);">
+          <select id="insights-subject-filter" class="toolbar-select">
             <option value="">All Subjects</option>
             <option value="Economics">Economics</option>
             <option value="Accountancy">Accountancy</option>
@@ -794,8 +820,7 @@
           </select>
         </div>
       </div>
-
-      <div id="insights-content" style="display: none; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 2rem; margin-bottom: 2rem;">
+      <div id="insights-content"  style="display: none; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 2rem; margin-bottom: 2rem;">
         
         <!-- Students Requiring Attention -->
         <div>
@@ -819,9 +844,18 @@
 
       </div>
 
-      <!-- List of created exams below table -->
-      <div style="margin-top: 3rem;">
-        <h2 class="section-title" id="exams-header" style="cursor: pointer; user-select: none; display: flex; align-items: center;">Active Exams <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="accordion-icon" id="exams-toggle-icon" style="transform: rotate(0deg);"><polyline points="6 9 12 15 18 9"></polyline></svg></h2>
+      
+
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+        <div class="panel-header accordion-header" id="exams-header" style="margin-top: 3rem;">
+        <div>
+          <h1 class="accordion-title">
+            <span>Active Exams</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="accordion-icon" id="exams-toggle-icon" style="transform: rotate(0deg);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </h1>
+          <p class="subtitle">Review existing tests, question counts, and assigned batches.</p>
+        </div>
+      </div>
         <div id="exams-content" style="display: none; max-height: 400px; overflow-y: auto;">
           <ul id="exams-list" class="papers-list" style="list-style: none; padding: 0;"></ul>
         </div>
@@ -861,12 +895,12 @@
         </div>
       </div>
       <!-- Homework Tracking Section (Spreadsheet Grid) -->
-      <div class="panel-header" id="hw-track-header" style="margin-top: 3rem; display: flex; justify-content: space-between; align-items: flex-end; cursor: pointer; user-select: none;">
+      <div class="panel-header" id="hw-track-header" style="margin-top: 3rem;">
         <div>
-          <h1 style="display: flex; align-items: center; gap: 0.5rem;">
+          <h1 style="display: flex; align-items: center; gap: 0.5rem; margin: 0; font-size: 1.4rem; font-weight: 700;">
             <span>Homework Tracking (Spreadsheet Editor)</span>
           </h1>
-          <p class="subtitle">Select date range and group to track student homework. Tick all with one click or select per cell, then save in bulk.</p>
+          <p class="subtitle">Spreadsheet tracking of student homework completion across dates.</p>
         </div>
       </div>
 
@@ -1206,30 +1240,40 @@
         </div>
       </div>
     </section>
+    </div> <!-- /#dashboard-main -->
+
     <!-- Mobile App Bottom Navigation Bar -->
     <nav id="coach-mobile-nav" class="mobile-app-bottom-nav">
       <button type="button" class="mobile-nav-item active" id="mob-nav-notes" data-tab="tab-notes">
-        <span class="nav-icon">📢</span>
+        <span class="nav-icon-wrapper">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+        </span>
         <span class="nav-label">Notices</span>
       </button>
       <button type="button" class="mobile-nav-item" id="mob-nav-exams" data-tab="tab-exams">
-        <span class="nav-icon">📝</span>
+        <span class="nav-icon-wrapper">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+        </span>
         <span class="nav-label">Exams</span>
       </button>
       <button type="button" class="mobile-nav-item" id="mob-nav-queries" data-tab="tab-queries">
-        <span class="nav-icon" style="position: relative;">
-          💬
+        <span class="nav-icon-wrapper">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
           <span id="mobile-queries-badge" class="nav-badge" style="display: none;">0</span>
         </span>
-        <span class="nav-label">Help Desk</span>
+        <span class="nav-label">Queries</span>
       </button>
       <button type="button" class="mobile-nav-item" id="mob-nav-analytics" data-tab="tab-exams" data-scroll="analytics-header">
-        <span class="nav-icon">📊</span>
-        <span class="nav-label">Analytics</span>
+        <span class="nav-icon-wrapper">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+        </span>
+        <span class="nav-label">Stats</span>
       </button>
       <button type="button" class="mobile-nav-item" id="mob-nav-logout">
-        <span class="nav-icon">🚪</span>
-        <span class="nav-label">Exit</span>
+        <span class="nav-icon-wrapper">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+        </span>
+        <span class="nav-label">Logout</span>
       </button>
     </nav>
   </main>
@@ -1238,17 +1282,3 @@
   <script src="dashboard.js"></script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -1321,7 +1321,14 @@ function renderPerformanceTable(exams, marks, students) {
   });
 
   tableData.forEach(row => {
-    let rowHtml = `<td style="padding: 1rem; border-bottom: 1px solid var(--border); font-weight: 500;">${escapeHtml(row.student.name)}</td>`;
+    let rowHtml = `<td style="padding: 1rem; border-bottom: 1px solid var(--border);">
+      <div class="student-name-cell">
+        <span class="student-avatar-badge">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+        </span>
+        <span class="student-name-text">${escapeHtml(row.student.name)}</span>
+      </div>
+    </td>`;
     
     if (isNerdGroupView) {
       const badges = row.studentSubjs.map(sb => `<span class="score-pill" style="font-size: 0.72rem; padding: 0.15rem 0.35rem; background: rgba(59, 130, 246, 0.12); color: #2563eb; margin: 1px;">${escapeHtml(sb)}</span>`).join(" ");
@@ -3067,8 +3074,15 @@ document.addEventListener("DOMContentLoaded", () => {
       rowsHtml += `
         <tr>
           <td style="padding: 0.75rem;">
-            <strong style="color: var(--text);">${escapeHtml(q.student_name)}</strong>
-            <div style="font-size: 0.78rem; color: var(--text-muted);">${escapeHtml(q.group_name || "General")}</div>
+            <div class="student-name-cell">
+              <span class="student-avatar-badge">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+              </span>
+              <div>
+                <div class="student-name-text">${escapeHtml(q.student_name)}</div>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">${escapeHtml(q.group_name || "General")}</div>
+              </div>
+            </div>
           </td>
           <td style="padding: 0.75rem;">
             <span class="score-pill" style="font-size: 0.72rem; padding: 0.15rem 0.45rem; background: rgba(59, 130, 246, 0.12); color: #2563eb;">${escapeHtml(q.subject || "General")}</span>
@@ -4817,9 +4831,11 @@ function renderStudentLogins() {
         <tr style="border-bottom: 1px solid var(--border); background: rgba(239, 68, 68, 0.02);">
           <td style="padding: 0.75rem; text-align: center; color: var(--text-muted); font-size: 0.85rem;">${idx + 1}</td>
           <td style="padding: 0.75rem; font-weight: 600; color: var(--text);">
-            <div style="display: flex; align-items: center; gap: 0.4rem;">
-              <span style="font-size: 1rem;">👤</span>
-              <span>${escapeHtml(st.name)}</span>
+            <div class="student-name-cell">
+              <span class="student-avatar-badge">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+              </span>
+              <span class="student-name-text">${escapeHtml(st.name)}</span>
             </div>
           </td>
           <td style="padding: 0.75rem;">
@@ -4935,9 +4951,11 @@ function renderStudentLogins() {
       <tr style="border-bottom: 1px solid var(--border);">
         <td style="padding: 0.75rem; text-align: center; color: var(--text-muted); font-size: 0.85rem;">${idx + 1}</td>
         <td style="padding: 0.75rem; font-weight: 600; color: var(--text);">
-          <div style="display: flex; align-items: center; gap: 0.4rem;">
-            <span style="font-size: 1rem;">👤</span>
-            <span>${escapeHtml(item.student_name)}</span>
+          <div class="student-name-cell">
+            <span class="student-avatar-badge">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            </span>
+            <span class="student-name-text">${escapeHtml(item.student_name)}</span>
           </div>
         </td>
         <td style="padding: 0.75rem;">

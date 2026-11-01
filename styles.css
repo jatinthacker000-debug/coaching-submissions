@@ -1002,35 +1002,214 @@ input:focus, select:focus, textarea:focus {
   box-shadow: 0 4px 18px rgba(139, 92, 246, 0.55);
 }
 
+/* ==========================================================================
+   COACH APP & DASHBOARD MODERN LAYOUT & ALIGNMENT STYLES
+   ========================================================================== */
+
+/* Brand Title Responsiveness */
+.brand-title-full {
+  display: inline;
+}
+.brand-title-mobile {
+  display: none;
+}
+
+/* Header Action Buttons Alignment */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.btn-header-action {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.35rem !important;
+  padding: 0.45rem 0.85rem !important;
+  font-size: 0.82rem !important;
+  font-weight: 600 !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+  border-radius: 8px !important;
+  text-decoration: none !important;
+  transition: all 0.2s ease !important;
+}
+
+.btn-header-action svg {
+  display: inline-block;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+/* Accordion & Panel Header Alignment */
+.panel-header.accordion-header {
+  margin-top: 2.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 1rem;
+  cursor: pointer;
+  user-select: none;
+  padding-bottom: 0.5rem;
+}
+
+.accordion-title {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.6rem !important;
+  margin: 0 !important;
+  font-size: 1.4rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.accordion-icon {
+  display: inline-block;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+.badge-pill {
+  font-size: 0.75rem;
+  background: rgba(16, 185, 129, 0.15);
+  color: #059669;
+  border: 1px solid #10b981;
+  padding: 0.2rem 0.65rem;
+  border-radius: 99px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+}
+
+/* Toolbar & Filter Controls Alignment */
+.filter-toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.toolbar-input,
+.toolbar-select {
+  padding: 0.45rem 0.75rem;
+  font-size: 0.85rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  line-height: 1.4;
+  height: 38px;
+  box-sizing: border-box;
+}
+
+.toolbar-btn {
+  padding: 0.45rem 0.85rem !important;
+  font-size: 0.85rem !important;
+  border-radius: 8px !important;
+  height: 38px !important;
+  box-sizing: border-box !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0.35rem !important;
+  white-space: nowrap !important;
+  cursor: pointer;
+}
+
+/* Table Alignment & Student Name Cells */
+table th,
+table td {
+  vertical-align: middle !important;
+}
+
+.student-name-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  vertical-align: middle;
+}
+
+.student-avatar-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(139, 92, 246, 0.15);
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+.student-avatar-badge svg {
+  display: block;
+}
+
+.student-name-text {
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+/* Mobile App Bottom Nav: Hidden on Desktop */
 .mobile-app-bottom-nav {
   display: none;
 }
 
+/* Mobile Responsive Optimization (<768px) */
 @media (max-width: 768px) {
-  /* Standalone App Body adjustments */
-  body {
-    -webkit-tap-highlight-color: transparent;
+  /* Hide redundant desktop tabs completely on mobile */
+  .dashboard-tabs {
+    display: none !important;
   }
 
   /* Header adjustments on mobile */
+  .brand-title-full {
+    display: none !important;
+  }
+  .brand-title-mobile {
+    display: inline !important;
+  }
+  .site-header {
+    padding: 0.6rem 0.5rem !important;
+  }
+  .header-inner {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 0.5rem !important;
+  }
+  .brand {
+    gap: 0.45rem !important;
+  }
+  .brand-logo {
+    width: 28px !important;
+    height: 28px !important;
+  }
+  .brand-text {
+    font-size: 0.95rem !important;
+  }
   .header-actions {
     gap: 0.35rem !important;
   }
-
-  .btn-install-app {
-    padding: 0.35rem 0.65rem !important;
-    font-size: 0.78rem !important;
+  .btn-header-action {
+    padding: 0.35rem 0.55rem !important;
+    font-size: 0.74rem !important;
   }
 
   /* Fixed Mobile Bottom Navigation Bar */
   .mobile-app-bottom-nav {
-    display: flex;
+    display: flex !important;
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
     height: 62px;
-    background: rgba(11, 15, 25, 0.95);
+    background: rgba(11, 15, 25, 0.96);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border-top: 1px solid rgba(139, 92, 246, 0.25);
@@ -1054,31 +1233,48 @@ input:focus, select:focus, textarea:focus {
     gap: 3px;
     padding: 6px 0;
     cursor: pointer;
-    font-size: 0.7rem;
-    font-weight: 500;
-    transition: color 0.15s ease, transform 0.15s ease;
     user-select: none;
+    transition: color 0.15s ease;
   }
 
-  .mobile-nav-item .nav-icon {
-    font-size: 1.25rem;
-    line-height: 1.1;
-    display: inline-block;
-    transition: transform 0.15s ease;
+  .nav-icon-wrapper {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
   }
 
-  .mobile-nav-item.active {
+  .nav-icon-wrapper svg {
+    display: block;
+    stroke: #94a3b8;
+    transition: stroke 0.15s ease, transform 0.15s ease;
+  }
+
+  .nav-label {
+    font-size: 0.68rem;
+    letter-spacing: -0.01em;
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
+    color: #94a3b8;
+    transition: color 0.15s ease;
+  }
+
+  .mobile-nav-item.active .nav-icon-wrapper svg {
+    stroke: #c084fc;
+    transform: scale(1.15);
+  }
+
+  .mobile-nav-item.active .nav-label {
     color: #c084fc;
     font-weight: 700;
   }
 
-  .mobile-nav-item.active .nav-icon {
-    transform: scale(1.18);
-  }
-
   .mobile-nav-item .nav-badge {
     position: absolute;
-    top: -4px;
+    top: -6px;
     right: -10px;
     background: #ef4444;
     color: #ffffff;
@@ -1092,7 +1288,7 @@ input:focus, select:focus, textarea:focus {
     box-shadow: 0 0 8px rgba(239, 68, 68, 0.8);
   }
 
-  /* Ensure content is not obscured by the fixed bottom navigation */
+  /* Padding to avoid bottom nav collision */
   #dashboard-main {
     padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px)) !important;
   }
