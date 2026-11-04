@@ -1452,11 +1452,40 @@ window.analyticsFilterState = {
   selectedCompareStudentIds: new Set()
 };
 
-// Growth & Downfall Step Indicators Strip Renderer
-function renderGrowthStepsStrip(termAverages) {
+// Growth & Downfall Step Indicators Strip Renderer (Supports subject-wise steps)
+function renderGrowthStepsStrip(steps) {
   const container = document.getElementById("analytics-growth-strip");
   if (!container) return;
-  if (!termAverages || termAverages.length < 2) {
+  if (!steps || steps.length === 0) {
+    container.style.display = "none";
+    container.innerHTML = "";
+    return;
+  }
+
+  // Check if steps is an array of subject transitions: [{ subject, prevTerm, currTerm, prevPerc, currPerc, delta }]
+  if (steps[0] && (steps[0].prevTerm !== undefined || steps[0].delta !== undefined)) {
+    container.style.display = "flex";
+    container.innerHTML = steps.map(s => {
+      let subjIcon = "📈";
+      let subjClass = "badge-subject-gen";
+      if (s.subject === "Business Studies") { subjIcon = "📗"; subjClass = "badge-subject-bst"; }
+      else if (s.subject === "Accountancy") { subjIcon = "📘"; subjClass = "badge-subject-acc"; }
+      else if (s.subject === "Economics") { subjIcon = "📙"; subjClass = "badge-subject-eco"; }
+
+      const subjBadge = s.subject ? `<span class="badge-subject ${subjClass}" style="margin-right: 0.35rem; font-size: 0.72rem; padding: 0.1rem 0.4rem;">${escapeHtml(s.subject)}</span>` : '';
+      if (s.delta > 0) {
+        return `<span class="growth-step-pill growth-up">${subjIcon} ${subjBadge}${escapeHtml(s.prevTerm)} → ${escapeHtml(s.currTerm)}: <strong>+${s.delta.toFixed(1)}% Growth ↑</strong></span>`;
+      } else if (s.delta < 0) {
+        return `<span class="growth-step-pill growth-down">📉 ${subjBadge}${escapeHtml(s.prevTerm)} → ${escapeHtml(s.currTerm)}: <strong>${s.delta.toFixed(1)}% Downfall ↓</strong></span>`;
+      } else {
+        return `<span class="growth-step-pill growth-stable">⚖️ ${subjBadge}${escapeHtml(s.prevTerm)} → ${escapeHtml(s.currTerm)}: <strong>0.0% Stable</strong></span>`;
+      }
+    }).join('');
+    return;
+  }
+
+  // Fallback for simple chronological term averages: [{ term, perc }, ...]
+  if (steps.length < 2) {
     container.style.display = "none";
     container.innerHTML = "";
     return;
@@ -1464,9 +1493,9 @@ function renderGrowthStepsStrip(termAverages) {
 
   container.style.display = "flex";
   let html = "";
-  for (let i = 1; i < termAverages.length; i++) {
-    const prev = termAverages[i - 1];
-    const curr = termAverages[i];
+  for (let i = 1; i < steps.length; i++) {
+    const prev = steps[i - 1];
+    const curr = steps[i];
     const delta = curr.perc - prev.perc;
     if (delta > 0) {
       html += `<span class="growth-step-pill growth-up">📈 ${escapeHtml(prev.term)} → ${escapeHtml(curr.term)}: <strong>+${delta.toFixed(1)}% Growth ↑</strong></span>`;
@@ -1479,48 +1508,15 @@ function renderGrowthStepsStrip(termAverages) {
   container.innerHTML = html;
 }
 
-// Chart.js Data Label Config with Growth and Downfall Callouts
-function getGrowthDataLabelConfig(accentColor = '#8b5cf6') {
-  return {
-    display: true,
-    align: 'top',
-    anchor: 'end',
-    borderRadius: 6,
-    padding: { top: 4, bottom: 4, left: 6, right: 6 },
-    font: { weight: 'bold', size: 10, family: 'Inter, system-ui, sans-serif' },
-    color: '#ffffff',
-    backgroundColor: function(context) {
-      const idx = context.dataIndex;
-      const data = context.dataset.data;
-      if (idx === 0) return accentColor;
-      const prev = data[idx - 1];
-      const curr = data[idx];
-      if (prev === null || prev === undefined || curr === null || curr === undefined) return accentColor;
-      const delta = Number(curr) - Number(prev);
-      if (delta > 0) return '#059669'; // Green Growth
-      if (delta < 0) return '#dc2626'; // Red Downfall
-      return '#64748b'; // Stable Gray
-    },
-    formatter: function(value, context) {
-      if (value === null || value === undefined) return '';
-      const idx = context.dataIndex;
-      const data = context.dataset.data;
-      const valNum = Number(value);
-      if (idx === 0) return `${valNum.toFixed(1)}%`;
-      const prev = data[idx - 1];
-      if (prev === null || prev === undefined) return `${valNum.toFixed(1)}%`;
-      const delta = valNum - Number(prev);
-      if (delta > 0) {
-        return `${valNum.toFixed(1)}%\n(+${delta.toFixed(1)}% ↑)`;
-      } else if (delta < 0) {
-        return `${valNum.toFixed(1)}%\n(${delta.toFixed(1)}% ↓)`;
-      } else {
-        return `${valNum.toFixed(1)}%\n(0.0%)`;
-      }
-    }
-  };
-}
+// Global Subject Color Definitions for Visual Consistency
+const ANALYTICS_SUBJECT_COLORS = {
+  "Accountancy": { bg: "rgba(37, 99, 235, 0.85)", border: "#2563eb", lightBg: "rgba(37, 99, 235, 0.12)" },
+  "Business Studies": { bg: "rgba(5, 150, 105, 0.85)", border: "#059669", lightBg: "rgba(5, 150, 105, 0.12)" },
+  "Economics": { bg: "rgba(217, 119, 6, 0.85)", border: "#d97706", lightBg: "rgba(217, 119, 6, 0.12)" },
+  "Social Science": { bg: "rgba(139, 92, 246, 0.85)", border: "#8b5cf6", lightBg: "rgba(139, 92, 246, 0.12)" }
+};
 
+// Main Analytics Chart Renderer
 function renderChart(exams, marksByStudent, studentIds = []) {
   if (!Array.isArray(studentIds)) {
     studentIds = studentIds ? [studentIds] : [];
@@ -1546,7 +1542,6 @@ function renderChart(exams, marksByStudent, studentIds = []) {
   // MODE: MULTI-STUDENT GROUP COMPARISON
   // =========================================================================
   if (window.analyticsFilterState.mode === 'compare') {
-    if (chartScaleBadge) chartScaleBadge.style.display = "none";
     if (kpiContainer) kpiContainer.style.display = "none";
 
     const compGroup = window.analyticsFilterState.compareGroup || 'Nerd Tutors';
@@ -1557,7 +1552,6 @@ function renderChart(exams, marksByStudent, studentIds = []) {
     if (compStudentIds.length === 0 && groupStudents.length > 0) {
       compStudentIds = groupStudents.slice(0, 5).map(s => s.id);
       window.analyticsFilterState.selectedCompareStudentIds = new Set(compStudentIds);
-      // Update checkbox pills in UI
       document.querySelectorAll(".analytics-compare-student-cb").forEach(cb => {
         cb.checked = compStudentIds.includes(cb.value);
       });
@@ -1565,17 +1559,18 @@ function renderChart(exams, marksByStudent, studentIds = []) {
 
     if (chartTitle) chartTitle.textContent = `Comparing Students in ${compGroup} (${compStudentIds.length} students selected)`;
 
-    const isNerdGroupCohort = isNerdGroup(compGroup);
-    const activeSubjs = ["Accountancy", "Business Studies", "Economics", "Social Science"].filter(s => window.analyticsFilterState.activeSubjects.has(s));
+    const isNerdCohort = isNerdGroup(compGroup);
+    const nerdSubjects = ["Accountancy", "Business Studies", "Economics"];
+    const activeSubjs = (isNerdCohort ? nerdSubjects : ["Social Science"]).filter(s => window.analyticsFilterState.activeSubjects.has(s));
 
     // Get checked terms
     const checkedTermCbs = document.querySelectorAll('.analytics-term-cb:checked');
     const checkedTerms = Array.from(checkedTermCbs).map(cb => cb.value);
 
-    // Filter exams for this group
+    // Filter exams for this group and active subjects
     const applicableExams = exams.filter(ex => {
       if (ex.target_groups && ex.target_groups.length > 0 && !ex.target_groups.includes(compGroup)) return false;
-      if (ex.subject && !activeSubjs.includes(ex.subject)) return false;
+      if (ex.subject && activeSubjs.length > 0 && !activeSubjs.includes(ex.subject)) return false;
       return true;
     });
 
@@ -1587,6 +1582,7 @@ function renderChart(exams, marksByStudent, studentIds = []) {
     }
 
     if (distinctTerms.length === 0 || compStudentIds.length === 0) {
+      if (chartScaleBadge) chartScaleBadge.style.display = "none";
       if (growthStrip) growthStrip.style.display = "none";
       if (summaryContainer) {
         summaryContainer.style.display = "block";
@@ -1595,22 +1591,28 @@ function renderChart(exams, marksByStudent, studentIds = []) {
       return;
     }
 
-    // Color palette for compared students
+    // Palette for individual students
     const studentPalette = [
       '#8b5cf6', '#10b981', '#2563eb', '#f59e0b', '#ec4899', '#06b6d4', '#6366f1', '#14b8a6'
     ];
 
-    // Calculate score per student per term: (sum obtained / sum max) * 100
-    const studentPerformanceMap = {}; // studentId -> { termScores: { term: perc }, totalObt, totalMax, overallPerc, name }
-    const groupTermTotals = {}; // term -> { sumObtained, sumMax }
+    // Compute student raw scores per term and per subject
+    // studentId -> { name, shortName, termScores: { term: combinedPerc }, termSubjectScores: { term: { subj: { obt, max, perc } } }, totalObt, totalMax, overallPerc }
+    const studentPerformanceMap = {};
+    const groupTermTotals = {};
     distinctTerms.forEach(t => { groupTermTotals[t] = { sumObt: 0, sumMax: 0 }; });
 
     compStudentIds.forEach(sId => {
       const student = globalStudents.find(s => s.id === sId);
       const sMarks = marksByStudent[sId] || {};
+      const sName = student ? student.name : 'Unknown';
+      const shortName = sName.split(' ')[0] || sName;
+
       const sData = {
-        name: student ? student.name : 'Unknown',
+        name: sName,
+        shortName: shortName,
         termScores: {},
+        termSubjectScores: {},
         totalObt: 0,
         totalMax: 0,
         overallPerc: 0
@@ -1619,10 +1621,17 @@ function renderChart(exams, marksByStudent, studentIds = []) {
       distinctTerms.forEach(term => {
         let termObt = 0;
         let termMax = 0;
+        sData.termSubjectScores[term] = {};
+
         applicableExams.filter(e => e.name === term).forEach(ex => {
+          const s = ex.subject || "General";
           if (sMarks[ex.id] !== undefined && sMarks[ex.id] !== null) {
-            termObt += Number(sMarks[ex.id]);
-            termMax += Number(ex.total_marks);
+            const obt = Number(sMarks[ex.id]);
+            const max = Number(ex.total_marks);
+            const perc = max > 0 ? (obt / max) * 100 : 0;
+            sData.termSubjectScores[term][s] = { obt, max, perc };
+            termObt += obt;
+            termMax += max;
           }
         });
 
@@ -1642,129 +1651,263 @@ function renderChart(exams, marksByStudent, studentIds = []) {
       studentPerformanceMap[sId] = sData;
     });
 
-    // Build line datasets for each student
-    const datasets = compStudentIds.map((sId, index) => {
-      const sData = studentPerformanceMap[sId];
-      const color = studentPalette[index % studentPalette.length];
-      const dataPoints = distinctTerms.map(t => sData.termScores[t]);
+    // -------------------------------------------------------------------------
+    // CASE A1: NERD TUTORS / NERD TUTORS NALANDA (EXISTING 3-IN-1 STACKED BAR STYLE)
+    // -------------------------------------------------------------------------
+    if (isNerdCohort && activeSubjs.length > 1) {
+      if (chartScaleBadge) {
+        chartScaleBadge.style.display = "inline-flex";
+        chartScaleBadge.textContent = "3-in-1 Stacked Bars per Student (100% Scale)";
+      }
 
-      return {
-        label: sData.name,
-        data: dataPoints,
-        borderColor: color,
-        backgroundColor: color,
-        fill: false,
-        tension: 0.3,
-        borderWidth: 2.5,
-        pointBackgroundColor: color,
-        pointBorderColor: '#ffffff',
-        pointBorderWidth: 2,
-        pointRadius: 5,
-        pointHoverRadius: 8,
-        datalabels: {
-          display: true,
-          align: 'top',
-          anchor: 'end',
-          borderRadius: 4,
-          padding: { top: 2, bottom: 2, left: 4, right: 4 },
-          font: { weight: 'bold', size: 9 },
-          color: '#ffffff',
-          backgroundColor: color,
-          formatter: function(value, context) {
-            if (value === null || value === undefined) return '';
-            const idx = context.dataIndex;
-            const data = context.dataset.data;
-            if (idx === 0) return `${Number(value).toFixed(1)}%`;
-            const prev = data[idx - 1];
-            if (prev === null || prev === undefined) return `${Number(value).toFixed(1)}%`;
-            const delta = Number(value) - Number(prev);
-            return delta > 0 ? `${Number(value).toFixed(1)}% (+${delta.toFixed(1)}%)` : (delta < 0 ? `${Number(value).toFixed(1)}% (${delta.toFixed(1)}%)` : `${Number(value).toFixed(1)}%`);
-          }
+      // We create datasets for each student stack
+      // For each student, 1 dataset per active subject, all sharing stack: sId
+      const datasets = [];
+      compStudentIds.forEach((sId, sIdx) => {
+        const sData = studentPerformanceMap[sId];
+        activeSubjs.forEach((subj) => {
+          const dataPoints = distinctTerms.map(term => {
+            const subjObj = sData.termSubjectScores[term] && sData.termSubjectScores[term][subj];
+            // Height represents contribution to 100% term max (sum of active subjects in term)
+            const termExamList = applicableExams.filter(e => e.name === term && activeSubjs.includes(e.subject));
+            const termActiveMax = termExamList.reduce((acc, ex) => acc + Number(ex.total_marks), 0);
+            if (!subjObj || termActiveMax === 0) return 0;
+            const contrib = (subjObj.obt / termActiveMax) * 100;
+            return Number(contrib.toFixed(2));
+          });
+
+          datasets.push({
+            label: subj, // Label is subject name for clean legend
+            studentName: sData.name,
+            studentShortName: sData.shortName,
+            studentId: sId,
+            subject: subj,
+            stack: sId, // Groups subjects of this student together in one bar
+            data: dataPoints,
+            backgroundColor: ANALYTICS_SUBJECT_COLORS[subj] ? ANALYTICS_SUBJECT_COLORS[subj].bg : '#8b5cf6',
+            borderColor: ANALYTICS_SUBJECT_COLORS[subj] ? ANALYTICS_SUBJECT_COLORS[subj].border : '#8b5cf6',
+            borderWidth: 1.5,
+            borderRadius: 4,
+            datalabels: { display: false }
+          });
+        });
+      });
+
+      // Top totals plugin: Draws student name and combined total % above each stacked bar
+      const topTotalsMultiPlugin = {
+        id: 'topTotalsMultiPlugin',
+        afterDatasetsDraw(chart) {
+          const { ctx, scales: { y } } = chart;
+          compStudentIds.forEach((sId) => {
+            const sData = studentPerformanceMap[sId];
+            // Find the last dataset for this student stack to get the bar's x position
+            const studentDatasets = chart.data.datasets.map((ds, idx) => ({ ds, idx })).filter(item => item.ds.stack === sId);
+            if (studentDatasets.length === 0) return;
+            const topDsIndex = studentDatasets[studentDatasets.length - 1].idx;
+            const meta = chart.getDatasetMeta(topDsIndex);
+
+            distinctTerms.forEach((term, tIdx) => {
+              const combinedScore = sData.termScores[term];
+              if (combinedScore === null || combinedScore === undefined) return;
+              if (!meta || !meta.data || !meta.data[tIdx]) return;
+
+              const bar = meta.data[tIdx];
+              // Calculate total stack height for this student
+              let totalStackHeight = 0;
+              studentDatasets.forEach(item => {
+                totalStackHeight += (item.ds.data[tIdx] || 0);
+              });
+              if (totalStackHeight <= 0) return;
+
+              const xPos = bar.x;
+              const yPos = y.getPixelForValue(totalStackHeight);
+
+              ctx.save();
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'bottom';
+              ctx.font = 'bold 10px Inter, system-ui, sans-serif';
+              ctx.fillStyle = '#1e293b';
+              ctx.fillText(`${sData.shortName}: ${combinedScore.toFixed(1)}%`, xPos, Math.max(16, yPos - 4));
+              ctx.restore();
+            });
+          });
         }
       };
-    });
 
-    // Group Average Line
-    const groupAvgPoints = distinctTerms.map(term => {
-      const gt = groupTermTotals[term];
-      return gt.sumMax > 0 ? Number(((gt.sumObt / gt.sumMax) * 100).toFixed(1)) : null;
-    });
-
-    datasets.push({
-      label: 'Cohort Average',
-      data: groupAvgPoints,
-      borderColor: '#94a3b8',
-      borderDash: [5, 5],
-      fill: false,
-      borderWidth: 2,
-      pointRadius: 3,
-      pointBackgroundColor: '#94a3b8',
-      datalabels: { display: false }
-    });
-
-    window.performanceChartInstance = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: distinctTerms,
-        datasets: datasets
-      },
-      plugins: [ChartDataLabels],
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        layout: { padding: { top: 25, bottom: 8 } },
-        scales: {
-          x: {
-            grid: { display: false },
-            ticks: { color: 'var(--text-muted, #64748b)', font: { weight: '600' } }
-          },
-          y: {
-            min: 0,
-            max: 105,
-            ticks: { callback: (v) => v <= 100 ? v + '%' : '', color: 'var(--text-muted, #64748b)', stepSize: 20 },
-            grid: { color: 'rgba(148, 163, 184, 0.15)' }
-          }
+      window.performanceChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: distinctTerms,
+          datasets: datasets
         },
-        plugins: {
-          legend: {
-            position: 'top',
-            labels: { boxWidth: 12, font: { weight: '600', size: 12 }, color: 'var(--text, #1e293b)' }
+        plugins: [topTotalsMultiPlugin],
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          layout: { padding: { top: 28, bottom: 8 } },
+          scales: {
+            x: {
+              stacked: true,
+              grid: { display: false },
+              ticks: { color: 'var(--text-muted, #64748b)', font: { weight: '600' } }
+            },
+            y: {
+              stacked: true,
+              min: 0,
+              max: 105,
+              ticks: { callback: (v) => v <= 100 ? v + '%' : '', color: 'var(--text-muted, #64748b)', stepSize: 20 },
+              grid: { color: 'rgba(148, 163, 184, 0.15)' }
+            }
           },
-          tooltip: {
-            backgroundColor: 'rgba(15, 23, 42, 0.95)',
-            padding: 10,
-            titleFont: { weight: 'bold', size: 13 },
-            callbacks: {
-              label: function(context) {
-                const sName = context.dataset.label;
-                const val = context.raw;
-                if (val === null || val === undefined) return ` ${sName}: Not Appeared`;
-                const idx = context.dataIndex;
-                const data = context.dataset.data;
-                let deltaStr = "";
-                if (idx > 0 && data[idx - 1] !== null && data[idx - 1] !== undefined) {
-                  const d = Number(val) - Number(data[idx - 1]);
-                  deltaStr = d > 0 ? ` (↑ +${d.toFixed(1)}% Growth)` : (d < 0 ? ` (↓ ${d.toFixed(1)}% Downfall)` : ` (0.0% Stable)`);
+          plugins: {
+            legend: {
+              position: 'top',
+              labels: {
+                boxWidth: 12,
+                font: { weight: '600', size: 12 },
+                color: 'var(--text, #1e293b)',
+                filter: function(item, chart) {
+                  // Only show each subject once in the legend
+                  const index = chart.datasets.findIndex(ds => ds.label === item.text);
+                  return index === item.datasetIndex;
                 }
-                return ` ${sName}: ${Number(val).toFixed(1)}%${deltaStr}`;
+              }
+            },
+            datalabels: { display: false },
+            tooltip: {
+              backgroundColor: 'rgba(15, 23, 42, 0.95)',
+              padding: 10,
+              titleFont: { weight: 'bold', size: 13 },
+              callbacks: {
+                title: function(items) {
+                  if (!items.length) return '';
+                  const item = items[0];
+                  const term = distinctTerms[item.dataIndex];
+                  const ds = datasets[item.datasetIndex];
+                  return `${term} • ${ds.studentName}`;
+                },
+                label: function(context) {
+                  const ds = datasets[context.datasetIndex];
+                  const term = distinctTerms[context.dataIndex];
+                  const sData = studentPerformanceMap[ds.studentId];
+                  const subjObj = sData && sData.termSubjectScores[term] && sData.termSubjectScores[term][ds.subject];
+                  if (!subjObj) return ` ${ds.subject}: Not Appeared (0%)`;
+                  return ` ${ds.subject}: ${subjObj.obt}/${subjObj.max} (${subjObj.perc.toFixed(1)}%) → Contrib: ${(context.raw || 0).toFixed(1)}%`;
+                },
+                footer: function(tooltipItems) {
+                  if (!tooltipItems.length) return '';
+                  const item = tooltipItems[0];
+                  const ds = datasets[item.datasetIndex];
+                  const term = distinctTerms[item.dataIndex];
+                  const sData = studentPerformanceMap[ds.studentId];
+                  if (sData && sData.termScores[term] !== null) {
+                    return `Total Combined Term Score: ${sData.termScores[term].toFixed(1)}%`;
+                  }
+                  return '';
+                }
               }
             }
           }
         }
-      }
-    });
+      });
+    } else {
+      // -------------------------------------------------------------------------
+      // CASE A2: SINGLE SUBJECT OR NON-NERD COHORT (GROUPED BAR GRAPH)
+      // -------------------------------------------------------------------------
+      if (chartScaleBadge) chartScaleBadge.style.display = "none";
 
-    // Render Cohort Growth & Downfall Step Strip
-    const groupTermAverages = [];
-    distinctTerms.forEach(term => {
-      const gt = groupTermTotals[term];
-      if (gt.sumMax > 0) {
-        groupTermAverages.push({ term, perc: (gt.sumObt / gt.sumMax) * 100 });
-      }
-    });
-    renderGrowthStepsStrip(groupTermAverages);
+      const datasets = compStudentIds.map((sId, index) => {
+        const sData = studentPerformanceMap[sId];
+        const color = studentPalette[index % studentPalette.length];
+        const dataPoints = distinctTerms.map(t => sData.termScores[t]);
 
-    // Render Comparative Breakdown Table
+        return {
+          label: sData.name,
+          data: dataPoints,
+          backgroundColor: color,
+          borderColor: color,
+          borderRadius: 5,
+          maxBarThickness: 35,
+          datalabels: {
+            display: true,
+            align: 'top',
+            anchor: 'end',
+            font: { weight: 'bold', size: 9 },
+            color: '#1e293b',
+            formatter: (v) => v !== null && v !== undefined ? `${Number(v).toFixed(1)}%` : ''
+          }
+        };
+      });
+
+      window.performanceChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: distinctTerms,
+          datasets: datasets
+        },
+        plugins: [ChartDataLabels],
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          layout: { padding: { top: 25, bottom: 8 } },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: { color: 'var(--text-muted, #64748b)', font: { weight: '600' } }
+            },
+            y: {
+              min: 0,
+              max: 105,
+              ticks: { callback: (v) => v <= 100 ? v + '%' : '', color: 'var(--text-muted, #64748b)', stepSize: 20 },
+              grid: { color: 'rgba(148, 163, 184, 0.15)' }
+            }
+          },
+          plugins: {
+            legend: {
+              position: 'top',
+              labels: { boxWidth: 12, font: { weight: '600', size: 12 }, color: 'var(--text, #1e293b)' }
+            },
+            tooltip: {
+              backgroundColor: 'rgba(15, 23, 42, 0.95)',
+              padding: 10,
+              titleFont: { weight: 'bold', size: 13 },
+              callbacks: {
+                label: function(context) {
+                  const sName = context.dataset.label;
+                  const val = context.raw;
+                  if (val === null || val === undefined) return ` ${sName}: Not Appeared`;
+                  return ` ${sName}: ${Number(val).toFixed(1)}%`;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // Step indicators strip for cohort averages across terms
+    const cohortSteps = [];
+    for (let i = 1; i < distinctTerms.length; i++) {
+      const prevTerm = distinctTerms[i - 1];
+      const currTerm = distinctTerms[i];
+      const prevData = groupTermTotals[prevTerm];
+      const currData = groupTermTotals[currTerm];
+      if (prevData.sumMax > 0 && currData.sumMax > 0) {
+        const prevPerc = (prevData.sumObt / prevData.sumMax) * 100;
+        const currPerc = (currData.sumObt / currData.sumMax) * 100;
+        cohortSteps.push({
+          subject: isNerdCohort && activeSubjs.length === 1 ? activeSubjs[0] : (isNerdCohort ? 'Combined (3 Subjects)' : 'Cohort'),
+          prevTerm: prevTerm,
+          currTerm: currTerm,
+          prevPerc: prevPerc,
+          currPerc: currPerc,
+          delta: currPerc - prevPerc
+        });
+      }
+    }
+    renderGrowthStepsStrip(cohortSteps);
+
+    // Render Comparative Summary Table (Subject-Wise & Term-Wise Clean Comparison)
     if (summaryContainer) {
       summaryContainer.style.display = "block";
       const sortedStudentIds = [...compStudentIds].sort((a, b) => {
@@ -1773,7 +1916,10 @@ function renderChart(exams, marksByStudent, studentIds = []) {
 
       let tableHtml = `
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.75rem;">
-          <h3 style="margin: 0; color: var(--text); font-size: 1.05rem; font-weight: 700;">Student Comparison Summary (${compGroup})</h3>
+          <div>
+            <h3 style="margin: 0; color: var(--text); font-size: 1.05rem; font-weight: 700;">Student Comparison Summary (${escapeHtml(compGroup)})</h3>
+            <p style="margin: 0.2rem 0 0; font-size: 0.82rem; color: var(--text-muted);">Term-to-term comparisons are strictly calculated across the same student and subjects.</p>
+          </div>
           <button type="button" class="btn btn-primary small-btn" id="export-summary-table-btn" style="padding: 0.4rem 0.85rem; font-size: 0.82rem; display: flex; align-items: center; gap: 0.4rem; background: #059669; font-weight: 600;">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
             Export Comparison to Excel
@@ -1820,6 +1966,8 @@ function renderChart(exams, marksByStudent, studentIds = []) {
             ${distinctTerms.map((t, idx) => {
               const val = sData.termScores[t];
               if (val === null) return '<td style="text-align: center; color: var(--text-muted);">&mdash;</td>';
+              
+              // Term-to-term delta strictly for THIS student across chronological terms
               let deltaBadge = '';
               if (idx > 0 && sData.termScores[distinctTerms[idx - 1]] !== null) {
                 const prev = sData.termScores[distinctTerms[idx - 1]];
@@ -1827,48 +1975,35 @@ function renderChart(exams, marksByStudent, studentIds = []) {
                 if (d > 0) deltaBadge = `<br><small style="color: #059669; font-weight: 700;">(↑ +${d.toFixed(1)}%)</small>`;
                 else if (d < 0) deltaBadge = `<br><small style="color: #dc2626; font-weight: 700;">(↓ ${d.toFixed(1)}%)</small>`;
               }
-              return `<td style="text-align: center; font-weight: 600;">${val.toFixed(1)}%${deltaBadge}</td>`;
+
+              // Mini subject breakdown if multiple subjects
+              let subjBreakdownHtml = '';
+              if (isNerdCohort && activeSubjs.length > 1) {
+                const subjBadges = [];
+                activeSubjs.forEach(s => {
+                  const subObj = sData.termSubjectScores[t] && sData.termSubjectScores[t][s];
+                  if (subObj) {
+                    const shortSubj = s === "Business Studies" ? "BST" : (s === "Accountancy" ? "Acc" : "Eco");
+                    subjBadges.push(`<span style="font-size: 0.73rem; color: var(--text-muted);">${shortSubj}: <strong>${subObj.perc.toFixed(0)}%</strong></span>`);
+                  }
+                });
+                if (subjBadges.length > 0) {
+                  subjBreakdownHtml = `<div style="margin-top: 3px; display: flex; justify-content: center; gap: 0.35rem; flex-wrap: wrap;">${subjBadges.join('<span style="opacity:0.4;">|</span>')}</div>`;
+                }
+              }
+
+              return `<td style="text-align: center; font-weight: 600;">${val.toFixed(1)}%${deltaBadge}${subjBreakdownHtml}</td>`;
             }).join('')}
             <td style="text-align: center; background: rgba(139, 92, 246, 0.04);">
-              <span class="score-badge ${avgBadge}" style="font-size: 0.92rem; padding: 0.25rem 0.65rem;">${sData.overallPerc.toFixed(1)}%</span>
+              <span class="score-badge ${avgBadge}">${sData.overallPerc.toFixed(1)}%</span>
             </td>
-            <td style="text-align: center; background: rgba(139, 92, 246, 0.06);">
-              ${netGrowthStr}
-            </td>
+            <td style="text-align: center; background: rgba(139, 92, 246, 0.06);">${netGrowthStr}</td>
           </tr>
         `;
       });
 
-      // Bottom Row: Cohort Average
       tableHtml += `
             </tbody>
-            <tfoot>
-              <tr style="background: var(--surface-card); border-top: 2px solid var(--border); font-weight: 700;">
-                <td style="color: var(--text); font-weight: 800;">COHORT AVERAGE</td>
-                ${distinctTerms.map(t => {
-                  const gt = groupTermTotals[t];
-                  if (gt.sumMax === 0) return '<td style="text-align: center; color: var(--text-muted);">&mdash;</td>';
-                  const avg = (gt.sumObt / gt.sumMax) * 100;
-                  return `<td style="text-align: center; font-weight: 800; color: #8b5cf6;">${avg.toFixed(1)}%</td>`;
-                }).join('')}
-                <td style="text-align: center; background: rgba(139, 92, 246, 0.08); font-weight: 800; color: #7c3aed;">
-                  ${(() => {
-                    let totalObtAll = 0, totalMaxAll = 0;
-                    distinctTerms.forEach(t => { totalObtAll += groupTermTotals[t].sumObt; totalMaxAll += groupTermTotals[t].sumMax; });
-                    return totalMaxAll > 0 ? ((totalObtAll / totalMaxAll) * 100).toFixed(1) + '%' : '&mdash;';
-                  })()}
-                </td>
-                <td style="text-align: center; background: rgba(139, 92, 246, 0.12);">
-                  ${(() => {
-                    if (groupTermAverages.length >= 2) {
-                      const net = groupTermAverages[groupTermAverages.length - 1].perc - groupTermAverages[0].perc;
-                      return net > 0 ? `<span class="score-badge score-badge-high">+${net.toFixed(1)}% ↑</span>` : (net < 0 ? `<span class="score-badge score-badge-low">${net.toFixed(1)}% ↓</span>` : '<span class="score-badge">0.0%</span>');
-                    }
-                    return '&mdash;';
-                  })()}
-                </td>
-              </tr>
-            </tfoot>
           </table>
         </div>
       `;
@@ -1896,9 +2031,14 @@ function renderChart(exams, marksByStudent, studentIds = []) {
   const studentObj = studentId ? globalStudents.find(s => s.id === studentId) : null;
   const isNerd = studentObj && (isNerdGroup(studentObj.group_name) || (Array.isArray(studentObj.subjects) && studentObj.subjects.some(s => s.toLowerCase().includes('account') || s.toLowerCase().includes('econom') || s.toLowerCase().includes('business'))));
 
-  // SUBCASE 1: SINGLE NERD TUTORS STUDENT (3-IN-1 STACKED BAR GRAPH - 100% SCALE)
+  // -------------------------------------------------------------------------
+  // SUBCASE 1: SINGLE NERD TUTORS STUDENT (EXISTING 3-IN-1 STACKED BAR GRAPH - 100% SCALE)
+  // -------------------------------------------------------------------------
   if (studentObj && isNerd) {
-    if (chartScaleBadge) chartScaleBadge.style.display = "inline-flex";
+    if (chartScaleBadge) {
+      chartScaleBadge.style.display = "inline-flex";
+      chartScaleBadge.textContent = "All 3 Subjects in 1 Bar (100% Scale)";
+    }
     if (chartTitle) chartTitle.textContent = `${studentObj.name} - 3-Subject Performance Progress`;
 
     const nerdSubjects = ["Accountancy", "Business Studies", "Economics"];
@@ -2094,27 +2234,27 @@ function renderChart(exams, marksByStudent, studentIds = []) {
 
     const grandPerc = grandMax > 0 ? (grandObtained / grandMax) * 100 : 0;
 
-    // Trend calculation
-    let trendText = "Need more exams";
-    let trendClass = "color: var(--text-muted);";
-    if (termAverages.length >= 2) {
-      const first = termAverages[0].perc;
-      const last = termAverages[termAverages.length - 1].perc;
-      const diff = last - first;
-      if (diff > 0) {
-        trendText = `Improving (↑ ${diff.toFixed(1)}%)`;
-        trendClass = "color: #059669;";
-      } else if (diff < 0) {
-        trendText = `Declining (↓ ${Math.abs(diff).toFixed(1)}%)`;
-        trendClass = "color: #dc2626;";
-      } else {
-        trendText = "Stable";
-        trendClass = "color: var(--text);";
+    // Subject-wise step transitions for Growth Strip
+    const studentSubjectSteps = [];
+    activeSubjs.forEach(subj => {
+      const validSubjTerms = distinctTerms.filter(t => rawScores[t] && rawScores[t].subjects[subj]);
+      for (let i = 1; i < validSubjTerms.length; i++) {
+        const pTerm = validSubjTerms[i - 1];
+        const cTerm = validSubjTerms[i];
+        const pObj = rawScores[pTerm].subjects[subj];
+        const cObj = rawScores[cTerm].subjects[subj];
+        studentSubjectSteps.push({
+          subject: subj,
+          prevTerm: pTerm,
+          currTerm: cTerm,
+          prevPerc: pObj.perc,
+          currPerc: cObj.perc,
+          delta: cObj.perc - pObj.perc
+        });
       }
-    }
+    });
 
-    // Render Growth & Downfall Step Indicators Strip
-    renderGrowthStepsStrip(termAverages);
+    renderGrowthStepsStrip(studentSubjectSteps.length > 0 ? studentSubjectSteps : termAverages);
 
     // Render KPI Cards
     if (kpiContainer) {
@@ -2122,6 +2262,24 @@ function renderChart(exams, marksByStudent, studentIds = []) {
       const accPerc = subjTotals["Accountancy"].max > 0 ? (subjTotals["Accountancy"].obtained / subjTotals["Accountancy"].max) * 100 : 0;
       const bstPerc = subjTotals["Business Studies"].max > 0 ? (subjTotals["Business Studies"].obtained / subjTotals["Business Studies"].max) * 100 : 0;
       const ecoPerc = subjTotals["Economics"].max > 0 ? (subjTotals["Economics"].obtained / subjTotals["Economics"].max) * 100 : 0;
+
+      let trendText = "Need more exams";
+      let trendClass = "color: var(--text-muted);";
+      if (termAverages.length >= 2) {
+        const first = termAverages[0].perc;
+        const last = termAverages[termAverages.length - 1].perc;
+        const diff = last - first;
+        if (diff > 0) {
+          trendText = `Improving (↑ +${diff.toFixed(1)}%)`;
+          trendClass = "color: #059669;";
+        } else if (diff < 0) {
+          trendText = `Declining (↓ ${Math.abs(diff).toFixed(1)}%)`;
+          trendClass = "color: #dc2626;";
+        } else {
+          trendText = "Stable (0.0%)";
+          trendClass = "color: var(--text);";
+        }
+      }
 
       kpiContainer.innerHTML = `
         <div class="analytics-kpi-card">
@@ -2152,7 +2310,7 @@ function renderChart(exams, marksByStudent, studentIds = []) {
       `;
     }
 
-    // Render Clean Summary Table
+    // Render Clean Summary Table (with subject-wise term-to-term deltas)
     if (summaryContainer) {
       summaryContainer.style.display = "block";
       let tableHtml = `
@@ -2178,11 +2336,11 @@ function renderChart(exams, marksByStudent, studentIds = []) {
             <tbody>
       `;
 
+      // Track previous score per subject to show subject-wise progression
+      const prevSubjPerc = { "Accountancy": null, "Business Studies": null, "Economics": null };
+
       distinctTerms.forEach(term => {
         const td = rawScores[term];
-        const acc = td.subjects["Accountancy"];
-        const bst = td.subjects["Business Studies"];
-        const eco = td.subjects["Economics"];
 
         const getBadge = (perc) => {
           if (perc >= 75) return 'score-badge-high';
@@ -2190,12 +2348,23 @@ function renderChart(exams, marksByStudent, studentIds = []) {
           return 'score-badge-low';
         };
 
-        const renderCell = (subjObj) => {
+        const renderCell = (subj) => {
+          const subjObj = td.subjects[subj];
           if (!subjObj) return `<td style="text-align: center; color: var(--text-muted);">&mdash;</td>`;
+          
+          let deltaStr = '';
+          if (prevSubjPerc[subj] !== null) {
+            const diff = subjObj.perc - prevSubjPerc[subj];
+            if (diff > 0) deltaStr = `<div style="color: #059669; font-size: 0.73rem; font-weight: 700; margin-top: 2px;">(↑ +${diff.toFixed(1)}%)</div>`;
+            else if (diff < 0) deltaStr = `<div style="color: #dc2626; font-size: 0.73rem; font-weight: 700; margin-top: 2px;">(↓ ${diff.toFixed(1)}%)</div>`;
+          }
+          prevSubjPerc[subj] = subjObj.perc;
+
           return `
             <td style="text-align: center;">
               <div style="font-weight: 700; color: var(--text);">${subjObj.obtained} / ${subjObj.max}</div>
               <span class="score-badge ${getBadge(subjObj.perc)}" style="margin-top: 3px;">${subjObj.perc.toFixed(1)}%</span>
+              ${deltaStr}
             </td>
           `;
         };
@@ -2205,9 +2374,9 @@ function renderChart(exams, marksByStudent, studentIds = []) {
         tableHtml += `
           <tr>
             <td style="font-weight: 700; color: var(--text);">${escapeHtml(term)}</td>
-            ${renderCell(acc)}
-            ${renderCell(bst)}
-            ${renderCell(eco)}
+            ${renderCell("Accountancy")}
+            ${renderCell("Business Studies")}
+            ${renderCell("Economics")}
             <td style="text-align: center; font-weight: 700; background: rgba(139, 92, 246, 0.04); color: var(--text);">
               ${td.totalMax > 0 ? `${td.totalObtained} / ${td.totalMax}` : '&mdash;'}
             </td>
@@ -2218,13 +2387,12 @@ function renderChart(exams, marksByStudent, studentIds = []) {
         `;
       });
 
-      // Overall Row
-      const grandBadge = grandMax > 0 ? (grandPerc >= 75 ? 'score-badge-high' : grandPerc >= 50 ? 'score-badge-mid' : 'score-badge-low') : 'score-badge-mid';
+      const grandBadge = grandPerc >= 75 ? 'score-badge-high' : (grandPerc >= 50 ? 'score-badge-mid' : 'score-badge-low');
       tableHtml += `
             </tbody>
             <tfoot>
-              <tr style="background: var(--surface-card); border-top: 2px solid var(--border); font-weight: 700;">
-                <td style="color: var(--text); font-weight: 800;">OVERALL TOTAL</td>
+              <tr style="background: var(--surface-card); font-weight: 700; border-top: 2px solid var(--border);">
+                <td>Total Cumulative Marks</td>
                 <td style="text-align: center; color: #2563eb;">${subjTotals["Accountancy"].obtained} / ${subjTotals["Accountancy"].max}</td>
                 <td style="text-align: center; color: #059669;">${subjTotals["Business Studies"].obtained} / ${subjTotals["Business Studies"].max}</td>
                 <td style="text-align: center; color: #d97706;">${subjTotals["Economics"].obtained} / ${subjTotals["Economics"].max}</td>
@@ -2254,10 +2422,12 @@ function renderChart(exams, marksByStudent, studentIds = []) {
     return;
   }
 
-  // SUBCASE 2: SINGLE NON-NERD STUDENT (GRADE 10 / SOCIAL SCIENCE PROGRESS LINE)
+  // -------------------------------------------------------------------------
+  // SUBCASE 2: SINGLE NON-NERD STUDENT (BAR GRAPH ACROSS TERMS)
+  // -------------------------------------------------------------------------
   if (studentObj && !isNerd) {
     if (chartScaleBadge) chartScaleBadge.style.display = "none";
-    if (chartTitle) chartTitle.textContent = `${studentObj.name} - Performance Progress`;
+    if (chartTitle) chartTitle.textContent = `${studentObj.name} - Performance Progress (Bar Chart)`;
 
     const termSet = new Set();
     exams.forEach(ex => { if (ex.name) termSet.add(ex.name.trim()); });
@@ -2288,26 +2458,21 @@ function renderChart(exams, marksByStudent, studentIds = []) {
       }
     });
 
-    // Render Growth & Downfall Step Indicators Strip
     renderGrowthStepsStrip(termAverages);
 
+    // Modern Bar Graph for Single Student
     window.performanceChartInstance = new Chart(ctx, {
-      type: 'line',
+      type: 'bar',
       data: {
         labels: distinctTerms,
         datasets: [{
-          label: 'Progress (%)',
+          label: 'Score (%)',
           data: progressData,
+          backgroundColor: 'rgba(139, 92, 246, 0.85)',
           borderColor: '#8b5cf6',
-          backgroundColor: 'rgba(139, 92, 246, 0.12)',
-          fill: true,
-          tension: 0.35,
-          borderWidth: 3,
-          pointBackgroundColor: '#8b5cf6',
-          pointBorderColor: '#ffffff',
-          pointBorderWidth: 2,
-          pointRadius: 6,
-          pointHoverRadius: 9
+          borderWidth: 1.5,
+          borderRadius: 6,
+          maxBarThickness: 45
         }]
       },
       plugins: [ChartDataLabels],
@@ -2326,7 +2491,40 @@ function renderChart(exams, marksByStudent, studentIds = []) {
         },
         plugins: {
           legend: { display: false },
-          datalabels: getGrowthDataLabelConfig('#8b5cf6')
+          datalabels: {
+            display: true,
+            align: 'top',
+            anchor: 'end',
+            borderRadius: 6,
+            padding: { top: 3, bottom: 3, left: 6, right: 6 },
+            font: { weight: 'bold', size: 10, family: 'Inter, system-ui, sans-serif' },
+            color: '#ffffff',
+            backgroundColor: function(context) {
+              const idx = context.dataIndex;
+              const data = context.dataset.data;
+              if (idx === 0) return '#8b5cf6';
+              const prev = data[idx - 1];
+              const curr = data[idx];
+              if (prev === null || prev === undefined || curr === null || curr === undefined) return '#8b5cf6';
+              const delta = Number(curr) - Number(prev);
+              if (delta > 0) return '#059669';
+              if (delta < 0) return '#dc2626';
+              return '#64748b';
+            },
+            formatter: function(value, context) {
+              if (value === null || value === undefined) return '';
+              const idx = context.dataIndex;
+              const data = context.dataset.data;
+              const valNum = Number(value);
+              if (idx === 0) return `${valNum.toFixed(1)}%`;
+              const prev = data[idx - 1];
+              if (prev === null || prev === undefined) return `${valNum.toFixed(1)}%`;
+              const delta = valNum - Number(prev);
+              if (delta > 0) return `${valNum.toFixed(1)}%\n(+${delta.toFixed(1)}% ↑)`;
+              if (delta < 0) return `${valNum.toFixed(1)}%\n(${delta.toFixed(1)}% ↓)`;
+              return `${valNum.toFixed(1)}%\n(0.0%)`;
+            }
+          }
         }
       }
     });
@@ -2359,17 +2557,28 @@ function renderChart(exams, marksByStudent, studentIds = []) {
                 <th style="text-align: center;">Marks Obtained</th>
                 <th style="text-align: center;">Max Marks</th>
                 <th style="text-align: center;">Percentage</th>
+                <th style="text-align: center;">Term Growth / Downfall</th>
               </tr>
             </thead>
             <tbody>
-              ${termRows.map(r => `
-                <tr>
-                  <td style="font-weight: 700;">${escapeHtml(r.term)}</td>
-                  <td style="text-align: center; font-weight: 600;">${r.obt}</td>
-                  <td style="text-align: center;">${r.max}</td>
-                  <td style="text-align: center;"><span class="score-badge ${r.perc >= 75 ? 'score-badge-high' : r.perc >= 50 ? 'score-badge-mid' : 'score-badge-low'}">${r.perc.toFixed(1)}%</span></td>
-                </tr>
-              `).join('')}
+              ${termRows.map((r, idx) => {
+                let deltaBadge = '<span style="color: var(--text-muted);">&mdash; (Baseline)</span>';
+                if (idx > 0) {
+                  const diff = r.perc - termRows[idx - 1].perc;
+                  if (diff > 0) deltaBadge = `<span class="score-badge score-badge-high">+${diff.toFixed(1)}% Growth ↑</span>`;
+                  else if (diff < 0) deltaBadge = `<span class="score-badge score-badge-low">${diff.toFixed(1)}% Downfall ↓</span>`;
+                  else deltaBadge = `<span class="score-badge" style="background: rgba(100,116,139,0.1); color: #64748b;">0.0% Stable</span>`;
+                }
+                return `
+                  <tr>
+                    <td style="font-weight: 700;">${escapeHtml(r.term)}</td>
+                    <td style="text-align: center; font-weight: 600;">${r.obt}</td>
+                    <td style="text-align: center;">${r.max}</td>
+                    <td style="text-align: center;"><span class="score-badge ${r.perc >= 75 ? 'score-badge-high' : r.perc >= 50 ? 'score-badge-mid' : 'score-badge-low'}">${r.perc.toFixed(1)}%</span></td>
+                    <td style="text-align: center;">${deltaBadge}</td>
+                  </tr>
+                `;
+              }).join('')}
             </tbody>
           </table>
         </div>
@@ -2378,15 +2587,17 @@ function renderChart(exams, marksByStudent, studentIds = []) {
     return;
   }
 
+  // -------------------------------------------------------------------------
   // SUBCASE 3: CLASS AVERAGE (WHEN NO SINGLE STUDENT IS SELECTED)
+  // -------------------------------------------------------------------------
   if (chartScaleBadge) chartScaleBadge.style.display = "none";
-  if (chartTitle) chartTitle.textContent = "Class Performance Trend";
+  if (chartTitle) chartTitle.textContent = "Class Performance Trend (Bar Chart)";
   if (kpiContainer) kpiContainer.style.display = "none";
 
   const labels = [];
   const classAvgData = [];
-  const termAverages = [];
 
+  // Group exams by subject or preserve term order
   exams.forEach(ex => {
     const label = ex.subject ? `${ex.name} [${ex.subject}]` : ex.name;
     labels.push(label);
@@ -2402,31 +2613,67 @@ function renderChart(exams, marksByStudent, studentIds = []) {
     const avg = studentCount > 0 ? (totalMarks / studentCount) : 0;
     const avgFixed = Number(avg.toFixed(1));
     classAvgData.push(avgFixed);
-    termAverages.push({ term: ex.name, perc: avgFixed });
   });
 
-  // Render Growth & Downfall Step Indicators Strip for Class Trend
-  renderGrowthStepsStrip(termAverages);
+  // STRICT SUBJECT-WISE GROWTH & DOWNFALL CALCULATION
+  // Track previous exam score strictly by subject (BST with BST, Acc with Acc, Eco with Eco)
+  const lastExamBySubject = {};
+  const examDeltas = []; // idx -> { prevTerm, delta, subject } or null
+  const subjectStepList = [];
 
+  exams.forEach((ex, idx) => {
+    const s = ex.subject || "General";
+    const avgVal = classAvgData[idx];
+    const prev = lastExamBySubject[s];
+
+    if (prev !== undefined) {
+      const delta = avgVal - prev.avg;
+      examDeltas[idx] = {
+        prevTerm: prev.name,
+        prevAvg: prev.avg,
+        delta: delta,
+        subject: s
+      };
+      subjectStepList.push({
+        subject: s,
+        prevTerm: prev.name,
+        currTerm: ex.name,
+        prevPerc: prev.avg,
+        currPerc: avgVal,
+        delta: delta
+      });
+    } else {
+      examDeltas[idx] = null; // Baseline exam for this subject
+    }
+    lastExamBySubject[s] = { name: ex.name, avg: avgVal };
+  });
+
+  // Render Subject-Wise Growth & Downfall Step Indicators Strip
+  renderGrowthStepsStrip(subjectStepList);
+
+  // Bar Graph Colors matching each subject
+  const barColors = exams.map(ex => {
+    const s = ex.subject || "General";
+    return ANALYTICS_SUBJECT_COLORS[s] ? ANALYTICS_SUBJECT_COLORS[s].bg : 'rgba(139, 92, 246, 0.85)';
+  });
+  const barBorderColors = exams.map(ex => {
+    const s = ex.subject || "General";
+    return ANALYTICS_SUBJECT_COLORS[s] ? ANALYTICS_SUBJECT_COLORS[s].border : '#8b5cf6';
+  });
+
+  // Render Bar Graph for Class Average Trend
   window.performanceChartInstance = new Chart(ctx, {
-    type: 'line',
+    type: 'bar',
     data: {
       labels: labels,
       datasets: [{
-        type: 'line',
         label: 'Class Average (%)',
         data: classAvgData,
-        backgroundColor: 'rgba(139, 92, 246, 0.1)',
-        borderColor: 'rgba(139, 92, 246, 1)',
-        borderWidth: 2.5,
-        tension: 0.3,
-        fill: true,
-        pointBackgroundColor: 'rgba(139, 92, 246, 1)',
-        pointBorderColor: '#ffffff',
-        pointBorderWidth: 2,
-        pointRadius: 6,
-        pointHoverRadius: 9,
-        datalabels: getGrowthDataLabelConfig('#8b5cf6')
+        backgroundColor: barColors,
+        borderColor: barBorderColors,
+        borderWidth: 1.5,
+        borderRadius: 6,
+        maxBarThickness: 48
       }]
     },
     plugins: [ChartDataLabels],
@@ -2447,20 +2694,50 @@ function renderChart(exams, marksByStudent, studentIds = []) {
         }
       },
       plugins: {
-        legend: { labels: { color: 'var(--text, #1e293b)' } },
+        legend: { display: false },
+        datalabels: {
+          display: true,
+          align: 'top',
+          anchor: 'end',
+          borderRadius: 6,
+          padding: { top: 3, bottom: 3, left: 6, right: 6 },
+          font: { weight: 'bold', size: 10, family: 'Inter, system-ui, sans-serif' },
+          color: '#ffffff',
+          backgroundColor: function(context) {
+            const idx = context.dataIndex;
+            const dInfo = examDeltas[idx];
+            if (!dInfo) return '#64748b'; // Baseline gray
+            if (dInfo.delta > 0) return '#059669'; // Green Growth
+            if (dInfo.delta < 0) return '#dc2626'; // Red Downfall
+            return '#64748b';
+          },
+          formatter: function(value, context) {
+            const idx = context.dataIndex;
+            const valNum = Number(value);
+            const dInfo = examDeltas[idx];
+            if (!dInfo) return `${valNum.toFixed(1)}%`;
+            const d = dInfo.delta;
+            if (d > 0) return `${valNum.toFixed(1)}%\n(+${d.toFixed(1)}% ↑)`;
+            if (d < 0) return `${valNum.toFixed(1)}%\n(${d.toFixed(1)}% ↓)`;
+            return `${valNum.toFixed(1)}%\n(0.0%)`;
+          }
+        },
         tooltip: {
           backgroundColor: 'rgba(15, 23, 42, 0.95)',
           padding: 10,
           titleFont: { weight: 'bold', size: 13 },
           callbacks: {
             label: function(context) {
-              const val = context.raw;
               const idx = context.dataIndex;
-              const data = context.dataset.data;
-              let deltaStr = "";
-              if (idx > 0 && data[idx - 1] !== null && data[idx - 1] !== undefined) {
-                const d = Number(val) - Number(data[idx - 1]);
-                deltaStr = d > 0 ? ` (↑ +${d.toFixed(1)}% Growth)` : (d < 0 ? ` (↓ ${d.toFixed(1)}% Downfall)` : ` (0.0% Stable)`);
+              const ex = exams[idx];
+              const val = context.raw;
+              const dInfo = examDeltas[idx];
+              let deltaStr = " (Baseline)";
+              if (dInfo) {
+                const d = dInfo.delta;
+                deltaStr = d > 0 
+                  ? ` (↑ +${d.toFixed(1)}% vs ${dInfo.prevTerm})` 
+                  : (d < 0 ? ` (↓ ${d.toFixed(1)}% vs ${dInfo.prevTerm})` : ` (0.0% vs ${dInfo.prevTerm})`);
               }
               return ` Class Average: ${Number(val).toFixed(1)}%${deltaStr}`;
             }
@@ -2470,35 +2747,59 @@ function renderChart(exams, marksByStudent, studentIds = []) {
     }
   });
 
-  // Render simple summary table for class average
+  // Render Clean Summary Table for Class Average with Subject-Wise Comparisons
   if (summaryContainer) {
     summaryContainer.style.display = "block";
     summaryContainer.innerHTML = `
-      <div style="overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; margin-bottom: 1.5rem; background: var(--surface);">
-        <table class="clean-summary-table">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.75rem;">
+        <div>
+          <h3 style="margin: 0; color: var(--text); font-size: 1.05rem; font-weight: 700;">Class Average Performance & Subject-Wise Growth</h3>
+          <p style="margin: 0.2rem 0 0; font-size: 0.82rem; color: var(--text-muted);">Growth/Downfall is strictly measured across consecutive terms within each subject.</p>
+        </div>
+        <button type="button" class="btn btn-primary small-btn" id="export-summary-table-btn" style="padding: 0.4rem 0.85rem; font-size: 0.82rem; display: flex; align-items: center; gap: 0.4rem; background: #059669; font-weight: 600;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          Export to Excel
+        </button>
+      </div>
+      <div style="overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; margin-bottom: 1.5rem; background: var(--surface); box-shadow: 0 1px 4px rgba(0,0,0,0.05);">
+        <table class="clean-summary-table" id="chart-summary-table">
           <thead>
             <tr>
               <th>Exam Name</th>
+              <th>Subject</th>
               <th style="text-align: center;">Total Marks</th>
               <th style="text-align: center;">Class Average (%)</th>
-              <th style="text-align: center;">Growth / Downfall</th>
+              <th style="text-align: center;">Subject Growth / Downfall</th>
             </tr>
           </thead>
           <tbody>
             ${exams.map((ex, idx) => {
               const avg = classAvgData[idx];
-              let deltaBadge = '<span style="color: var(--text-muted);">&mdash;</span>';
-              if (idx > 0 && classAvgData[idx - 1] !== null) {
-                const d = avg - classAvgData[idx - 1];
-                if (d > 0) deltaBadge = `<span class="score-badge score-badge-high">+${d.toFixed(1)}% Growth ↑</span>`;
-                else if (d < 0) deltaBadge = `<span class="score-badge score-badge-low">${d.toFixed(1)}% Downfall ↓</span>`;
-                else deltaBadge = `<span class="score-badge" style="background: rgba(100,116,139,0.1); color: #64748b;">0.0% Stable</span>`;
+              const s = ex.subject || "General";
+              let subjBadgeClass = "badge-subject-gen";
+              if (s === "Business Studies") subjBadgeClass = "badge-subject-bst";
+              else if (s === "Accountancy") subjBadgeClass = "badge-subject-acc";
+              else if (s === "Economics") subjBadgeClass = "badge-subject-eco";
+
+              const dInfo = examDeltas[idx];
+              let deltaBadge = '<span style="color: var(--text-muted);">&mdash; (Baseline)</span>';
+              if (dInfo) {
+                const d = dInfo.delta;
+                if (d > 0) {
+                  deltaBadge = `<span class="score-badge score-badge-high">+${d.toFixed(1)}% Growth ↑ <small style="font-weight: normal; opacity: 0.85;">(vs ${escapeHtml(dInfo.prevTerm)})</small></span>`;
+                } else if (d < 0) {
+                  deltaBadge = `<span class="score-badge score-badge-low">${d.toFixed(1)}% Downfall ↓ <small style="font-weight: normal; opacity: 0.85;">(vs ${escapeHtml(dInfo.prevTerm)})</small></span>`;
+                } else {
+                  deltaBadge = `<span class="score-badge" style="background: rgba(100,116,139,0.1); color: #64748b;">0.0% Stable <small style="font-weight: normal; opacity: 0.85;">(vs ${escapeHtml(dInfo.prevTerm)})</small></span>`;
+                }
               }
+
               return `
                 <tr>
-                  <td style="font-weight: 700;">${escapeHtml(ex.name)}${ex.subject ? ` [${escapeHtml(ex.subject)}]` : ''}</td>
+                  <td style="font-weight: 700; color: var(--text);">${escapeHtml(ex.name)}</td>
+                  <td><span class="badge-subject ${subjBadgeClass}">${escapeHtml(s)}</span></td>
                   <td style="text-align: center;">${ex.total_marks}</td>
-                  <td style="text-align: center; font-weight: 700; color: #8b5cf6;">${avg}%</td>
+                  <td style="text-align: center; font-weight: 700; color: ${ANALYTICS_SUBJECT_COLORS[s] ? ANALYTICS_SUBJECT_COLORS[s].border : '#8b5cf6'}; font-size: 0.95rem;">${avg}%</td>
                   <td style="text-align: center;">${deltaBadge}</td>
                 </tr>
               `;
@@ -2507,8 +2808,21 @@ function renderChart(exams, marksByStudent, studentIds = []) {
         </table>
       </div>
     `;
+
+    const exportBtn = document.getElementById("export-summary-table-btn");
+    if (exportBtn) {
+      exportBtn.addEventListener("click", () => {
+        if (typeof XLSX === "undefined") {
+          return alert("Excel library loading. Please try again in a moment.");
+        }
+        const tbl = document.getElementById("chart-summary-table");
+        const wb = XLSX.utils.table_to_book(tbl, { sheet: "Class Trend" });
+        XLSX.writeFile(wb, `Class_Performance_Trend.xlsx`);
+      });
+    }
   }
 }
+
 
 // Populate student pills for group comparison
 function updateCompareStudentPills() {
