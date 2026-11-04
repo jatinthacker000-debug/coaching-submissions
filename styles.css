@@ -1016,25 +1016,28 @@ input:focus, select:focus, textarea:focus {
 
 /* Header Action Buttons Alignment */
 .header-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 0.75rem !important;
+  flex-wrap: nowrap !important;
 }
 
 .btn-header-action {
+  width: auto !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  gap: 0.35rem !important;
-  padding: 0.45rem 0.85rem !important;
-  font-size: 0.82rem !important;
+  gap: 0.45rem !important;
+  padding: 0.5rem 1rem !important;
+  font-size: 0.88rem !important;
   font-weight: 600 !important;
   line-height: 1 !important;
   white-space: nowrap !important;
   border-radius: 8px !important;
   text-decoration: none !important;
   transition: all 0.2s ease !important;
+  box-shadow: none !important;
 }
 
 .btn-header-action svg {
@@ -1103,12 +1106,19 @@ input:focus, select:focus, textarea:focus {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 1rem;
+  flex-wrap: nowrap;
+  gap: 1.25rem;
   cursor: pointer;
   user-select: none;
   transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.panel-header.accordion-header > div:first-child {
+  flex: 1 1 auto;
+  min-width: 180px;
 }
 
 .panel-header.accordion-header:hover {
@@ -1155,23 +1165,40 @@ input:focus, select:focus, textarea:focus {
 
 /* Toolbar & Filter Controls Alignment */
 .filter-toolbar-group {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
+  flex-wrap: nowrap !important;
+  flex-shrink: 0 !important;
+  justify-content: flex-end !important;
 }
 
-.toolbar-input,
+.toolbar-input {
+  height: 36px !important;
+  line-height: 36px !important;
+  padding: 0 0.75rem !important;
+  font-size: 0.85rem !important;
+  border-radius: 8px !important;
+  border: 1px solid var(--border) !important;
+  background: var(--surface) !important;
+  color: var(--text) !important;
+  width: 170px !important;
+  box-sizing: border-box !important;
+}
+
 .toolbar-select {
-  padding: 0.45rem 0.75rem;
-  font-size: 0.85rem;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text);
-  line-height: 1.4;
-  height: 38px;
-  box-sizing: border-box;
+  height: 36px !important;
+  line-height: 36px !important;
+  padding: 0 0.65rem !important;
+  font-size: 0.85rem !important;
+  border-radius: 8px !important;
+  border: 1px solid var(--border) !important;
+  background: var(--surface) !important;
+  color: var(--text) !important;
+  min-width: 125px !important;
+  max-width: 155px !important;
+  box-sizing: border-box !important;
 }
 
 .toolbar-btn {
@@ -1520,4 +1547,54 @@ table td {
   background: rgba(239, 68, 68, 0.12);
   color: #dc2626;
   border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+/* Growth & Downfall Step Indicators */
+.growth-steps-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+}
+
+.growth-step-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 99px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  user-select: none;
+  line-height: 1.2;
+}
+
+.growth-step-pill.growth-up {
+  background: rgba(16, 185, 129, 0.15);
+  color: #059669;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+.growth-step-pill.growth-down {
+  background: rgba(239, 68, 68, 0.15);
+  color: #dc2626;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+}
+
+.growth-step-pill.growth-stable {
+  background: rgba(100, 116, 139, 0.15);
+  color: #64748b;
+  border: 1px solid rgba(100, 116, 139, 0.35);
+}
+
+@media (max-width: 768px) {
+  .panel-header.accordion-header {
+    flex-wrap: wrap !important;
+  }
+  .filter-toolbar-group {
+    width: 100% !important;
+    flex-wrap: wrap !important;
+    justify-content: flex-start !important;
+  }
 }

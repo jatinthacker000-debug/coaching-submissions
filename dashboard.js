@@ -1445,9 +1445,81 @@ function renderPerformanceTable(exams, marks, students) {
 
 // Global state for Individual Student Analytics quick filters
 window.analyticsFilterState = {
+  mode: 'single', // 'single' or 'compare'
   activeSubjects: new Set(["Accountancy", "Business Studies", "Economics", "Social Science"]),
-  allExamsActive: true
+  allExamsActive: true,
+  compareGroup: 'Nerd Tutors',
+  selectedCompareStudentIds: new Set()
 };
+
+// Growth & Downfall Step Indicators Strip Renderer
+function renderGrowthStepsStrip(termAverages) {
+  const container = document.getElementById("analytics-growth-strip");
+  if (!container) return;
+  if (!termAverages || termAverages.length < 2) {
+    container.style.display = "none";
+    container.innerHTML = "";
+    return;
+  }
+
+  container.style.display = "flex";
+  let html = "";
+  for (let i = 1; i < termAverages.length; i++) {
+    const prev = termAverages[i - 1];
+    const curr = termAverages[i];
+    const delta = curr.perc - prev.perc;
+    if (delta > 0) {
+      html += `<span class="growth-step-pill growth-up">📈 ${escapeHtml(prev.term)} → ${escapeHtml(curr.term)}: <strong>+${delta.toFixed(1)}% Growth ↑</strong></span>`;
+    } else if (delta < 0) {
+      html += `<span class="growth-step-pill growth-down">📉 ${escapeHtml(prev.term)} → ${escapeHtml(curr.term)}: <strong>${delta.toFixed(1)}% Downfall ↓</strong></span>`;
+    } else {
+      html += `<span class="growth-step-pill growth-stable">⚖️ ${escapeHtml(prev.term)} → ${escapeHtml(curr.term)}: <strong>0.0% Stable</strong></span>`;
+    }
+  }
+  container.innerHTML = html;
+}
+
+// Chart.js Data Label Config with Growth and Downfall Callouts
+function getGrowthDataLabelConfig(accentColor = '#8b5cf6') {
+  return {
+    display: true,
+    align: 'top',
+    anchor: 'end',
+    borderRadius: 6,
+    padding: { top: 4, bottom: 4, left: 6, right: 6 },
+    font: { weight: 'bold', size: 10, family: 'Inter, system-ui, sans-serif' },
+    color: '#ffffff',
+    backgroundColor: function(context) {
+      const idx = context.dataIndex;
+      const data = context.dataset.data;
+      if (idx === 0) return accentColor;
+      const prev = data[idx - 1];
+      const curr = data[idx];
+      if (prev === null || prev === undefined || curr === null || curr === undefined) return accentColor;
+      const delta = Number(curr) - Number(prev);
+      if (delta > 0) return '#059669'; // Green Growth
+      if (delta < 0) return '#dc2626'; // Red Downfall
+      return '#64748b'; // Stable Gray
+    },
+    formatter: function(value, context) {
+      if (value === null || value === undefined) return '';
+      const idx = context.dataIndex;
+      const data = context.dataset.data;
+      const valNum = Number(value);
+      if (idx === 0) return `${valNum.toFixed(1)}%`;
+      const prev = data[idx - 1];
+      if (prev === null || prev === undefined) return `${valNum.toFixed(1)}%`;
+      const delta = valNum - Number(prev);
+      if (delta > 0) {
+        return `${valNum.toFixed(1)}%\n(+${delta.toFixed(1)}% ↑)`;
+      } else if (delta < 0) {
+        return `${valNum.toFixed(1)}%\n(${delta.toFixed(1)}% ↓)`;
+      } else {
+        return `${valNum.toFixed(1)}%\n(0.0%)`;
+      }
+    }
+  };
+}
 
 function renderChart(exams, marksByStudent, studentIds = []) {
   if (!Array.isArray(studentIds)) {
@@ -1461,6 +1533,7 @@ function renderChart(exams, marksByStudent, studentIds = []) {
   const chartScaleBadge = document.getElementById("chart-scale-badge");
   const kpiContainer = document.getElementById("analytics-kpi-container");
   const summaryContainer = document.getElementById("chart-summary-container");
+  const growthStrip = document.getElementById("analytics-growth-strip");
 
   if (window.performanceChartInstance) {
     try {
@@ -1469,11 +1542,361 @@ function renderChart(exams, marksByStudent, studentIds = []) {
     window.performanceChartInstance = null;
   }
 
+  // =========================================================================
+  // MODE: MULTI-STUDENT GROUP COMPARISON
+  // =========================================================================
+  if (window.analyticsFilterState.mode === 'compare') {
+    if (chartScaleBadge) chartScaleBadge.style.display = "none";
+    if (kpiContainer) kpiContainer.style.display = "none";
+
+    const compGroup = window.analyticsFilterState.compareGroup || 'Nerd Tutors';
+    const groupStudents = globalStudents.filter(s => s.group_name === compGroup);
+    
+    // Determine which students to compare (from selected set or default to first 5)
+    let compStudentIds = Array.from(window.analyticsFilterState.selectedCompareStudentIds);
+    if (compStudentIds.length === 0 && groupStudents.length > 0) {
+      compStudentIds = groupStudents.slice(0, 5).map(s => s.id);
+      window.analyticsFilterState.selectedCompareStudentIds = new Set(compStudentIds);
+      // Update checkbox pills in UI
+      document.querySelectorAll(".analytics-compare-student-cb").forEach(cb => {
+        cb.checked = compStudentIds.includes(cb.value);
+      });
+    }
+
+    if (chartTitle) chartTitle.textContent = `Comparing Students in ${compGroup} (${compStudentIds.length} students selected)`;
+
+    const isNerdGroupCohort = isNerdGroup(compGroup);
+    const activeSubjs = ["Accountancy", "Business Studies", "Economics", "Social Science"].filter(s => window.analyticsFilterState.activeSubjects.has(s));
+
+    // Get checked terms
+    const checkedTermCbs = document.querySelectorAll('.analytics-term-cb:checked');
+    const checkedTerms = Array.from(checkedTermCbs).map(cb => cb.value);
+
+    // Filter exams for this group
+    const applicableExams = exams.filter(ex => {
+      if (ex.target_groups && ex.target_groups.length > 0 && !ex.target_groups.includes(compGroup)) return false;
+      if (ex.subject && !activeSubjs.includes(ex.subject)) return false;
+      return true;
+    });
+
+    const termSet = new Set();
+    applicableExams.forEach(ex => { if (ex.name) termSet.add(ex.name.trim()); });
+    let distinctTerms = Array.from(termSet).sort((a, b) => getExamTermRank(a) - getExamTermRank(b));
+    if (checkedTerms.length > 0) {
+      distinctTerms = distinctTerms.filter(t => checkedTerms.includes(t));
+    }
+
+    if (distinctTerms.length === 0 || compStudentIds.length === 0) {
+      if (growthStrip) growthStrip.style.display = "none";
+      if (summaryContainer) {
+        summaryContainer.style.display = "block";
+        summaryContainer.innerHTML = '<p class="muted-text text-center" style="padding: 2rem;">No exam terms or students selected for comparison. Please select at least one student and term above.</p>';
+      }
+      return;
+    }
+
+    // Color palette for compared students
+    const studentPalette = [
+      '#8b5cf6', '#10b981', '#2563eb', '#f59e0b', '#ec4899', '#06b6d4', '#6366f1', '#14b8a6'
+    ];
+
+    // Calculate score per student per term: (sum obtained / sum max) * 100
+    const studentPerformanceMap = {}; // studentId -> { termScores: { term: perc }, totalObt, totalMax, overallPerc, name }
+    const groupTermTotals = {}; // term -> { sumObtained, sumMax }
+    distinctTerms.forEach(t => { groupTermTotals[t] = { sumObt: 0, sumMax: 0 }; });
+
+    compStudentIds.forEach(sId => {
+      const student = globalStudents.find(s => s.id === sId);
+      const sMarks = marksByStudent[sId] || {};
+      const sData = {
+        name: student ? student.name : 'Unknown',
+        termScores: {},
+        totalObt: 0,
+        totalMax: 0,
+        overallPerc: 0
+      };
+
+      distinctTerms.forEach(term => {
+        let termObt = 0;
+        let termMax = 0;
+        applicableExams.filter(e => e.name === term).forEach(ex => {
+          if (sMarks[ex.id] !== undefined && sMarks[ex.id] !== null) {
+            termObt += Number(sMarks[ex.id]);
+            termMax += Number(ex.total_marks);
+          }
+        });
+
+        if (termMax > 0) {
+          const perc = (termObt / termMax) * 100;
+          sData.termScores[term] = Number(perc.toFixed(1));
+          sData.totalObt += termObt;
+          sData.totalMax += termMax;
+          groupTermTotals[term].sumObt += termObt;
+          groupTermTotals[term].sumMax += termMax;
+        } else {
+          sData.termScores[term] = null;
+        }
+      });
+
+      sData.overallPerc = sData.totalMax > 0 ? (sData.totalObt / sData.totalMax) * 100 : 0;
+      studentPerformanceMap[sId] = sData;
+    });
+
+    // Build line datasets for each student
+    const datasets = compStudentIds.map((sId, index) => {
+      const sData = studentPerformanceMap[sId];
+      const color = studentPalette[index % studentPalette.length];
+      const dataPoints = distinctTerms.map(t => sData.termScores[t]);
+
+      return {
+        label: sData.name,
+        data: dataPoints,
+        borderColor: color,
+        backgroundColor: color,
+        fill: false,
+        tension: 0.3,
+        borderWidth: 2.5,
+        pointBackgroundColor: color,
+        pointBorderColor: '#ffffff',
+        pointBorderWidth: 2,
+        pointRadius: 5,
+        pointHoverRadius: 8,
+        datalabels: {
+          display: true,
+          align: 'top',
+          anchor: 'end',
+          borderRadius: 4,
+          padding: { top: 2, bottom: 2, left: 4, right: 4 },
+          font: { weight: 'bold', size: 9 },
+          color: '#ffffff',
+          backgroundColor: color,
+          formatter: function(value, context) {
+            if (value === null || value === undefined) return '';
+            const idx = context.dataIndex;
+            const data = context.dataset.data;
+            if (idx === 0) return `${Number(value).toFixed(1)}%`;
+            const prev = data[idx - 1];
+            if (prev === null || prev === undefined) return `${Number(value).toFixed(1)}%`;
+            const delta = Number(value) - Number(prev);
+            return delta > 0 ? `${Number(value).toFixed(1)}% (+${delta.toFixed(1)}%)` : (delta < 0 ? `${Number(value).toFixed(1)}% (${delta.toFixed(1)}%)` : `${Number(value).toFixed(1)}%`);
+          }
+        }
+      };
+    });
+
+    // Group Average Line
+    const groupAvgPoints = distinctTerms.map(term => {
+      const gt = groupTermTotals[term];
+      return gt.sumMax > 0 ? Number(((gt.sumObt / gt.sumMax) * 100).toFixed(1)) : null;
+    });
+
+    datasets.push({
+      label: 'Cohort Average',
+      data: groupAvgPoints,
+      borderColor: '#94a3b8',
+      borderDash: [5, 5],
+      fill: false,
+      borderWidth: 2,
+      pointRadius: 3,
+      pointBackgroundColor: '#94a3b8',
+      datalabels: { display: false }
+    });
+
+    window.performanceChartInstance = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: distinctTerms,
+        datasets: datasets
+      },
+      plugins: [ChartDataLabels],
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        layout: { padding: { top: 25, bottom: 8 } },
+        scales: {
+          x: {
+            grid: { display: false },
+            ticks: { color: 'var(--text-muted, #64748b)', font: { weight: '600' } }
+          },
+          y: {
+            min: 0,
+            max: 105,
+            ticks: { callback: (v) => v <= 100 ? v + '%' : '', color: 'var(--text-muted, #64748b)', stepSize: 20 },
+            grid: { color: 'rgba(148, 163, 184, 0.15)' }
+          }
+        },
+        plugins: {
+          legend: {
+            position: 'top',
+            labels: { boxWidth: 12, font: { weight: '600', size: 12 }, color: 'var(--text, #1e293b)' }
+          },
+          tooltip: {
+            backgroundColor: 'rgba(15, 23, 42, 0.95)',
+            padding: 10,
+            titleFont: { weight: 'bold', size: 13 },
+            callbacks: {
+              label: function(context) {
+                const sName = context.dataset.label;
+                const val = context.raw;
+                if (val === null || val === undefined) return ` ${sName}: Not Appeared`;
+                const idx = context.dataIndex;
+                const data = context.dataset.data;
+                let deltaStr = "";
+                if (idx > 0 && data[idx - 1] !== null && data[idx - 1] !== undefined) {
+                  const d = Number(val) - Number(data[idx - 1]);
+                  deltaStr = d > 0 ? ` (↑ +${d.toFixed(1)}% Growth)` : (d < 0 ? ` (↓ ${d.toFixed(1)}% Downfall)` : ` (0.0% Stable)`);
+                }
+                return ` ${sName}: ${Number(val).toFixed(1)}%${deltaStr}`;
+              }
+            }
+          }
+        }
+      }
+    });
+
+    // Render Cohort Growth & Downfall Step Strip
+    const groupTermAverages = [];
+    distinctTerms.forEach(term => {
+      const gt = groupTermTotals[term];
+      if (gt.sumMax > 0) {
+        groupTermAverages.push({ term, perc: (gt.sumObt / gt.sumMax) * 100 });
+      }
+    });
+    renderGrowthStepsStrip(groupTermAverages);
+
+    // Render Comparative Breakdown Table
+    if (summaryContainer) {
+      summaryContainer.style.display = "block";
+      const sortedStudentIds = [...compStudentIds].sort((a, b) => {
+        return (studentPerformanceMap[b].overallPerc || 0) - (studentPerformanceMap[a].overallPerc || 0);
+      });
+
+      let tableHtml = `
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.75rem;">
+          <h3 style="margin: 0; color: var(--text); font-size: 1.05rem; font-weight: 700;">Student Comparison Summary (${compGroup})</h3>
+          <button type="button" class="btn btn-primary small-btn" id="export-summary-table-btn" style="padding: 0.4rem 0.85rem; font-size: 0.82rem; display: flex; align-items: center; gap: 0.4rem; background: #059669; font-weight: 600;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            Export Comparison to Excel
+          </button>
+        </div>
+        <div style="overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; margin-bottom: 1.5rem; background: var(--surface); box-shadow: 0 1px 4px rgba(0,0,0,0.05);">
+          <table class="clean-summary-table" id="chart-summary-table">
+            <thead>
+              <tr>
+                <th style="min-width: 170px;">Student Name</th>
+                ${distinctTerms.map(t => `<th style="text-align: center;">${escapeHtml(t)}</th>`).join('')}
+                <th style="text-align: center; background: rgba(139, 92, 246, 0.08); color: #7c3aed;">Overall Average</th>
+                <th style="text-align: center; background: rgba(139, 92, 246, 0.12); color: #6d28d9;">Net Growth Trend</th>
+              </tr>
+            </thead>
+            <tbody>
+      `;
+
+      sortedStudentIds.forEach((sId, rankIdx) => {
+        const sData = studentPerformanceMap[sId];
+        const validTerms = distinctTerms.filter(t => sData.termScores[t] !== null);
+        let netGrowthStr = '<span style="color: var(--text-muted);">&mdash;</span>';
+        if (validTerms.length >= 2) {
+          const firstScore = sData.termScores[validTerms[0]];
+          const lastScore = sData.termScores[validTerms[validTerms.length - 1]];
+          const diff = lastScore - firstScore;
+          if (diff > 0) {
+            netGrowthStr = `<span class="score-badge score-badge-high">+${diff.toFixed(1)}% ↑</span>`;
+          } else if (diff < 0) {
+            netGrowthStr = `<span class="score-badge score-badge-low">${diff.toFixed(1)}% ↓</span>`;
+          } else {
+            netGrowthStr = `<span class="score-badge" style="background: rgba(100,116,139,0.1); color: #64748b;">0.0%</span>`;
+          }
+        }
+
+        const avgBadge = sData.overallPerc >= 75 ? 'score-badge-high' : (sData.overallPerc >= 50 ? 'score-badge-mid' : 'score-badge-low');
+
+        tableHtml += `
+          <tr>
+            <td style="font-weight: 700; color: var(--text);">
+              <span style="display: inline-block; width: 22px; height: 22px; line-height: 22px; text-align: center; border-radius: 99px; background: rgba(139,92,246,0.1); color: #8b5cf6; font-size: 0.75rem; margin-right: 0.4rem;">${rankIdx + 1}</span>
+              ${escapeHtml(sData.name)}
+            </td>
+            ${distinctTerms.map((t, idx) => {
+              const val = sData.termScores[t];
+              if (val === null) return '<td style="text-align: center; color: var(--text-muted);">&mdash;</td>';
+              let deltaBadge = '';
+              if (idx > 0 && sData.termScores[distinctTerms[idx - 1]] !== null) {
+                const prev = sData.termScores[distinctTerms[idx - 1]];
+                const d = val - prev;
+                if (d > 0) deltaBadge = `<br><small style="color: #059669; font-weight: 700;">(↑ +${d.toFixed(1)}%)</small>`;
+                else if (d < 0) deltaBadge = `<br><small style="color: #dc2626; font-weight: 700;">(↓ ${d.toFixed(1)}%)</small>`;
+              }
+              return `<td style="text-align: center; font-weight: 600;">${val.toFixed(1)}%${deltaBadge}</td>`;
+            }).join('')}
+            <td style="text-align: center; background: rgba(139, 92, 246, 0.04);">
+              <span class="score-badge ${avgBadge}" style="font-size: 0.92rem; padding: 0.25rem 0.65rem;">${sData.overallPerc.toFixed(1)}%</span>
+            </td>
+            <td style="text-align: center; background: rgba(139, 92, 246, 0.06);">
+              ${netGrowthStr}
+            </td>
+          </tr>
+        `;
+      });
+
+      // Bottom Row: Cohort Average
+      tableHtml += `
+            </tbody>
+            <tfoot>
+              <tr style="background: var(--surface-card); border-top: 2px solid var(--border); font-weight: 700;">
+                <td style="color: var(--text); font-weight: 800;">COHORT AVERAGE</td>
+                ${distinctTerms.map(t => {
+                  const gt = groupTermTotals[t];
+                  if (gt.sumMax === 0) return '<td style="text-align: center; color: var(--text-muted);">&mdash;</td>';
+                  const avg = (gt.sumObt / gt.sumMax) * 100;
+                  return `<td style="text-align: center; font-weight: 800; color: #8b5cf6;">${avg.toFixed(1)}%</td>`;
+                }).join('')}
+                <td style="text-align: center; background: rgba(139, 92, 246, 0.08); font-weight: 800; color: #7c3aed;">
+                  ${(() => {
+                    let totalObtAll = 0, totalMaxAll = 0;
+                    distinctTerms.forEach(t => { totalObtAll += groupTermTotals[t].sumObt; totalMaxAll += groupTermTotals[t].sumMax; });
+                    return totalMaxAll > 0 ? ((totalObtAll / totalMaxAll) * 100).toFixed(1) + '%' : '&mdash;';
+                  })()}
+                </td>
+                <td style="text-align: center; background: rgba(139, 92, 246, 0.12);">
+                  ${(() => {
+                    if (groupTermAverages.length >= 2) {
+                      const net = groupTermAverages[groupTermAverages.length - 1].perc - groupTermAverages[0].perc;
+                      return net > 0 ? `<span class="score-badge score-badge-high">+${net.toFixed(1)}% ↑</span>` : (net < 0 ? `<span class="score-badge score-badge-low">${net.toFixed(1)}% ↓</span>` : '<span class="score-badge">0.0%</span>');
+                    }
+                    return '&mdash;';
+                  })()}
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      `;
+      summaryContainer.innerHTML = tableHtml;
+
+      const exportBtn = document.getElementById("export-summary-table-btn");
+      if (exportBtn) {
+        exportBtn.addEventListener("click", () => {
+          if (typeof XLSX === "undefined") {
+            return alert("Excel library loading. Please try again in a moment.");
+          }
+          const tbl = document.getElementById("chart-summary-table");
+          const wb = XLSX.utils.table_to_book(tbl, { sheet: "Group Comparison" });
+          XLSX.writeFile(wb, `${compGroup}_Comparison_Report.xlsx`);
+        });
+      }
+    }
+    return;
+  }
+
+  // =========================================================================
+  // MODE: SINGLE STUDENT ANALYSIS
+  // =========================================================================
   const studentId = studentIds.length === 1 ? studentIds[0] : (studentIds.length > 0 ? studentIds[0] : null);
   const studentObj = studentId ? globalStudents.find(s => s.id === studentId) : null;
   const isNerd = studentObj && (isNerdGroup(studentObj.group_name) || (Array.isArray(studentObj.subjects) && studentObj.subjects.some(s => s.toLowerCase().includes('account') || s.toLowerCase().includes('econom') || s.toLowerCase().includes('business'))));
 
-  // CASE 1: NERD TUTORS & NERD TUTORS NALANDA (3-IN-1 STACKED BAR GRAPH - 100% SCALE)
+  // SUBCASE 1: SINGLE NERD TUTORS STUDENT (3-IN-1 STACKED BAR GRAPH - 100% SCALE)
   if (studentObj && isNerd) {
     if (chartScaleBadge) chartScaleBadge.style.display = "inline-flex";
     if (chartTitle) chartTitle.textContent = `${studentObj.name} - 3-Subject Performance Progress`;
@@ -1485,19 +1908,15 @@ function renderChart(exams, marksByStudent, studentIds = []) {
       "Economics": { bg: "rgba(245, 158, 11, 0.85)", border: "#d97706" }
     };
 
-    // Applicable exams for this student
     const studentSubjs = Array.isArray(studentObj.subjects) && studentObj.subjects.length > 0 
       ? studentObj.subjects 
       : nerdSubjects;
     
-    // Filter active subjects based on quick buttons
     const activeSubjs = nerdSubjects.filter(s => window.analyticsFilterState.activeSubjects.has(s) && studentSubjs.includes(s));
 
-    // Get checked terms from pills
     const checkedTermCbs = document.querySelectorAll('.analytics-term-cb:checked');
     const checkedTerms = Array.from(checkedTermCbs).map(cb => cb.value);
 
-    // Get distinct terms present in applicable exams
     const termSet = new Set();
     exams.forEach(ex => {
       if (ex.name && (!ex.subject || activeSubjs.includes(ex.subject))) {
@@ -1510,8 +1929,7 @@ function renderChart(exams, marksByStudent, studentIds = []) {
       distinctTerms = distinctTerms.filter(t => checkedTerms.includes(t));
     }
 
-    // Structure raw scores and calculate percentage: (sum of obtained / sum of max) * 100
-    const rawScores = {}; // term -> { acc: {obtained, max}, bst: ..., eco: ..., totalObtained, totalMax, combinedPerc }
+    const rawScores = {};
     distinctTerms.forEach(term => {
       rawScores[term] = { totalObtained: 0, totalMax: 0, combinedPerc: 0, subjects: {} };
       activeSubjs.forEach(subj => {
@@ -1535,14 +1953,10 @@ function renderChart(exams, marksByStudent, studentIds = []) {
       }
     });
 
-    // Build Chart datasets (1 stacked dataset per subject)
     const datasets = activeSubjs.map(subj => {
       const data = distinctTerms.map(term => {
         const termData = rawScores[term];
         if (!termData || termData.totalMax === 0 || !termData.subjects[subj]) return 0;
-
-        // If equal weights, each contributes 1/3 of its percentage
-        // Strictly: (obtained / totalMax) * 100
         const segmentVal = (termData.subjects[subj].obtained / termData.totalMax) * 100;
         return Number(segmentVal.toFixed(2));
       });
@@ -1559,7 +1973,6 @@ function renderChart(exams, marksByStudent, studentIds = []) {
       };
     });
 
-    // Custom Top Totals Plugin to draw combined % above each bar
     const topTotalsPlugin = {
       id: 'topTotalsPlugin',
       afterDatasetsDraw(chart) {
@@ -1612,22 +2025,14 @@ function renderChart(exams, marksByStudent, studentIds = []) {
             stacked: true,
             min: 0,
             max: 105,
-            ticks: {
-              callback: (v) => v <= 100 ? v + '%' : '',
-              color: 'var(--text-muted, #64748b)',
-              stepSize: 20
-            },
+            ticks: { callback: (v) => v <= 100 ? v + '%' : '', color: 'var(--text-muted, #64748b)', stepSize: 20 },
             grid: { color: 'rgba(148, 163, 184, 0.15)' }
           }
         },
         plugins: {
           legend: {
             position: 'top',
-            labels: {
-              boxWidth: 12,
-              font: { weight: '600', size: 12 },
-              color: 'var(--text, #1e293b)'
-            }
+            labels: { boxWidth: 12, font: { weight: '600', size: 12 }, color: 'var(--text, #1e293b)' }
           },
           datalabels: { display: false },
           tooltip: {
@@ -1707,6 +2112,9 @@ function renderChart(exams, marksByStudent, studentIds = []) {
         trendClass = "color: var(--text);";
       }
     }
+
+    // Render Growth & Downfall Step Indicators Strip
+    renderGrowthStepsStrip(termAverages);
 
     // Render KPI Cards
     if (kpiContainer) {
@@ -1846,18 +2254,18 @@ function renderChart(exams, marksByStudent, studentIds = []) {
     return;
   }
 
-  // CASE 2: SINGLE NON-NERD STUDENT (GRADE 10 / SOCIAL SCIENCE PROGRESS LINE)
+  // SUBCASE 2: SINGLE NON-NERD STUDENT (GRADE 10 / SOCIAL SCIENCE PROGRESS LINE)
   if (studentObj && !isNerd) {
     if (chartScaleBadge) chartScaleBadge.style.display = "none";
     if (chartTitle) chartTitle.textContent = `${studentObj.name} - Performance Progress`;
 
-    // Extract terms for student exams
     const termSet = new Set();
     exams.forEach(ex => { if (ex.name) termSet.add(ex.name.trim()); });
     const distinctTerms = Array.from(termSet).sort((a, b) => getExamTermRank(a) - getExamTermRank(b));
 
     const progressData = [];
     const termRows = [];
+    const termAverages = [];
     let totalObt = 0;
     let totalMax = 0;
 
@@ -1874,10 +2282,14 @@ function renderChart(exams, marksByStudent, studentIds = []) {
         totalObt += obt;
         totalMax += max;
         termRows.push({ term, obt, max, perc });
+        termAverages.push({ term, perc });
       } else {
         progressData.push(null);
       }
     });
+
+    // Render Growth & Downfall Step Indicators Strip
+    renderGrowthStepsStrip(termAverages);
 
     window.performanceChartInstance = new Chart(ctx, {
       type: 'line',
@@ -1898,31 +2310,23 @@ function renderChart(exams, marksByStudent, studentIds = []) {
           pointHoverRadius: 9
         }]
       },
+      plugins: [ChartDataLabels],
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        layout: { padding: { top: 25, bottom: 8 } },
         scales: {
           x: { grid: { display: false }, ticks: { color: 'var(--text-muted, #64748b)', font: { weight: '600' } } },
           y: {
             min: 0,
-            max: 100,
-            ticks: { callback: (v) => v + '%', color: 'var(--text-muted, #64748b)', stepSize: 20 },
+            max: 105,
+            ticks: { callback: (v) => v <= 100 ? v + '%' : '', color: 'var(--text-muted, #64748b)', stepSize: 20 },
             grid: { color: 'rgba(148, 163, 184, 0.15)' }
           }
         },
         plugins: {
           legend: { display: false },
-          datalabels: {
-            display: true,
-            align: 'top',
-            anchor: 'end',
-            backgroundColor: 'rgba(139, 92, 246, 0.9)',
-            color: 'white',
-            borderRadius: 4,
-            padding: 4,
-            font: { weight: 'bold', size: 10 },
-            formatter: (v) => v ? v + '%' : ''
-          }
+          datalabels: getGrowthDataLabelConfig('#8b5cf6')
         }
       }
     });
@@ -1974,14 +2378,14 @@ function renderChart(exams, marksByStudent, studentIds = []) {
     return;
   }
 
-  // CASE 3: CLASS AVERAGE (WHEN NO SINGLE STUDENT IS SELECTED)
+  // SUBCASE 3: CLASS AVERAGE (WHEN NO SINGLE STUDENT IS SELECTED)
   if (chartScaleBadge) chartScaleBadge.style.display = "none";
   if (chartTitle) chartTitle.textContent = "Class Performance Trend";
   if (kpiContainer) kpiContainer.style.display = "none";
-  if (summaryContainer) summaryContainer.style.display = "none";
 
   const labels = [];
   const classAvgData = [];
+  const termAverages = [];
 
   exams.forEach(ex => {
     const label = ex.subject ? `${ex.name} [${ex.subject}]` : ex.name;
@@ -1996,8 +2400,13 @@ function renderChart(exams, marksByStudent, studentIds = []) {
       }
     });
     const avg = studentCount > 0 ? (totalMarks / studentCount) : 0;
-    classAvgData.push(avg.toFixed(1));
+    const avgFixed = Number(avg.toFixed(1));
+    classAvgData.push(avgFixed);
+    termAverages.push({ term: ex.name, perc: avgFixed });
   });
+
+  // Render Growth & Downfall Step Indicators Strip for Class Trend
+  renderGrowthStepsStrip(termAverages);
 
   window.performanceChartInstance = new Chart(ctx, {
     type: 'line',
@@ -2009,43 +2418,129 @@ function renderChart(exams, marksByStudent, studentIds = []) {
         data: classAvgData,
         backgroundColor: 'rgba(139, 92, 246, 0.1)',
         borderColor: 'rgba(139, 92, 246, 1)',
-        borderWidth: 2,
+        borderWidth: 2.5,
         tension: 0.3,
         fill: true,
         pointBackgroundColor: 'rgba(139, 92, 246, 1)',
-        datalabels: {
-          display: true,
-          align: 'top',
-          anchor: 'end',
-          backgroundColor: 'rgba(139, 92, 246, 0.9)',
-          color: 'white',
-          borderRadius: 4,
-          padding: 4,
-          font: { weight: 'bold', size: 10 },
-          formatter: (value) => value + '%'
-        }
+        pointBorderColor: '#ffffff',
+        pointBorderWidth: 2,
+        pointRadius: 6,
+        pointHoverRadius: 9,
+        datalabels: getGrowthDataLabelConfig('#8b5cf6')
       }]
     },
     plugins: [ChartDataLabels],
     options: {
       responsive: true,
+      maintainAspectRatio: false,
+      layout: { padding: { top: 25, bottom: 8 } },
       scales: {
         y: {
           beginAtZero: true,
-          max: 100,
-          ticks: { color: 'var(--text-muted, #64748b)' },
+          max: 105,
+          ticks: { callback: (v) => v <= 100 ? v + '%' : '', color: 'var(--text-muted, #64748b)' },
           grid: { color: 'rgba(148, 163, 184, 0.15)' }
         },
         x: {
-          ticks: { color: 'var(--text-muted, #64748b)' },
+          ticks: { color: 'var(--text-muted, #64748b)', font: { weight: '600' } },
           grid: { display: false }
         }
       },
       plugins: {
-        legend: { labels: { color: 'var(--text, #1e293b)' } }
+        legend: { labels: { color: 'var(--text, #1e293b)' } },
+        tooltip: {
+          backgroundColor: 'rgba(15, 23, 42, 0.95)',
+          padding: 10,
+          titleFont: { weight: 'bold', size: 13 },
+          callbacks: {
+            label: function(context) {
+              const val = context.raw;
+              const idx = context.dataIndex;
+              const data = context.dataset.data;
+              let deltaStr = "";
+              if (idx > 0 && data[idx - 1] !== null && data[idx - 1] !== undefined) {
+                const d = Number(val) - Number(data[idx - 1]);
+                deltaStr = d > 0 ? ` (↑ +${d.toFixed(1)}% Growth)` : (d < 0 ? ` (↓ ${d.toFixed(1)}% Downfall)` : ` (0.0% Stable)`);
+              }
+              return ` Class Average: ${Number(val).toFixed(1)}%${deltaStr}`;
+            }
+          }
+        }
       }
     }
   });
+
+  // Render simple summary table for class average
+  if (summaryContainer) {
+    summaryContainer.style.display = "block";
+    summaryContainer.innerHTML = `
+      <div style="overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; margin-bottom: 1.5rem; background: var(--surface);">
+        <table class="clean-summary-table">
+          <thead>
+            <tr>
+              <th>Exam Name</th>
+              <th style="text-align: center;">Total Marks</th>
+              <th style="text-align: center;">Class Average (%)</th>
+              <th style="text-align: center;">Growth / Downfall</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${exams.map((ex, idx) => {
+              const avg = classAvgData[idx];
+              let deltaBadge = '<span style="color: var(--text-muted);">&mdash;</span>';
+              if (idx > 0 && classAvgData[idx - 1] !== null) {
+                const d = avg - classAvgData[idx - 1];
+                if (d > 0) deltaBadge = `<span class="score-badge score-badge-high">+${d.toFixed(1)}% Growth ↑</span>`;
+                else if (d < 0) deltaBadge = `<span class="score-badge score-badge-low">${d.toFixed(1)}% Downfall ↓</span>`;
+                else deltaBadge = `<span class="score-badge" style="background: rgba(100,116,139,0.1); color: #64748b;">0.0% Stable</span>`;
+              }
+              return `
+                <tr>
+                  <td style="font-weight: 700;">${escapeHtml(ex.name)}${ex.subject ? ` [${escapeHtml(ex.subject)}]` : ''}</td>
+                  <td style="text-align: center;">${ex.total_marks}</td>
+                  <td style="text-align: center; font-weight: 700; color: #8b5cf6;">${avg}%</td>
+                  <td style="text-align: center;">${deltaBadge}</td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+}
+
+// Populate student pills for group comparison
+function updateCompareStudentPills() {
+  const container = document.getElementById("analytics-compare-students-pills");
+  if (!container) return;
+
+  const groupSelect = document.getElementById("analytics-compare-group-select");
+  const selectedGroup = groupSelect ? groupSelect.value : window.analyticsFilterState.compareGroup;
+  window.analyticsFilterState.compareGroup = selectedGroup;
+
+  const studentsInGroup = globalStudents.filter(s => s.group_name === selectedGroup);
+
+  if (studentsInGroup.length === 0) {
+    container.innerHTML = '<span class="muted-text" style="font-size: 0.85rem;">No students found in this group.</span>';
+    window.analyticsFilterState.selectedCompareStudentIds.clear();
+    return;
+  }
+
+  // Default to selecting all students if none selected yet, or keep previously selected
+  if (window.analyticsFilterState.selectedCompareStudentIds.size === 0) {
+    studentsInGroup.forEach(s => window.analyticsFilterState.selectedCompareStudentIds.add(s.id));
+  }
+
+  container.innerHTML = studentsInGroup.map(s => {
+    const isChecked = window.analyticsFilterState.selectedCompareStudentIds.has(s.id);
+    return `
+      <label class="checkbox-pill">
+        <input type="checkbox" value="${escapeHtml(s.id)}" class="analytics-compare-student-cb" ${isChecked ? 'checked' : ''}>
+        <span>${escapeHtml(s.name)}</span>
+      </label>
+    `;
+  }).join('');
 }
 
 // --- ANALYTICS FEATURE UPDATES ---
@@ -2071,8 +2566,14 @@ function updateAnalyticsDropdowns(studentsToUse = globalStudents) {
     studentSelect.value = currStudentVal;
   }
 
+  // Populate compare group student pills
+  updateCompareStudentPills();
+
   // Populate terms pills
-  const selectedGrp = analyticsGroupFilter ? analyticsGroupFilter.value : "";
+  const selectedGrp = window.analyticsFilterState.mode === 'compare' 
+    ? (window.analyticsFilterState.compareGroup || "") 
+    : (analyticsGroupFilter ? analyticsGroupFilter.value : "");
+
   const groupExams = globalExams.filter(ex => {
     if (selectedGrp && !isNerdGroup(selectedGrp) && isBusinessStudiesExam(ex)) return false;
     if (selectedGrp && ex.target_groups && ex.target_groups.length > 0 && !ex.target_groups.includes(selectedGrp)) return false;
@@ -2112,7 +2613,10 @@ function refreshChartDisplay() {
   const selectedStudentId = studentSelect.value || "";
   const studentIds = selectedStudentId ? [selectedStudentId] : [];
 
-  const selectedGrp = analyticsGroupFilter ? analyticsGroupFilter.value : "";
+  const selectedGrp = window.analyticsFilterState.mode === 'compare'
+    ? (window.analyticsFilterState.compareGroup || "")
+    : (analyticsGroupFilter ? analyticsGroupFilter.value : "");
+
   const selectedSubj = document.getElementById("analytics-subject-filter") ? document.getElementById("analytics-subject-filter").value : "";
 
   const groupExams = globalExams.filter(ex => {
@@ -2127,7 +2631,7 @@ function refreshChartDisplay() {
 
   const groupMarksByStudent = {};
   Object.keys(globalMarksByStudent).forEach(sId => {
-    if (groupStudentIds.has(sId)) {
+    if (groupStudentIds.has(sId) || window.analyticsFilterState.selectedCompareStudentIds.has(sId)) {
       groupMarksByStudent[sId] = globalMarksByStudent[sId];
     }
   });
@@ -2141,6 +2645,83 @@ document.addEventListener("DOMContentLoaded", () => {
   const examsSelect = document.getElementById("analytics-exams");
   const btnSelectAll = document.getElementById("btn-analytics-select-all-exams");
   const termsPills = document.getElementById("analytics-terms-pills");
+  const btnModeSingle = document.getElementById("btn-analytics-mode-single");
+  const btnModeCompare = document.getElementById("btn-analytics-mode-compare");
+  const compareGroupSelect = document.getElementById("analytics-compare-group-select");
+  const comparePills = document.getElementById("analytics-compare-students-pills");
+  const btnCompSelectAll = document.getElementById("btn-analytics-compare-select-all");
+  const btnCompClear = document.getElementById("btn-analytics-compare-clear");
+
+  // Mode Switchers
+  if (btnModeSingle && btnModeCompare) {
+    btnModeSingle.addEventListener("click", () => {
+      window.analyticsFilterState.mode = 'single';
+      btnModeSingle.classList.add("active");
+      btnModeCompare.classList.remove("active");
+      document.getElementById("analytics-single-student-row").style.display = "block";
+      document.getElementById("analytics-compare-group-row").style.display = "none";
+      updateAnalyticsDropdowns();
+      refreshChartDisplay();
+    });
+
+    btnModeCompare.addEventListener("click", () => {
+      window.analyticsFilterState.mode = 'compare';
+      btnModeCompare.classList.add("active");
+      btnModeSingle.classList.remove("active");
+      document.getElementById("analytics-single-student-row").style.display = "none";
+      document.getElementById("analytics-compare-group-row").style.display = "block";
+      updateCompareStudentPills();
+      updateAnalyticsDropdowns();
+      refreshChartDisplay();
+    });
+  }
+
+  // Compare Group Selector Change
+  if (compareGroupSelect) {
+    compareGroupSelect.addEventListener("change", (e) => {
+      window.analyticsFilterState.compareGroup = e.target.value;
+      window.analyticsFilterState.selectedCompareStudentIds.clear();
+      updateCompareStudentPills();
+      updateAnalyticsDropdowns();
+      refreshChartDisplay();
+    });
+  }
+
+  // Compare Select All & Clear
+  if (btnCompSelectAll) {
+    btnCompSelectAll.addEventListener("click", () => {
+      document.querySelectorAll(".analytics-compare-student-cb").forEach(cb => {
+        cb.checked = true;
+        window.analyticsFilterState.selectedCompareStudentIds.add(cb.value);
+      });
+      refreshChartDisplay();
+    });
+  }
+
+  if (btnCompClear) {
+    btnCompClear.addEventListener("click", () => {
+      document.querySelectorAll(".analytics-compare-student-cb").forEach(cb => {
+        cb.checked = false;
+      });
+      window.analyticsFilterState.selectedCompareStudentIds.clear();
+      refreshChartDisplay();
+    });
+  }
+
+  // Delegated Compare Student Checkboxes
+  if (comparePills) {
+    comparePills.addEventListener("change", (e) => {
+      if (e.target && e.target.classList.contains("analytics-compare-student-cb")) {
+        const sid = e.target.value;
+        if (e.target.checked) {
+          window.analyticsFilterState.selectedCompareStudentIds.add(sid);
+        } else {
+          window.analyticsFilterState.selectedCompareStudentIds.delete(sid);
+        }
+        refreshChartDisplay();
+      }
+    });
+  }
 
   if (studentSelect) {
     studentSelect.addEventListener("change", refreshChartDisplay);
@@ -2153,9 +2734,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Quick Action Buttons
   if (btnSelectAll) {
     btnSelectAll.addEventListener("click", () => {
-      // Check all term checkboxes
       document.querySelectorAll(".analytics-term-cb").forEach(cb => { cb.checked = true; });
-      // Activate all subject buttons
       ["acc", "bst", "eco"].forEach(sub => {
         const btn = document.getElementById(`btn-analytics-subj-${sub}`);
         if (btn) btn.classList.add("active");
@@ -2193,6 +2772,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 });
+
 
 // --- EDIT OR DELETE MARKS FEATURE ---
 let currentMarkId = null;

@@ -35,18 +35,14 @@
         </span>
       </div>
       <div class="header-actions">
-        <button id="btn-install-app" class="btn btn-sm btn-install-app btn-header-action hidden" type="button" title="Install Coach App on your device">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-          <span>Install App</span>
-        </button>
+        <a href="index.html" class="nav-link btn-header-action" id="btn-student-page" title="Go to Student View">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+          <span>Student Page</span>
+        </a>
         <button id="btn-coach-logout" class="btn btn-sm btn-outline btn-header-action hidden" type="button" title="Log out of Coach Portal">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
           <span>Logout</span>
         </button>
-        <a href="index.html" class="nav-link btn-header-action">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
-          <span>Student Page</span>
-        </a>
       </div>
     </div>
   </header>
@@ -816,20 +812,53 @@
       </div>
       <div id="analytics-content" style="display: none;">
         <div class="analytics-controls-card">
-          <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 1rem; margin-bottom: 1rem;">
-            <div style="flex: 1; min-width: 250px;">
-              <label for="analytics-student" style="display: block; font-weight: 700; font-size: 0.88rem; margin-bottom: 0.4rem; color: var(--text);">Select Student to Analyze</label>
-              <select id="analytics-student" style="width: 100%; padding: 0.55rem 0.85rem; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 0.92rem; font-weight: 600;">
-                <option value="">-- Class Average / All Students --</option>
-              </select>
+          <!-- Mode Switcher Row -->
+          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem;">
+            <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
+              <span style="font-size: 0.85rem; font-weight: 700; color: var(--text-muted); margin-right: 0.25rem;">Analytics Mode:</span>
+              <button type="button" class="quick-filter-btn active" id="btn-analytics-mode-single">👤 Single Student</button>
+              <button type="button" class="quick-filter-btn" id="btn-analytics-mode-compare">👥 Compare Students in Group</button>
             </div>
-
-            <!-- Quick Action Controls -->
-            <div id="analytics-quick-controls" style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+            <!-- Quick Action Subject Controls -->
+            <div id="analytics-quick-controls" style="display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap;">
               <button type="button" class="quick-filter-btn active" id="btn-analytics-select-all-exams">✓ All Exams</button>
               <button type="button" class="quick-filter-btn active" id="btn-analytics-subj-acc" data-subject="Accountancy">Accountancy</button>
               <button type="button" class="quick-filter-btn active" id="btn-analytics-subj-bst" data-subject="Business Studies">BST</button>
               <button type="button" class="quick-filter-btn active" id="btn-analytics-subj-eco" data-subject="Economics">Economics</button>
+            </div>
+          </div>
+
+          <!-- Single Student Selection Row -->
+          <div id="analytics-single-student-row" style="margin-bottom: 1rem;">
+            <label for="analytics-student" style="display: block; font-weight: 700; font-size: 0.88rem; margin-bottom: 0.4rem; color: var(--text);">Select Student to Analyze</label>
+            <select id="analytics-student" style="width: 100%; max-width: 480px; padding: 0.55rem 0.85rem; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 0.92rem; font-weight: 600;">
+              <option value="">-- Class Average / All Students --</option>
+            </select>
+          </div>
+
+          <!-- Compare Group Students Selection Row (Hidden in Single Mode) -->
+          <div id="analytics-compare-group-row" style="display: none; margin-bottom: 1rem;">
+            <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+              <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                <label for="analytics-compare-group-select" style="font-weight: 700; font-size: 0.88rem; color: var(--text);">Select Group to Compare:</label>
+                <select id="analytics-compare-group-select" class="toolbar-select" style="font-weight: 600; min-width: 170px;">
+                  <option value="Nerd Tutors">Nerd Tutors</option>
+                  <option value="Nerd Tutors Nalanda">Nerd Tutors Nalanda</option>
+                  <option value="NEPS">NEPS</option>
+                  <option value="NEGS">NEGS</option>
+                  <option value="Nalanda">Nalanda</option>
+                  <option value="Lakshya">Lakshya</option>
+                  <option value="Sankalp">Sankalp</option>
+                  <option value="Prayas">Prayas</option>
+                </select>
+              </div>
+              <div style="display: flex; align-items: center; gap: 0.4rem;">
+                <button type="button" class="btn btn-sm" id="btn-analytics-compare-select-all" style="padding: 0.3rem 0.75rem; font-size: 0.82rem; background: var(--surface); border: 1px solid var(--border); color: var(--text); font-weight: 600; cursor: pointer;">Select All</button>
+                <button type="button" class="btn btn-sm" id="btn-analytics-compare-clear" style="padding: 0.3rem 0.75rem; font-size: 0.82rem; background: var(--surface); border: 1px solid var(--border); color: var(--text); font-weight: 600; cursor: pointer;">Clear</button>
+              </div>
+            </div>
+            <div class="checkbox-pill-group" id="analytics-compare-students-pills">
+              <!-- Dynamic student checkbox pills generated here -->
             </div>
           </div>
 
@@ -853,11 +882,13 @@
 
         <!-- Chart Container -->
         <div id="analytics-chart-card" style="background: var(--surface-card); border-radius: 12px; border: 1px solid var(--border); padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: var(--shadow);">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.75rem;">
-            <h3 id="chart-title" style="margin: 0; color: var(--text); font-size: 1.15rem; font-weight: 700;">Class Average Performance</h3>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.75rem;">
+            <h3 id="chart-title" style="margin: 0; color: var(--text); font-size: 1.15rem; font-weight: 700;">Class Performance Trend</h3>
             <span id="chart-scale-badge" class="badge-pill" style="display: none;">All 3 Subjects in 1 Bar (100% Scale)</span>
           </div>
-          <div style="position: relative; min-height: 320px; max-height: 380px; width: 100%;">
+          <!-- Growth & Downfall Step Strip -->
+          <div id="analytics-growth-strip" class="growth-steps-strip" style="display: none; margin-bottom: 1rem;"></div>
+          <div style="position: relative; min-height: 320px; max-height: 400px; width: 100%;">
             <canvas id="performance-chart"></canvas>
           </div>
         </div>
@@ -919,8 +950,7 @@
 
       
 
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
-        <div class="panel-header accordion-header" id="exams-header" style="margin-top: 3rem;">
+      <div class="panel-header accordion-header" id="exams-header" style="width: 100%;">
         <div>
           <h1 class="accordion-title">
             <span>Active Exams</span>
@@ -929,9 +959,8 @@
           <p class="subtitle">Review existing tests, question counts, and assigned batches.</p>
         </div>
       </div>
-        <div id="exams-content" style="display: none; max-height: 400px; overflow-y: auto;">
-          <ul id="exams-list" class="papers-list" style="list-style: none; padding: 0;"></ul>
-        </div>
+      <div id="exams-content" style="display: none; width: 100%; max-height: 400px; overflow-y: auto; margin-bottom: 2rem;">
+        <ul id="exams-list" class="papers-list" style="list-style: none; padding: 0;"></ul>
       </div>
 
             <!-- Bulk Enter Marks Section -->
