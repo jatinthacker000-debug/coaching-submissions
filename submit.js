@@ -1840,7 +1840,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initNerdTutorsAccess();
 });
 
-// Theater Curtain & Happy Diwali Reveal Controller
+// Theater Curtain & Happy Diwali Entrance Reveal Controller
 document.addEventListener("DOMContentLoaded", () => {
   const stage = document.getElementById("countdown-stage");
   const diwaliOverlay = document.getElementById("diwali-overlay");
@@ -1848,16 +1848,34 @@ document.addEventListener("DOMContentLoaded", () => {
   const closeBtn = document.getElementById("btn-replay-curtain");
 
   if (stage) {
-    // Function to slowly part open the curtains
+    // 1. Initial page load state: Curtains stationed open at left and right sides
+    stage.classList.add("curtains-open");
+    stage.classList.remove("greeting-visible");
+
+    // 2. Majestic Entrance: Curtains glide in from left & right, close in center, then Happy Diwali illuminates!
+    setTimeout(() => {
+      stage.classList.remove("curtains-open");
+
+      // As curtains meet in the center (after ~2.5s), gracefully illuminate "Happy Diwali"
+      setTimeout(() => {
+        stage.classList.add("greeting-visible");
+      }, 2500);
+    }, 400);
+
+    // 3. User interaction: Open curtains to reveal the Prelims countdown
     const openCurtains = (e) => {
       if (e) e.stopPropagation();
+      stage.classList.remove("greeting-visible");
       stage.classList.add("curtains-open");
     };
 
-    // Function to close curtains back over countdown
+    // 4. User interaction: Close curtains back over countdown and re-illuminate Happy Diwali
     const closeCurtains = (e) => {
       if (e) e.stopPropagation();
       stage.classList.remove("curtains-open");
+      setTimeout(() => {
+        stage.classList.add("greeting-visible");
+      }, 2500);
     };
 
     if (openBtn) openBtn.addEventListener("click", openCurtains);
