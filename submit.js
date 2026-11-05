@@ -1839,3 +1839,25 @@ function initNerdTutorsAccess() {
 document.addEventListener("DOMContentLoaded", () => {
   initNerdTutorsAccess();
 });
+
+// Theater Curtain Countdown Animation Controller
+document.addEventListener("DOMContentLoaded", () => {
+  const stage = document.getElementById("countdown-stage");
+  const replayBtn = document.getElementById("btn-replay-curtain");
+
+  if (stage) {
+    // Automatically part open curtains with a dramatic anticipation pause
+    setTimeout(() => {
+      stage.classList.add("curtains-open");
+    }, 500);
+
+    if (replayBtn) {
+      replayBtn.addEventListener("click", () => {
+        stage.classList.remove("curtains-open");
+        setTimeout(() => {
+          stage.classList.add("curtains-open");
+        }, 650);
+      });
+    }
+  }
+});
