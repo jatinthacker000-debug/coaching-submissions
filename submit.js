@@ -1840,24 +1840,28 @@ document.addEventListener("DOMContentLoaded", () => {
   initNerdTutorsAccess();
 });
 
-// Theater Curtain Countdown Animation Controller
+// Theater Curtain & Happy Diwali Reveal Controller
 document.addEventListener("DOMContentLoaded", () => {
   const stage = document.getElementById("countdown-stage");
-  const replayBtn = document.getElementById("btn-replay-curtain");
+  const diwaliOverlay = document.getElementById("diwali-overlay");
+  const openBtn = document.getElementById("btn-open-curtains");
+  const closeBtn = document.getElementById("btn-replay-curtain");
 
   if (stage) {
-    // Automatically part open curtains with a dramatic anticipation pause
-    setTimeout(() => {
+    // Function to slowly part open the curtains
+    const openCurtains = (e) => {
+      if (e) e.stopPropagation();
       stage.classList.add("curtains-open");
-    }, 500);
+    };
 
-    if (replayBtn) {
-      replayBtn.addEventListener("click", () => {
-        stage.classList.remove("curtains-open");
-        setTimeout(() => {
-          stage.classList.add("curtains-open");
-        }, 650);
-      });
-    }
+    // Function to close curtains back over countdown
+    const closeCurtains = (e) => {
+      if (e) e.stopPropagation();
+      stage.classList.remove("curtains-open");
+    };
+
+    if (openBtn) openBtn.addEventListener("click", openCurtains);
+    if (diwaliOverlay) diwaliOverlay.addEventListener("click", openCurtains);
+    if (closeBtn) closeBtn.addEventListener("click", closeCurtains);
   }
 });

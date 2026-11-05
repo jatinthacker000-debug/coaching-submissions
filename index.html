@@ -6,7 +6,7 @@
   <title>Padh rahi public | Study Notes & Worksheets</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <!-- Vercel Web Analytics -->
@@ -58,12 +58,22 @@
         </div>
       </div>
 
+      <!-- Front Curtain Diwali Greeting Overlay (Hides countdown when curtains are closed) -->
+      <div class="diwali-curtain-overlay" id="diwali-overlay" title="Click to open curtains and view countdown">
+        <div class="diwali-sparkle-row">✦ &nbsp; 🪔 &nbsp; ✦</div>
+        <h1 class="diwali-title">Happy Diwali</h1>
+        <p class="diwali-subtitle">May this festival of lights illuminate your path to success & prosperity</p>
+        <button type="button" class="diwali-open-btn" id="btn-open-curtains">
+          <span>🪔 Click to Open Curtains & View Prelims Countdown ✦</span>
+        </button>
+      </div>
+
       <!-- The Revealed Countdown Content -->
       <div id="exam-countdown" class="countdown-card-inner">
         <div class="countdown-header-row">
           <h2 style="margin: 0; font-size: 1.25rem; color: var(--text);">⏳ Prelims Exam Countdown</h2>
-          <button type="button" class="curtain-replay-btn" id="btn-replay-curtain" title="Replay dramatic curtain reveal">
-            🎭 Replay Curtain
+          <button type="button" class="curtain-replay-btn" id="btn-replay-curtain" title="Close curtains and return to Happy Diwali greeting">
+            🪔 Close Curtains (Happy Diwali)
           </button>
         </div>
         <div style="display: flex; justify-content: center; gap: 2rem; margin-top: 0.5rem; flex-wrap: wrap;">
