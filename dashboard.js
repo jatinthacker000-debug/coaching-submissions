@@ -3332,6 +3332,11 @@ function renderAttentionList(exams, marksByStudent, studentsToUse = globalStuden
     return;
   }
 
+  if (!studentsToUse || studentsToUse.length === 0) {
+    attentionList.innerHTML = `<li style="color: var(--text-muted); text-align: center; padding: 1.5rem;">No students enrolled in this group.</li>`;
+    return;
+  }
+
   const attentionStudents = [];
 
   studentsToUse.forEach(student => {
@@ -3498,8 +3503,8 @@ const overviewGroupFilter = document.getElementById("overview-table-group-filter
 const overviewSubjectFilter = document.getElementById("overview-subject-filter");
 const analyticsGroupFilter = document.getElementById("analytics-group-filter");
 const analyticsSubjectFilter = document.getElementById("analytics-subject-filter");
-const attentionGroupFilter = document.getElementById("attention-group-filter");
-const attentionSubjectFilter = document.getElementById("attention-subject-filter");
+const attentionGroupFilter = document.getElementById("insights-group-filter") || document.getElementById("attention-group-filter");
+const attentionSubjectFilter = document.getElementById("insights-subject-filter") || document.getElementById("attention-subject-filter");
 
 function getFilteredStudents(filterEl) {
   if (!globalStudents) return [];
@@ -3520,6 +3525,14 @@ if (analyticsGroupFilter) analyticsGroupFilter.addEventListener("change", render
 if (analyticsSubjectFilter) analyticsSubjectFilter.addEventListener("change", renderAnalyticsSection);
 if (attentionGroupFilter) attentionGroupFilter.addEventListener("change", renderAttentionAndGrowthSection);
 if (attentionSubjectFilter) attentionSubjectFilter.addEventListener("change", renderAttentionAndGrowthSection);
+const insightsGroupFilter = document.getElementById("insights-group-filter");
+const insightsSubjectFilter = document.getElementById("insights-subject-filter");
+if (insightsGroupFilter && insightsGroupFilter !== attentionGroupFilter) {
+  insightsGroupFilter.addEventListener("change", renderAttentionAndGrowthSection);
+}
+if (insightsSubjectFilter && insightsSubjectFilter !== attentionSubjectFilter) {
+  insightsSubjectFilter.addEventListener("change", renderAttentionAndGrowthSection);
+}
 
 function renderClassStatsSection() {
   if (!globalStudents || !globalExams) return;
@@ -3593,10 +3606,13 @@ function renderAnalyticsSection() {
 
 function renderAttentionAndGrowthSection() {
   if (!globalStudents || !globalExams) return;
-  const filteredStudents = getFilteredStudents(attentionGroupFilter);
+  const groupFilterEl = document.getElementById("insights-group-filter") || document.getElementById("attention-group-filter") || attentionGroupFilter;
+  const subjFilterEl = document.getElementById("insights-subject-filter") || document.getElementById("attention-subject-filter") || attentionSubjectFilter;
+
+  const filteredStudents = getFilteredStudents(groupFilterEl);
   
-  const selectedGrp = attentionGroupFilter ? attentionGroupFilter.value : "";
-  const selectedSubj = attentionSubjectFilter ? attentionSubjectFilter.value : "";
+  const selectedGrp = groupFilterEl ? groupFilterEl.value : "";
+  const selectedSubj = subjFilterEl ? subjFilterEl.value : "";
   const groupExams = globalExams.filter(ex => {
     if (selectedGrp && !isNerdGroup(selectedGrp) && isBusinessStudiesExam(ex)) return false;
     if (selectedGrp && ex.target_groups && ex.target_groups.length > 0 && !ex.target_groups.includes(selectedGrp)) return false;
@@ -5048,6 +5064,11 @@ function renderGrowthList(exams, marksByStudent, studentsToUse = globalStudents,
   const growthList = document.getElementById('growth-list');
   if (!growthList) return;
 
+  if (!studentsToUse || studentsToUse.length === 0) {
+    growthList.innerHTML = `<li style="color: var(--text-muted); text-align: center; padding: 1.5rem;">No students enrolled in this group.</li>`;
+    return;
+  }
+
   const growthStudents = [];
 
   studentsToUse.forEach(student => {
@@ -5173,7 +5194,9 @@ document.addEventListener('DOMContentLoaded', () => {
   setupAccordion('analytics-header', 'analytics-content', 'analytics-toggle-icon', 'block', () => {
     window.dispatchEvent(new Event('resize'));
   });
-  setupAccordion('insights-header', 'insights-content', 'insights-toggle-icon', 'grid');
+  setupAccordion('insights-header', 'insights-content', 'insights-toggle-icon', 'grid', () => {
+    renderAttentionAndGrowthSection();
+  });
   setupAccordion('exams-header', 'exams-content', 'exams-toggle-icon', 'block');
   setupAccordion('bulk-marks-header', 'bulk-marks-content', 'bulk-marks-toggle-icon', 'block');
   setupAccordion('hw-track-header', 'hw-track-content', 'hw-track-toggle-icon', 'block');
