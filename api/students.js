@@ -174,7 +174,14 @@ export default async function handler(req, res) {
   }
 
   if (req.method === "GET") {
+    const hasAuth = Boolean(req.headers.authorization);
     const isCoach = await isCoachAuthorized(req);
+
+    // If caller provided an auth token but it expired or is invalid, inform them rather than silently stripping credentials
+    if (hasAuth && !isCoach) {
+      return coachUnauthorized(res);
+    }
+
     // If coach, fetch credentials too
     const selectFields = isCoach 
       ? "id, name, group_name, class_name, subjects, student_id_alias, password, is_active" 

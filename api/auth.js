@@ -204,7 +204,7 @@ export default async function handler(req, res) {
       return sendError(res, "Invalid password", 401);
     }
 
-    const token = jwt.sign({ role: "coach" }, jwtSecret, { expiresIn: "8h" });
+    const token = jwt.sign({ role: "coach" }, jwtSecret, { expiresIn: "90d" });
     return sendJson(res, { token });
   } catch (error) {
     return sendError(res, "Login failed", 500);
