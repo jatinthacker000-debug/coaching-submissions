@@ -1,1888 +1,1919 @@
-const offlineNotice = document.getElementById("offline-notice");
-
-function isOfflineFileMode() {
-  return window.location.protocol === "file:";
-}
-
-// Parses "[Ch X]" or "[Sl X]" Chapter Title format
-function parseResourceTitle(rawTitle) {
-  const match = (rawTitle || "").match(/^\[(Ch|Sl)\s*([^\]]+)\]\s*(.*)$/i);
-  if (match) {
-    return {
-      prefix: match[1].trim(),
-      chapter: match[2].trim(),
-      cleanTitle: match[3].trim()
-    };
-  }
-  return {
-    prefix: null,
-    chapter: null,
-    cleanTitle: rawTitle
-  };
-}
-
-// Converts chapter to sortable float value
-function getChapterSortValue(resource) {
-  const parsed = parseResourceTitle(resource.title || "");
-  if (parsed.chapter) {
-    const num = parseFloat(parsed.chapter);
-    if (!isNaN(num)) {
-      if (parsed.prefix && parsed.prefix.toLowerCase() === 'sl') {
-        return 10000 + num;
-      }
-      return num;
-    }
-  }
-  return 999999;
-}
-
-async function loadPDFNotes() {
-  const notesXContainer = document.getElementById("notes-x-container");
-  const noNotesX = document.getElementById("no-notes-x");
-  const notesXIIContainer = document.getElementById("notes-xii-container");
-  const noNotesXII = document.getElementById("no-notes-xii");
-  const loadingIndicator = document.getElementById("loading-indicator");
-
-  function renderNotesToDOM(notesList) {
-    const classTestBtn = document.getElementById("class-test-results-btn");
-    if (classTestBtn) {
-      const resultsNote = (notesList || []).find(n => n.grade === "XII-Results" || (n.title && n.title.toLowerCase().includes("class test results")));
-      if (resultsNote && resultsNote.link) {
-        classTestBtn.href = resultsNote.link;
-        classTestBtn.removeAttribute("data-empty");
-      } else {
-        classTestBtn.href = "#";
-        classTestBtn.setAttribute("data-empty", "true");
-      }
-      if (!classTestBtn._hasListener) {
-        classTestBtn._hasListener = true;
-        classTestBtn.addEventListener("click", (e) => {
-          if (classTestBtn.getAttribute("data-empty") === "true" || classTestBtn.getAttribute("href") === "#") {
-            e.preventDefault();
-            alert("Class test results link will be updated soon by the coach.");
-          }
-        });
-      }
-    }
-    if (notesXContainer) {
-      const notesXHistory = document.getElementById("notes-x-history");
-      const notesXGeography = document.getElementById("notes-x-geography");
-      const notesXCivics = document.getElementById("notes-x-civics");
-      const notesXEconomics = document.getElementById("notes-x-economics");
-      const worksheetsXHistory = document.getElementById("worksheets-x-history");
-      const worksheetsXGeography = document.getElementById("worksheets-x-geography");
-      const worksheetsXCivics = document.getElementById("worksheets-x-civics");
-      const worksheetsXEconomics = document.getElementById("worksheets-x-economics");
-      const otherXHistory = document.getElementById("other-x-history");
-      const otherXGeography = document.getElementById("other-x-geography");
-
-      notesXHistory.innerHTML = "";
-      notesXGeography.innerHTML = "";
-      notesXCivics.innerHTML = "";
-      notesXEconomics.innerHTML = "";
-      worksheetsXHistory.innerHTML = "";
-      worksheetsXGeography.innerHTML = "";
-      worksheetsXCivics.innerHTML = "";
-      worksheetsXEconomics.innerHTML = "";
-      if (otherXHistory) otherXHistory.innerHTML = "";
-      if (otherXGeography) otherXGeography.innerHTML = "";
-
-      const groups = {
-        History: { card: document.getElementById("group-x-history"), notesList: notesXHistory, notesSection: document.getElementById("section-x-history-notes"), worksheetsList: worksheetsXHistory, worksheetsSection: document.getElementById("section-x-history-worksheets"), otherList: otherXHistory, otherSection: document.getElementById("section-x-history-other") },
-        Geography: { card: document.getElementById("group-x-geography"), notesList: notesXGeography, notesSection: document.getElementById("section-x-geography-notes"), worksheetsList: worksheetsXGeography, worksheetsSection: document.getElementById("section-x-geography-worksheets"), otherList: otherXGeography, otherSection: document.getElementById("section-x-geography-other") },
-        Civics: { card: document.getElementById("group-x-civics"), notesList: notesXCivics, notesSection: document.getElementById("section-x-civics-notes"), worksheetsList: worksheetsXCivics, worksheetsSection: document.getElementById("section-x-civics-worksheets") },
-        Economics: { card: document.getElementById("group-x-economics"), notesList: notesXEconomics, notesSection: document.getElementById("section-x-economics-notes"), worksheetsList: worksheetsXEconomics, worksheetsSection: document.getElementById("section-x-economics-worksheets") },
-      };
-
-      Object.values(groups).forEach(g => {
-        if (g.card) g.card.style.display = "none";
-        if (g.notesSection) g.notesSection.style.display = "none";
-        if (g.worksheetsSection) g.worksheetsSection.style.display = "none";
-        if (g.otherSection) g.otherSection.style.display = "none";
-      });
-
-      const gradeXResources = (notesList || []).filter((n) => n.grade === "X" || n.grade === "X-Worksheet" || n.grade === "X-Other");
-      gradeXResources.sort((a, b) => {
-        const sortA = getChapterSortValue(a);
-        const sortB = getChapterSortValue(b);
-        if (sortA !== sortB) return sortA - sortB;
-        const titleA = parseResourceTitle(a.title).cleanTitle;
-        const titleB = parseResourceTitle(b.title).cleanTitle;
-        return titleA.localeCompare(titleB, undefined, { numeric: true, sensitivity: 'base' });
-      });
-
-      if (!gradeXResources.length) {
-        if (noNotesX) noNotesX.style.display = "block";
-      } else {
-        if (noNotesX) noNotesX.style.display = "none";
-        let renderedCount = 0;
-        gradeXResources.forEach((resource) => {
-          let subj = resource.subject;
-          if (subj === "Macro Economics" || subj === "Indian Economics Development") subj = "Economics";
-          const target = groups[subj];
-          if (target) {
-            const li = document.createElement("li");
-            const parsed = parseResourceTitle(resource.title);
-            let badgeText = ""; if (parsed.chapter) { const prefix = parsed.prefix && parsed.prefix.toLowerCase() === "sl" ? "Sl No." : "Ch"; badgeText = `${prefix} ${escapeHtml(parsed.chapter)}`; } const chapterBadge = badgeText ? `<span class="note-chapter-tag">${badgeText}</span> ` : "";
-            if (resource.grade === "X-Other") {
-              if (target.otherList) {
-                li.innerHTML = `<a href="${escapeHtml(resource.link)}" target="_blank" rel="noopener noreferrer" class="note-link">📚📁 ${chapterBadge}${escapeHtml(parsed.cleanTitle)}</a>`;
-                target.otherList.appendChild(li);
-                if (target.otherSection) target.otherSection.style.display = "block";
-              }
-            } else if (resource.grade === "X-Worksheet") {
-              li.innerHTML = `<a href="${escapeHtml(resource.link)}" target="_blank" rel="noopener noreferrer" class="note-link">📚📝 ${chapterBadge}${escapeHtml(parsed.cleanTitle)}</a>`;
-              target.worksheetsList.appendChild(li);
-              if (target.worksheetsSection) target.worksheetsSection.style.display = "block";
-            } else {
-              let prefix = "";
-              if (resource.subject === "Macro Economics") prefix = `<span class="note-sub-tag">Macro</span> `;
-              if (resource.subject === "Indian Economics Development") prefix = `<span class="note-sub-tag">IED</span> `;
-              li.innerHTML = `<a href="${escapeHtml(resource.link)}" target="_blank" rel="noopener noreferrer" class="note-link">📚📝 ${prefix}${chapterBadge}${escapeHtml(parsed.cleanTitle)}</a>`;
-              target.notesList.appendChild(li);
-              if (target.notesSection) target.notesSection.style.display = "block";
-            }
-            if (target.card) target.card.style.display = "flex";
-            renderedCount++;
-          }
-        });
-        if (renderedCount === 0 && noNotesX) noNotesX.style.display = "block";
-      }
-      
-      document.querySelectorAll('#notes-x-container .subject-card').forEach(card => {
-        const header = card.querySelector('.card-header');
-        if (header && !header.hasAttribute('data-accordion-init')) {
-          header.setAttribute('data-accordion-init', 'true');
-          header.style.cursor = 'pointer';
-          header.innerHTML += `<span class="accordion-icon" style="margin-left: auto; transition: transform 0.2s;">▼</span>`;
-          const sections = card.querySelectorAll('.notes-section');
-          sections.forEach(s => s.classList.add('collapsed'));
-          header.addEventListener('click', () => {
-            const icon = header.querySelector('.accordion-icon');
-            const isExpanded = icon.style.transform === 'rotate(180deg)';
-            if (isExpanded) {
-              icon.style.transform = 'rotate(0deg)';
-              sections.forEach(s => s.classList.add('collapsed'));
-            } else {
-              icon.style.transform = 'rotate(180deg)';
-              sections.forEach(s => s.classList.remove('collapsed'));
-            }
-          });
-        }
-      });
-      
-      const cbseGrid = document.getElementById("cbse-dynamic-container");
-      if (cbseGrid) {
-        const cbseResources = (notesList || []).filter(n => n.grade === "CBSE");
-        cbseResources.sort((a, b) => a.title.localeCompare(b.title));
-        if (cbseResources.length === 0) {
-          cbseGrid.innerHTML = `<p class="muted-text text-center">No CBSE resources added yet.</p>`;
-        } else {
-          cbseGrid.innerHTML = "";
-          const subjectsGrid = document.createElement("div");
-          subjectsGrid.className = "notes-grid-subjects";
-          const subjectCard = document.createElement("div");
-          subjectCard.className = "subject-card";
-          const docIcon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`;
-          subjectCard.innerHTML = `
-            <div class="card-header" style="cursor: pointer; display: flex; align-items: center;">
-              <span class="subject-icon">📚</span>
-              <h4>General Resources</h4>
-              <span class="accordion-icon" style="margin-left: auto; transition: transform 0.2s;">▼</span>
-            </div>
-            <div class="notes-section collapsed">
-              <ul class="notes-list">
-                ${cbseResources.map(res => `
-                  <li>
-                    <a href="${escapeHtml(res.link)}" target="_blank" rel="noopener noreferrer" class="note-link">📚${docIcon} <span>${escapeHtml(res.title)}</span></a>
-                  </li>
-                `).join('')}
-              </ul>
-            </div>
-          `;
-          const header = subjectCard.querySelector('.card-header');
-          const section = subjectCard.querySelector('.notes-section');
-          const accIcon = subjectCard.querySelector('.accordion-icon');
-          header.addEventListener('click', () => {
-            const isExpanded = accIcon.style.transform === 'rotate(180deg)';
-            if (isExpanded) {
-              accIcon.style.transform = 'rotate(0deg)';
-              section.classList.add('collapsed');
-            } else {
-              accIcon.style.transform = 'rotate(180deg)';
-              section.classList.remove('collapsed');
-            }
-          });
-          subjectsGrid.appendChild(subjectCard);
-          cbseGrid.appendChild(subjectsGrid);
-        }
-      }
-    }
-
-    if (notesXIIContainer) {
-      const notesXIIAcc = document.getElementById("notes-xii-accountancy");
-      const notesXIIBus = document.getElementById("notes-xii-business");
-      const notesXIIEco = document.getElementById("notes-xii-economics");
-      const worksheetsXIIAcc = document.getElementById("worksheets-xii-accountancy");
-      const worksheetsXIIBus = document.getElementById("worksheets-xii-business");
-      const worksheetsXIIEco = document.getElementById("worksheets-xii-economics");
-      const otherXIIAcc = document.getElementById("other-xii-accountancy");
-      const otherXIIBus = document.getElementById("other-xii-business");
-      const otherXIIEco = document.getElementById("other-xii-economics");
-
-      if (notesXIIAcc) notesXIIAcc.innerHTML = "";
-      if (notesXIIBus) notesXIIBus.innerHTML = "";
-      if (notesXIIEco) notesXIIEco.innerHTML = "";
-      if (worksheetsXIIAcc) worksheetsXIIAcc.innerHTML = "";
-      if (worksheetsXIIBus) worksheetsXIIBus.innerHTML = "";
-      if (worksheetsXIIEco) worksheetsXIIEco.innerHTML = "";
-      if (otherXIIAcc) otherXIIAcc.innerHTML = "";
-      if (otherXIIBus) otherXIIBus.innerHTML = "";
-      if (otherXIIEco) otherXIIEco.innerHTML = "";
-
-      const groups = {
-        Accountancy: { card: document.getElementById("group-xii-accountancy"), notesList: notesXIIAcc, notesSection: document.getElementById("section-xii-accountancy-notes"), worksheetsList: worksheetsXIIAcc, worksheetsSection: document.getElementById("section-xii-accountancy-worksheets"), otherList: otherXIIAcc, otherSection: document.getElementById("section-xii-accountancy-other") },
-        "Business Studies": { card: document.getElementById("group-xii-business"), notesList: notesXIIBus, notesSection: document.getElementById("section-xii-business-notes"), worksheetsList: worksheetsXIIBus, worksheetsSection: document.getElementById("section-xii-business-worksheets"), otherList: otherXIIBus, otherSection: document.getElementById("section-xii-business-other") },
-        Economics: { card: document.getElementById("group-xii-economics"), notesList: notesXIIEco, notesSection: document.getElementById("section-xii-economics-notes"), worksheetsList: worksheetsXIIEco, worksheetsSection: document.getElementById("section-xii-economics-worksheets"), otherList: otherXIIEco, otherSection: document.getElementById("section-xii-economics-other") },
-      };
-
-      Object.values(groups).forEach(g => {
-        if (g.card) g.card.style.display = "none";
-        if (g.notesSection) g.notesSection.style.display = "none";
-        if (g.worksheetsSection) g.worksheetsSection.style.display = "none";
-        if (g.otherSection) g.otherSection.style.display = "none";
-      });
-
-      const gradeXIIResources = (notesList || []).filter((n) => n.grade === "XII" || n.grade === "XII-Worksheet" || n.grade === "XII-Other");
-      gradeXIIResources.sort((a, b) => {
-        const sortA = getChapterSortValue(a);
-        const sortB = getChapterSortValue(b);
-        if (sortA !== sortB) return sortA - sortB;
-        const titleA = parseResourceTitle(a.title).cleanTitle;
-        const titleB = parseResourceTitle(b.title).cleanTitle;
-        return titleA.localeCompare(titleB, undefined, { numeric: true, sensitivity: 'base' });
-      });
-
-      if (!gradeXIIResources.length) {
-        if (noNotesXII) noNotesXII.style.display = "block";
-      } else {
-        if (noNotesXII) noNotesXII.style.display = "none";
-        let renderedCount = 0;
-        gradeXIIResources.forEach((resource) => {
-          const target = groups[resource.subject];
-          if (target) {
-            const li = document.createElement("li");
-            const parsed = parseResourceTitle(resource.title);
-            let badgeText = ""; if (parsed.chapter) { const prefix = parsed.prefix && parsed.prefix.toLowerCase() === "sl" ? "Sl No." : "Ch"; badgeText = `${prefix} ${escapeHtml(parsed.chapter)}`; } const chapterBadge = badgeText ? `<span class="note-chapter-tag">${badgeText}</span> ` : "";
-            if (resource.grade === "XII-Other") {
-              if (target.otherList) {
-                li.innerHTML = `<a href="${escapeHtml(resource.link)}" target="_blank" rel="noopener noreferrer" class="note-link">📚📁 ${chapterBadge}${escapeHtml(parsed.cleanTitle)}</a>`;
-                target.otherList.appendChild(li);
-                if (target.otherSection) target.otherSection.style.display = "block";
-              }
-            } else if (resource.grade === "XII-Worksheet") {
-              li.innerHTML = `<a href="${escapeHtml(resource.link)}" target="_blank" rel="noopener noreferrer" class="note-link">📚📝 ${chapterBadge}${escapeHtml(parsed.cleanTitle)}</a>`;
-              target.worksheetsList.appendChild(li);
-              if (target.worksheetsSection) target.worksheetsSection.style.display = "block";
-            } else {
-              li.innerHTML = `<a href="${escapeHtml(resource.link)}" target="_blank" rel="noopener noreferrer" class="note-link">📚📝 ${chapterBadge}${escapeHtml(parsed.cleanTitle)}</a>`;
-              target.notesList.appendChild(li);
-              if (target.notesSection) target.notesSection.style.display = "block";
-            }
-            if (target.card) target.card.style.display = "flex";
-            renderedCount++;
-          }
-        });
-        if (renderedCount === 0 && noNotesXII) noNotesXII.style.display = "block";
-      }
-
-      document.querySelectorAll('#notes-xii-container .subject-card').forEach(card => {
-        const header = card.querySelector('.card-header');
-        if (header && !header.hasAttribute('data-accordion-init')) {
-          header.setAttribute('data-accordion-init', 'true');
-          header.style.cursor = 'pointer';
-          header.innerHTML += `<span class="accordion-icon" style="margin-left: auto; transition: transform 0.2s;">▼</span>`;
-          const sections = card.querySelectorAll('.notes-section');
-          sections.forEach(s => s.classList.add('collapsed'));
-          header.addEventListener('click', () => {
-            const icon = header.querySelector('.accordion-icon');
-            const isExpanded = icon.style.transform === 'rotate(180deg)';
-            if (isExpanded) {
-              icon.style.transform = 'rotate(0deg)';
-              sections.forEach(s => s.classList.add('collapsed'));
-            } else {
-              icon.style.transform = 'rotate(180deg)';
-              sections.forEach(s => s.classList.remove('collapsed'));
-            }
-          });
-        }
-      });
-
-      const cbseGridXII = document.getElementById("cbse-dynamic-container-xii");
-      if (cbseGridXII) {
-        const cbseResourcesXII = (notesList || []).filter(n => n.grade === "CBSE-XII");
-        cbseResourcesXII.sort((a, b) => a.title.localeCompare(b.title));
-        
-        if (cbseResourcesXII.length === 0) {
-          cbseGridXII.innerHTML = `<p class="muted-text text-center">No CBSE resources added yet.</p>`;
-        } else {
-          cbseGridXII.innerHTML = "";
-          
-          const subjectsGrid = document.createElement("div");
-          subjectsGrid.className = "notes-grid-subjects";
-          
-          const subjectCard = document.createElement("div");
-          subjectCard.className = "subject-card";
-          
-          const docIcon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`;
-          
-          subjectCard.innerHTML = `
-            <div class="card-header" style="cursor: pointer; display: flex; align-items: center;">
-              <span class="subject-icon">📚</span>
-              <h4>General Resources</h4>
-              <span class="accordion-icon" style="margin-left: auto; transition: transform 0.2s;">▼</span>
-            </div>
-            <div class="notes-section collapsed">
-              <ul class="notes-list">
-                ${cbseResourcesXII.map(res => `
-                  <li>
-                    <a href="${escapeHtml(res.link)}" target="_blank" rel="noopener noreferrer" class="note-link">📚${docIcon} <span>${escapeHtml(res.title)}</span></a>
-                  </li>
-                `).join('')}
-              </ul>
-            </div>
-          `;
-          
-          const header = subjectCard.querySelector('.card-header');
-          const section = subjectCard.querySelector('.notes-section');
-          const accIcon = subjectCard.querySelector('.accordion-icon');
-          
-          header.addEventListener('click', () => {
-            const isExpanded = accIcon.style.transform === 'rotate(180deg)';
-            if (isExpanded) {
-              accIcon.style.transform = 'rotate(0deg)';
-              section.classList.add('collapsed');
-            } else {
-              accIcon.style.transform = 'rotate(180deg)';
-              section.classList.remove('collapsed');
-            }
-          });
-          
-          subjectsGrid.appendChild(subjectCard);
-          cbseGridXII.appendChild(subjectsGrid);
-        }
-      }
-    }
-
-    const searchInput = document.getElementById("search-input");
-    if (searchInput && searchInput.value) {
-      searchInput.dispatchEvent(new Event("input"));
-    }
-  }
-
-  try {
-    let hasCache = false;
-    let cachedNotesStr = localStorage.getItem("padhrahi_notes_cache");
-    if (cachedNotesStr) {
-      try {
-        const cachedNotes = JSON.parse(cachedNotesStr);
-        renderNotesToDOM(cachedNotes);
-        renderNotifications(cachedNotes);
-        hasCache = true;
-      } catch (e) {}
-    }
-
-    if (!hasCache && loadingIndicator) {
-      loadingIndicator.style.display = "block";
-    }
-
-    const { notes } = await fetchNotes();
-    
-    if (loadingIndicator) {
-      loadingIndicator.style.display = "none";
-    }
-    
-    if (JSON.stringify(notes) !== cachedNotesStr) {
-      localStorage.setItem("padhrahi_notes_cache", JSON.stringify(notes));
-      renderNotesToDOM(notes);
-      renderNotifications(notes);
-    } else {
-      renderNotifications(notes);
-    }
-  } catch (err) {
-    if (loadingIndicator) {
-      loadingIndicator.style.display = "none";
-    }
-    const noNotesEl = noNotesX || noNotesXII;
-    if (noNotesEl && !localStorage.getItem("padhrahi_notes_cache")) {
-      const textEl = document.getElementById("no-notes-text");
-      const iconEl = document.getElementById("no-notes-icon");
-      if (textEl) textEl.textContent = "Failed to load resources.";
-      if (iconEl) iconEl.textContent = "❌";
-      noNotesEl.style.display = "block";
-    }
-  }
-}
-
-if (isOfflineFileMode() && offlineNotice) {
-  offlineNotice.classList.remove("hidden");
-}
-
-loadPDFNotes();
-
-const searchInput = document.getElementById("search-input");
-const typeFilter = document.getElementById("type-filter");
-
-function filterResources() {
-  if (!searchInput) return;
-  const term = searchInput.value.toLowerCase();
-  const filterValue = typeFilter ? typeFilter.value : "all";
-  
-  const subjectCards = document.querySelectorAll(".subject-card");
-  let totalVisible = 0;
-  
-  subjectCards.forEach(card => {
-    let hasVisibleItems = false;
-    const sections = card.querySelectorAll(".notes-section");
-    
-    sections.forEach(section => {
-      const isWorksheets = section.id.includes("-worksheets");
-      const isNotes = section.id.includes("-notes");
-      const isOther = section.id.includes("-other");
-      
-      let hasVisibleInSection = false;
-      const listItems = section.querySelectorAll("li");
-      
-      listItems.forEach(li => {
-        const text = li.textContent.toLowerCase();
-        const matchesSearch = text.includes(term);
-        
-        let matchesType = true;
-        if (filterValue === "notes" && !isNotes) matchesType = false;
-        if (filterValue === "worksheets" && !isWorksheets) matchesType = false;
-        if (filterValue === "other" && !isOther) matchesType = false;
-        
-        if (matchesSearch && matchesType) {
-          li.style.display = "";
-          hasVisibleInSection = true;
-          totalVisible++;
-        } else {
-          li.style.display = "none";
-        }
-      });
-      
-      if (hasVisibleInSection) {
-        section.style.display = "block";
-        hasVisibleItems = true;
-      } else {
-        section.style.display = "none";
-      }
-    });
-    
-    if (hasVisibleItems) {
-      card.style.display = "flex";
-    } else {
-      card.style.display = "none";
-    }
-  });
-  
-  const noNotesEl = document.getElementById("no-notes-x") || document.getElementById("no-notes-xii");
-  const allItems = document.querySelectorAll(".notes-list li");
-  if (noNotesEl && allItems.length > 0) {
-    if (totalVisible === 0) {
-      noNotesEl.style.display = "block";
-      const textEl = document.getElementById("no-notes-text");
-      const iconEl = document.getElementById("no-notes-icon");
-      if (textEl) textEl.textContent = "No matching chapters found.";
-      if (iconEl) iconEl.textContent = "🔍";
-    } else {
-      noNotesEl.style.display = "none";
-    }
-  }
-}
-
-let debounceTimer;
-function debouncedFilterResources() {
-  clearTimeout(debounceTimer);
-  debounceTimer = setTimeout(filterResources, 150);
-}
-
-if (searchInput) {
-  searchInput.addEventListener("input", debouncedFilterResources);
-}
-if (typeFilter) {
-  typeFilter.addEventListener("change", filterResources);
-}
-
-// Notifications Logic
-let allNotifications = [];
-
-function getStudentTargetClass() {
-  try {
-    const raw = localStorage.getItem("student_info");
-    if (!raw) return "";
-    const info = JSON.parse(raw);
-    if (info.class_name && info.class_name.trim()) return info.class_name.trim();
-    const g = (info.group_name || "").trim().toLowerCase();
-    if (["lakshya", "prayas", "sankalp"].includes(g)) return "Velocity";
-    if (g === "nalanda") return "IGNITE coaching class";
-    if (g.startsWith("nerd tutors")) return info.group_name.trim();
-    return "";
-  } catch (_) {
-    return "";
-  }
-}
-
-function isNoticeForStudent(notice, studentClass) {
-  if (!notice) return false;
-  const subj = (notice.subject || "").trim().toLowerCase();
-  if (!subj || subj.includes("all institutes") || subj === "all" || subj === "general") {
-    return true;
-  }
-  if (!studentClass) return true;
-
-  const sc = studentClass.toLowerCase();
-  if (sc.includes("velocity") && subj.includes("velocity")) return true;
-  if ((sc.includes("ignite") || sc.includes("nalanda")) && (subj.includes("ignite") || subj.includes("nalanda"))) return true;
-  if (sc.includes("epsilon") && subj.includes("epsilon")) return true;
-  if (sc.includes("nerd tutors nalanda") && subj.includes("nerd tutors nalanda")) return true;
-  if (sc.includes("nerd tutors") && subj.includes("nerd tutors")) return true;
-
-  return subj.includes(sc);
-}
-
-function requestPushNotificationPermission() {
-  if ("Notification" in window && Notification.permission === "default") {
-    if (localStorage.getItem("student_token")) {
-      try {
-        Notification.requestPermission().then(() => {});
-      } catch (_) {}
-    }
-  }
-}
-
-function triggerPushNotification(latestNotice, targetClass) {
-  if (!latestNotice) return;
-  const lastPushedId = localStorage.getItem("padhrahi_last_pushed_notif_id");
-  if (lastPushedId === latestNotice.id) return;
-
-  localStorage.setItem("padhrahi_last_pushed_notif_id", latestNotice.id);
-
-  // 1. Browser Native Push Notification
-  if ("Notification" in window && Notification.permission === "granted") {
-    try {
-      new Notification(`📢 New Notice (${targetClass || 'Announcement'})`, {
-        body: latestNotice.title,
-        icon: "logo.jpg",
-        badge: "logo.jpg",
-        tag: latestNotice.id
-      });
-    } catch (_) {}
-  }
-
-  // 2. In-App Slide-Down Toast Banner
-  showInAppToastBanner(latestNotice, targetClass);
-}
-
-function showInAppToastBanner(notice, targetClass) {
-  let toast = document.getElementById("push-toast-banner");
-  if (!toast) {
-    toast = document.createElement("div");
-    toast.id = "push-toast-banner";
-    toast.className = "push-toast-banner";
-    toast.innerHTML = `
-      <div class="toast-icon">🔔</div>
-      <div class="toast-content">
-        <div class="toast-title" id="toast-banner-title">New Announcement</div>
-        <div class="toast-message" id="toast-banner-msg"></div>
-      </div>
-      <button class="toast-action-btn" id="toast-banner-view-btn">View</button>
-      <button class="toast-close-btn" id="toast-banner-close-btn">&times;</button>
-    `;
-    document.body.appendChild(toast);
-
-    document.getElementById("toast-banner-close-btn")?.addEventListener("click", () => {
-      toast.classList.remove("show");
-    });
-    document.getElementById("toast-banner-view-btn")?.addEventListener("click", () => {
-      toast.classList.remove("show");
-      const notifBell = document.getElementById("notif-bell-btn");
-      if (notifBell) notifBell.click();
-    });
-  }
-
-  const titleEl = document.getElementById("toast-banner-title");
-  const msgEl = document.getElementById("toast-banner-msg");
-  if (titleEl) titleEl.textContent = `📢 Notice for ${targetClass || "You"}`;
-  if (msgEl) msgEl.textContent = notice.title;
-
-  toast.classList.add("show");
-  setTimeout(() => {
-    toast.classList.remove("show");
-  }, 9000);
-}
-
-function renderNotifications(notesList) {
-  allNotifications = (notesList || []).filter(n => n.grade === "NOTIFICATION");
-  const studentClass = getStudentTargetClass();
-  const relevantNotifs = allNotifications.filter(n => isNoticeForStudent(n, studentClass));
-
-  const badge = document.getElementById("notif-badge");
-  if (badge) {
-    let unreadCount = 0;
-    const lastSeenStr = localStorage.getItem("padhrahi_last_notif_seen");
-    const lastSeenTime = lastSeenStr ? new Date(lastSeenStr).getTime() : 0;
-    
-    relevantNotifs.forEach(n => {
-      const notifTime = new Date(n.created_at).getTime();
-      if (notifTime > lastSeenTime) {
-        unreadCount++;
-      }
-    });
-
-    if (unreadCount > 0) {
-      badge.textContent = unreadCount;
-      badge.style.display = "inline-block";
-    } else {
-      badge.style.display = "none";
-    }
-  }
-
-  // Request browser push permission on notification render
-  requestPushNotificationPermission();
-
-  // If student has a specific class, pre-filter notification view to their class or all
-  updateNotificationList(studentClass ? studentClass : "all");
-}
-
-function updateNotificationList(filterInst) {
-  const notifList = document.getElementById("notif-list");
-  if (!notifList) return;
-  notifList.innerHTML = "";
-  
-  const studentClass = getStudentTargetClass();
-  const filtered = allNotifications.filter(n => {
-    if (filterInst === "all") {
-      // If student is logged in, show notices matching their class or All Institutes
-      return isNoticeForStudent(n, studentClass);
-    }
-    return (n.subject && n.subject.toLowerCase().includes(filterInst.toLowerCase())) || n.subject === "All Institutes";
-  });
-  
-  if (filtered.length === 0) {
-    notifList.innerHTML = `<p class="muted-text text-center" style="margin-top: 1rem;">No new notifications for your class.</p>`;
-    return;
-  }
-  
-  filtered.sort((a,b) => new Date(b.created_at) - new Date(a.created_at)).forEach(notif => {
-    const li = document.createElement("li");
-    li.className = "notif-item";
-    
-    let content = `
-      <div class="notif-item-inst">${escapeHtml(notif.subject)}</div>
-      <div class="notif-item-title">${escapeHtml(notif.title)}</div>
-      <div class="notif-item-date">${formatDate(notif.created_at)}</div>
-    `;
-    
-    if (notif.link && notif.link !== "#") {
-      li.innerHTML = `<a href="${escapeHtml(notif.link)}" target="_blank" rel="noopener noreferrer" style="text-decoration: none; color: inherit;">${content}</a>`;
-    } else {
-      li.innerHTML = content;
-    }
-    
-    notifList.appendChild(li);
-  });
-}
-
-// Background checking for push notifications (Calm interval to stay well within Vercel limits)
-let lastNotificationCheckTime = Date.now();
-async function checkNewNotifications(force = false) {
-  const studentToken = localStorage.getItem("student_token");
-  if (!studentToken) return;
-
-  const now = Date.now();
-  // 3-minute cooldown to prevent excess function calls
-  if (!force && (now - lastNotificationCheckTime < 180000)) {
-    return;
-  }
-  lastNotificationCheckTime = now;
-
-  try {
-    const res = await fetch("/api/notes", { cache: "no-store" });
-    if (res.ok) {
-      const data = await res.json();
-      if (data.notes) {
-        renderNotifications(data.notes);
-        
-        const studentClass = getStudentTargetClass();
-        const relevant = data.notes.filter(n => n.grade === "NOTIFICATION" && isNoticeForStudent(n, studentClass));
-        if (relevant.length > 0) {
-          relevant.sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
-          const latest = relevant[0];
-          const lastSeenStr = localStorage.getItem("padhrahi_last_notif_seen");
-          const lastSeenTime = lastSeenStr ? new Date(lastSeenStr).getTime() : 0;
-          if (new Date(latest.created_at).getTime() > lastSeenTime) {
-            triggerPushNotification(latest, studentClass);
-          }
-        }
-      }
-    }
-  } catch (_) {}
-}
-window.checkNewNotifications = checkNewNotifications;
-
-// Calm 5-minute background check while tab is open
-setInterval(() => checkNewNotifications(false), 300000);
-
-// Check when student returns to tab
-document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "visible") {
-    checkNewNotifications(false);
-  }
-});
-
-const notifBellBtn = document.getElementById("notif-bell-btn");
-const notifModal = document.getElementById("notif-modal");
-const notifCloseBtn = document.getElementById("notif-close-btn");
-const notifTabs = document.querySelectorAll(".notif-tab");
-
-if (notifBellBtn && notifModal) {
-  notifBellBtn.addEventListener("click", () => {
-    notifModal.classList.remove("hidden");
-    const badge = document.getElementById("notif-badge");
-    if (badge) badge.style.display = "none";
-    
-    if (allNotifications.length > 0) {
-      const latestTime = Math.max(...allNotifications.map(n => new Date(n.created_at).getTime()));
-      localStorage.setItem("padhrahi_last_notif_seen", new Date(latestTime).toISOString());
-    }
-  });
-}
-if (notifCloseBtn && notifModal) {
-  notifCloseBtn.addEventListener("click", () => {
-    notifModal.classList.add("hidden");
-  });
-}
-notifTabs.forEach(tab => {
-  tab.addEventListener("click", (e) => {
-    notifTabs.forEach(t => t.classList.remove("active"));
-    e.target.classList.add("active");
-    updateNotificationList(e.target.dataset.inst);
-  });
-});
-
-
-// Marks Submission Logic
-const marksForm = document.getElementById("marks-form");
-
-
-
-
-// Exam Countdown Logic
-document.addEventListener("DOMContentLoaded", () => {
-  const totalEl = document.getElementById("cd-total");
-  const effectiveEl = document.getElementById("cd-effective");
-  
-  if (totalEl && effectiveEl) {
-    // Target date set to November 29, 2026 (75 days from Sept 15, 2026)
-    const targetDate = new Date("2026-11-29T00:00:00");
-    const today = new Date();
-    
-    // Calculate difference in milliseconds
-    const diffTime = targetDate - today;
-    
-    // Calculate days and round up to next full day
-    let diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    if (diffDays < 0) diffDays = 0;
-    
-    const holidayDays = 20;
-    let effectiveDays = diffDays - holidayDays;
-    if (effectiveDays < 0) effectiveDays = 0;
-    
-    totalEl.textContent = diffDays;
-    effectiveEl.textContent = effectiveDays;
-  }
-});
-
-// --- STUDENT REPORT FEATURE ---
-let publicStudents = [];
-let publicExams = [];
-let publicMarks = [];
-let studentReportChart = null;
-
-function renderStudentReportChart({ isNerdStudent, distinctTerms, applicableExams, studentMarks, displaySubjects }) {
-  const canvas = document.getElementById("student-report-chart");
-  if (!canvas || typeof Chart === "undefined") return;
-
-  if (studentReportChart) {
-    try {
-      studentReportChart.destroy();
-    } catch (_) {}
-    studentReportChart = null;
-  }
-
-  const ctx = canvas.getContext("2d");
-
-  if (isNerdStudent) {
-    // GRADE 12 NERD TUTORS: 3-IN-1 STACKED BAR GRAPH (100% SCALE)
-    // Accountancy, Business Studies, Economics data combined in one single bar per exam term
-    const nerdSubjects = ["Accountancy", "Business Studies", "Economics"];
-    const subjectColors = {
-      "Accountancy": { bg: "rgba(59, 130, 246, 0.85)", border: "#2563eb" },
-      "Business Studies": { bg: "rgba(16, 185, 129, 0.85)", border: "#059669" },
-      "Economics": { bg: "rgba(245, 158, 11, 0.85)", border: "#d97706" }
-    };
-
-    // Store raw percentages for tooltips
-    const rawSubjectData = {};
-    nerdSubjects.forEach(s => { rawSubjectData[s] = []; });
-
-    const datasets = nerdSubjects.map(subj => {
-      const data = distinctTerms.map(term => {
-        const ex = applicableExams.find(e => e.name === term && e.subject === subj);
-        if (!ex) {
-          rawSubjectData[subj].push(null);
-          return 0;
-        }
-        const markObj = studentMarks.find(m => m.exam_id === ex.id);
-        if (!markObj || markObj.marks_obtained === null || markObj.marks_obtained === undefined) {
-          rawSubjectData[subj].push(null);
-          return 0;
-        }
-
-        const perc = (markObj.marks_obtained / ex.total_marks) * 100;
-        rawSubjectData[subj].push({
-          obtained: markObj.marks_obtained,
-          total: ex.total_marks,
-          perc: perc
-        });
-        // Scale by 1/3 so that all 3 subjects combined stack to 100%
-        return Number((perc / 3).toFixed(2));
-      });
-
-      return {
-        label: subj,
-        data: data,
-        backgroundColor: subjectColors[subj].bg,
-        borderColor: subjectColors[subj].border,
-        borderWidth: 1.5,
-        borderRadius: 4,
-        stack: 'nerdStack'
-      };
-    });
-
-    studentReportChart = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: distinctTerms,
-        datasets: datasets
-      },
-      plugins: [{
-        id: 'topTotalsPlugin',
-        afterDatasetsDraw(chart) {
-          const { ctx, scales: { y } } = chart;
-          distinctTerms.forEach((term, index) => {
-            let totalVal = 0;
-            let hasData = false;
-            chart.data.datasets.forEach(ds => {
-              const val = ds.data[index];
-              if (val) {
-                totalVal += val;
-                hasData = true;
-              }
-            });
-            if (!hasData) return;
-
-            const meta = chart.getDatasetMeta(chart.data.datasets.length - 1);
-            const bar = meta.data[index];
-            if (!bar) return;
-
-            const xPos = bar.x;
-            const yPos = y.getPixelForValue(totalVal);
-
-            ctx.save();
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'bottom';
-            ctx.font = 'bold 12px Inter, system-ui, sans-serif';
-            ctx.fillStyle = '#1e293b';
-            ctx.fillText(`${totalVal.toFixed(1)}%`, xPos, Math.max(14, yPos - 5));
-            ctx.restore();
-          });
-        }
-      }],
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        layout: {
-          padding: { top: 22 }
-        },
-        scales: {
-          x: {
-            stacked: true,
-            grid: { display: false },
-            ticks: { color: 'var(--text-muted, #64748b)', font: { weight: '600' } }
-          },
-          y: {
-            stacked: true,
-            min: 0,
-            max: 105,
-            ticks: {
-              callback: (v) => v <= 100 ? v + '%' : '',
-              color: 'var(--text-muted, #64748b)',
-              stepSize: 20
-            },
-            grid: { color: 'rgba(148, 163, 184, 0.15)' }
-          }
-        },
-        plugins: {
-          legend: {
-            position: 'top',
-            labels: {
-              boxWidth: 12,
-              font: { weight: '600' },
-              color: 'var(--text, #1e293b)'
-            }
-          },
-          tooltip: {
-            backgroundColor: 'rgba(15, 23, 42, 0.95)',
-            padding: 10,
-            titleFont: { weight: 'bold', size: 13 },
-            callbacks: {
-              label: function(context) {
-                const subj = context.dataset.label;
-                const idx = context.dataIndex;
-                const rawObj = rawSubjectData[subj] && rawSubjectData[subj][idx];
-                const share = (context.raw || 0).toFixed(1);
-                if (rawObj) {
-                  return ` ${subj}: ${rawObj.obtained}/${rawObj.total} (${rawObj.perc.toFixed(1)}%) → Share: ${share}%`;
-                }
-                return ` ${subj}: Not Appeared (0%)`;
-              },
-              footer: function(tooltipItems) {
-                let totalHeight = 0;
-                tooltipItems.forEach(item => { totalHeight += (item.raw || 0); });
-                return `Total 3-Subject Combined Score: ${totalHeight.toFixed(1)}% / 100%`;
-              }
-            }
-          }
-        }
-      }
-    });
-  } else {
-    // GRADE 10: PROGRESS LINE GRAPH OVER EXAM TERMS
-    const progressData = [];
-    const rawScores = [];
-
-    distinctTerms.forEach(term => {
-      const ex = applicableExams.find(e => e.name === term);
-      const markObj = ex ? studentMarks.find(m => m.exam_id === ex.id) : null;
-      if (markObj && markObj.marks_obtained !== null && markObj.marks_obtained !== undefined) {
-        const perc = (markObj.marks_obtained / ex.total_marks) * 100;
-        progressData.push(Number(perc.toFixed(1)));
-        rawScores.push({ obtained: markObj.marks_obtained, total: ex.total_marks, perc: perc });
-      } else {
-        progressData.push(null);
-        rawScores.push(null);
-      }
-    });
-
-    studentReportChart = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: distinctTerms,
-        datasets: [{
-          label: 'Progress (%)',
-          data: progressData,
-          borderColor: '#3b82f6',
-          backgroundColor: 'rgba(59, 130, 246, 0.12)',
-          fill: true,
-          tension: 0.35,
-          borderWidth: 3,
-          pointBackgroundColor: '#3b82f6',
-          pointBorderColor: '#ffffff',
-          pointBorderWidth: 2,
-          pointRadius: 6,
-          pointHoverRadius: 9
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-          x: {
-            grid: { display: false },
-            ticks: { color: 'var(--text-muted, #64748b)', font: { weight: '600' } }
-          },
-          y: {
-            min: 0,
-            max: 100,
-            ticks: {
-              callback: (v) => v + '%',
-              color: 'var(--text-muted, #64748b)',
-              stepSize: 20
-            },
-            grid: { color: 'rgba(148, 163, 184, 0.15)' }
-          }
-        },
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            backgroundColor: 'rgba(15, 23, 42, 0.95)',
-            padding: 10,
-            callbacks: {
-              label: function(context) {
-                const idx = context.dataIndex;
-                const rawObj = rawScores[idx];
-                if (rawObj) {
-                  return ` Score: ${rawObj.obtained}/${rawObj.total} (${context.raw}%)`;
-                }
-                return ` Score: N/A`;
-              }
-            }
-          }
-        }
-      }
-    });
-  }
-}
-
-function getExamTermRank(name = "") {
-  const n = (name || "").toLowerCase().trim();
-
-  // 1. Pre-Mid Term (Grade 12)
-  if (n.includes("pre mid") || n.includes("pre-mid") || n.startsWith("pre ") || n === "pre") return 10;
-
-  // 2. Post-Mid Term (Grade 12) - check before generic mid term
-  if (n.includes("post mid") || n.includes("post-mid") || n.startsWith("post ") || n === "post") {
-    return 30;
-  }
-
-  // 3. Unit Test 1 / UT1 (Grade 10)
-  if (
-    n.includes("ut 1") || n.includes("ut-1") || n.includes("ut1") ||
-    n.includes("unit test 1") || n.includes("unit test1") ||
-    n === "ut" || n === "unit test"
-  ) {
-    return 11;
-  }
-
-  // 4. Class Tests / Test 1 / Test 2 (Grade 10)
-  if (
-    n.includes("class test") || n.includes("class ttest") || n.includes("class-test") ||
-    n.includes("classtest") || n.startsWith("ct") || n.includes("weekly test") ||
-    /^test\s*\d+/i.test(n) || n === "test"
-  ) {
-    const match = n.match(/\d+/);
-    const num = match ? parseInt(match[0], 10) : 1;
-    return 14 + Math.min(num, 4); // Test 1 = 15, Test 2 = 16, Test 3 = 17, etc.
-  }
-
-  // 5. Half Yearly / Term 1 / Mid Term (Grade 10 / Grade 12)
-  if (
-    n.includes("half yearly") || n.includes("half-yearly") || n.includes("halfyearly") ||
-    n.includes("term 1") || n.includes("term-1") || n.includes("term1") ||
-    n.includes("mid term") || n.includes("mid-term") || n.includes("midterm") || n === "mid"
-  ) {
-    return 20;
-  }
-
-  // 6. Unit Test 2 / UT2
-  if (
-    n.includes("ut 2") || n.includes("ut-2") || n.includes("ut2") ||
-    n.includes("unit test 2") || n.includes("unit test2")
-  ) {
-    return 25;
-  }
-
-  // 7. Term 2 / Pre Board
-  if (n.includes("term 2") || n.includes("term-2") || n.includes("term2")) return 35;
-  if (n.includes("pre board") || n.includes("pre-board") || n.includes("preboard")) return 40;
-
-  // 8. Final / Annual / Board
-  if (n.includes("final") || n.includes("annual") || n.includes("board")) return 50;
-
-  return 100;
-}
-
-function getSubjectRank(subject = "") {
-  const s = (subject || "").toLowerCase().trim();
-  if (s.includes("account")) return 1;
-  if (s.includes("business") || s === "bst") return 2;
-  if (s.includes("econom")) return 3;
-  if (s.includes("social")) return 4;
-  return 10;
-}
-
-function sortExams(exams = []) {
-  return [...exams].sort((a, b) => {
-    const rankA = getExamTermRank(a.name);
-    const rankB = getExamTermRank(b.name);
-    if (rankA !== rankB) return rankA - rankB;
-
-    const subjA = getSubjectRank(a.subject);
-    const subjB = getSubjectRank(b.subject);
-    if (subjA !== subjB) return subjA - subjB;
-
-    const sCmp = (a.subject || "").localeCompare(b.subject || "");
-    if (sCmp !== 0) return sCmp;
-
-    const nCmp = (a.name || "").localeCompare(b.name || "");
-    if (nCmp !== 0) return nCmp;
-
-    return new Date(a.created_at || 0) - new Date(b.created_at || 0);
-  });
-}
-
-async function initStudentReport() {
-  const container = document.getElementById("student-report-content");
-  if (!container) return; // report section not on page
-  
-  const groupSelectEl = document.getElementById("student-report-group-select");
-  const studentSelectEl = document.getElementById("student-report-select");
-  const studentInfoStr = localStorage.getItem("student_info");
-  
-  try {
-    const [studentsRes, examsRes, marksRes] = await Promise.all([
-      fetchStudents(),
-      fetchExams(),
-      fetchMarks()
-    ]);
-    
-    publicStudents = studentsRes.students || [];
-    publicExams = sortExams(examsRes.exams || []);
-    publicMarks = marksRes.marks || [];
-
-    if (studentInfoStr) {
-      // Auto-load for logged in student
-      const studentInfo = JSON.parse(studentInfoStr);
-      if (groupSelectEl) groupSelectEl.parentElement.style.display = "none";
-      if (studentSelectEl) studentSelectEl.parentElement.style.display = "none";
-      
-      const p = container.parentElement.querySelector("p.muted-text");
-      if(p) p.style.display = "none";
-
-      renderStudentReportContent(studentInfo.id);
-      return;
-    }
-
-    const isCoach = Boolean(sessionStorage.getItem("coach_password") || localStorage.getItem("coach_password"));
-    if (!studentInfoStr && isCoach) {
-      // Coach is logged in without student credentials: show an interactive student picker
-      let coachPicker = document.getElementById("coach-report-picker");
-      if (!coachPicker && container.parentElement) {
-        coachPicker = document.createElement("div");
-        coachPicker.id = "coach-report-picker";
-        coachPicker.style.cssText = "width: 100%; max-width: 480px; margin-bottom: 1rem; display: flex; flex-direction: column; gap: 0.5rem; text-align: left;";
-        
-        const currentGrade = document.body.dataset.grade || (window.location.pathname.includes("grade10") ? "10" : "12");
-        let availableStudents = publicStudents;
-        if (currentGrade === "12") {
-          availableStudents = publicStudents.filter(s => s.group_name && s.group_name.startsWith("Nerd Tutors"));
-        } else {
-          availableStudents = publicStudents.filter(s => !s.group_name || !s.group_name.startsWith("Nerd Tutors"));
-        }
-        availableStudents.sort((a,b) => a.name.localeCompare(b.name));
-
-        coachPicker.innerHTML = `
-          <label style="font-size: 0.85rem; font-weight: 700; color: #059669;">👑 Coach Mode: Inspect Student Report</label>
-          <select id="coach-student-select" style="padding: 0.6rem 0.8rem; border-radius: 8px; border: 1.5px solid #10b981; background: var(--surface); color: var(--text); font-weight: 600; font-size: 0.9rem; cursor: pointer;">
-            <option value="">Select a student to view report...</option>
-            ${availableStudents.map(s => `<option value="${escapeHtml(s.id)}">${escapeHtml(s.name)} (${escapeHtml(s.group_name || 'No Group')})</option>`).join('')}
-          </select>
-        `;
-        container.parentElement.insertBefore(coachPicker, container);
-
-        const selectEl = document.getElementById("coach-student-select");
-        if (selectEl) {
-          selectEl.addEventListener("change", (e) => {
-            if (e.target.value) {
-              renderStudentReportContent(e.target.value);
-            } else {
-              container.style.display = "none";
-            }
-          });
-        }
-      }
-      return;
-    }
-
-    if (!studentSelectEl || !groupSelectEl) return;
-    
-    // Extract unique groups
-    let uniqueGroups = [...new Set(publicStudents.map(s => s.group_name || 'Unassigned'))].sort();
-    
-    // Filter out Nerd Tutors groups from the public dropdown
-    uniqueGroups = uniqueGroups.filter(g => !g.startsWith("Nerd Tutors"));
-    
-    // Populate group dropdown
-    let groupHtml = `<option value="">Select your group...</option>`;
-    uniqueGroups.forEach(g => {
-      groupHtml += `<option value="${escapeHtml(g)}">${escapeHtml(g)}</option>`;
-    });
-    groupSelectEl.innerHTML = groupHtml;
-    
-    // Group change listener
-    groupSelectEl.addEventListener("change", (e) => {
-      const selectedGroup = e.target.value;
-      
-      document.getElementById("student-report-content").style.display = "none";
-      
-      if (!selectedGroup) {
-        studentSelectEl.disabled = true;
-        studentSelectEl.innerHTML = `<option value="">Select your name...</option>`;
-        return;
-      }
-      
-      studentSelectEl.disabled = false;
-      let studentHtml = `<option value="">Select your name...</option>`;
-      
-      const filteredStudents = publicStudents.filter(s => (s.group_name || 'Unassigned') === selectedGroup && s.is_active !== false);
-      filteredStudents.sort((a,b) => a.name.localeCompare(b.name)).forEach(s => {
-        studentHtml += `<option value="${escapeHtml(s.id)}">${escapeHtml(s.name)}</option>`;
-      });
-      studentSelectEl.innerHTML = studentHtml;
-    });
-    
-    studentSelectEl.addEventListener("change", () => renderStudentReportContent());
-  } catch (err) {
-    console.error("Error loading student report data:", err);
-    if (groupSelectEl) groupSelectEl.innerHTML = `<option value="">Error loading data.</option>`;
-    if (studentSelectEl) studentSelectEl.innerHTML = `<option value="">Error loading data.</option>`;
-  }
-}
-
-function renderStudentReportContent(forcedStudentId = null) {
-  const container = document.getElementById("student-report-content");
-  if (!container) return;
-  
-  let studentId = forcedStudentId;
-  if (typeof forcedStudentId === 'object') {
-     studentId = null;
-  }
-
-  if (!studentId) {
-    const selectEl = document.getElementById("student-report-select");
-    if (!selectEl) return;
-    studentId = selectEl.value;
-  }
-  
-  if (!studentId) {
-    container.style.display = "none";
-    return;
-  }
-  
-  container.style.display = "block";
-  
-  const studentObj = publicStudents.find(s => s.id === studentId);
-  if (studentObj && studentObj.is_active === false) {
-    container.innerHTML = `<div class="notice-banner" style="background: rgba(239, 68, 68, 0.1); border: 1px solid #ef4444; color: #dc2626; padding: 1.5rem; border-radius: 8px; text-align: center; margin-top: 1rem;"><strong>Account Suspended:</strong> This student account is temporarily deactivated. Please contact your instructor.</div>`;
-    return;
-  }
-
-  const studentMarks = publicMarks.filter(m => m.student_id === studentId);
-  const isNerdStudent = studentObj && studentObj.group_name && studentObj.group_name.startsWith("Nerd Tutors");
-  const studentSubjs = (isNerdStudent && Array.isArray(studentObj.subjects) && studentObj.subjects.length > 0)
-    ? studentObj.subjects
-    : (isNerdStudent ? ["Accountancy", "Economics", "Business Studies"] : ["Social Science"]);
-
-  const applicableExams = publicExams.filter(ex => {
-    if (studentObj && studentObj.group_name && Array.isArray(ex.target_groups) && ex.target_groups.length > 0) {
-      if (!ex.target_groups.includes(studentObj.group_name)) return false;
-    }
-    if (isNerdStudent) {
-      if (!ex.subject) return false;
-      return studentSubjs.includes(ex.subject);
-    } else {
-      // Non-Nerd Tutors groups study ONLY Social Science
-      // Filter out any commerce exams (Accountancy, Business Studies, Economics)
-      const s = (ex.subject || "").toLowerCase().trim();
-      if (s.includes("account") || s.includes("business") || s === "bst" || s.includes("econom")) {
-        return false;
-      }
-      if (ex.subject && s !== "social science" && !s.includes("social")) {
-        return false;
-      }
-      return true;
-    }
-  });
-
-  // Extract distinct exam terms (e.g. UT1, Class Test, Half Yearly)
-  // Only include terms that have actual student marks, with fallback if no marks exist yet
-  const distinctTerms = [];
-  applicableExams.forEach(ex => {
-    if (!distinctTerms.includes(ex.name)) {
-      const hasMarkForTerm = studentMarks.some(m => m.marks_obtained !== null && m.marks_obtained !== undefined && applicableExams.some(e => e.id === m.exam_id && e.name === ex.name));
-      if (hasMarkForTerm) {
-        distinctTerms.push(ex.name);
-      }
-    }
-  });
-
-  // Fallback: if student has no marks yet, show distinct terms from applicableExams
-  if (distinctTerms.length === 0) {
-    applicableExams.forEach(ex => {
-      if (!distinctTerms.includes(ex.name)) distinctTerms.push(ex.name);
-    });
-  }
-  distinctTerms.sort((a, b) => getExamTermRank(a) - getExamTermRank(b));
-
-  // Extract distinct subjects to display as row headers
-  // For non-Nerd students, this is always strictly ["Social Science"]
-  let displaySubjects = isNerdStudent ? [...studentSubjs] : ["Social Science"];
-  displaySubjects.sort((a, b) => getSubjectRank(a) - getSubjectRank(b));
-
-  let hasExams = false;
-  let html = `<div class="submit-card" style="padding: 0; overflow-x: auto;"><table style="width: 100%; border-collapse: collapse; text-align: left; background: var(--surface);">
-    <thead>
-      <tr style="border-bottom: 2px solid var(--border);">
-        <th style="padding: 0.75rem 0.5rem; color: var(--text-muted); font-weight: 600; font-size: 0.85rem; width: 28%;">Subject</th>`;
-
-  distinctTerms.forEach(term => {
-    const matchingEx = applicableExams.find(e => e.name === term);
-    const maxMarks = matchingEx ? matchingEx.total_marks : '';
-    html += `
-      <th style="padding: 0.75rem 0.5rem; color: var(--text-muted); font-weight: 600; text-align: center; font-size: 0.85rem;">
-        ${escapeHtml(term)}
-        ${maxMarks ? `<br><small style="font-weight: normal; font-size: 0.72rem; color: var(--text-muted);">Max: ${maxMarks}</small>` : ''}
-      </th>
-    `;
-  });
-
-  html += `</tr></thead><tbody>`;
-
-  if (displaySubjects.length > 0) {
-    displaySubjects.forEach(subj => {
-      html += `<tr style="border-bottom: 1px solid var(--border);">
-        <td style="padding: 0.75rem 0.5rem; font-weight: 600; font-size: 0.9rem; color: var(--text);">
-          ${escapeHtml(subj)}
-        </td>`;
-
-      distinctTerms.forEach(term => {
-        const ex = applicableExams.find(e => e.name === term && (e.subject === subj || (!e.subject && displaySubjects.length === 1)));
-        if (!ex) {
-          html += `<td style="padding: 0.75rem 0.5rem; text-align: center; color: var(--text-muted); font-size: 0.85rem;">&mdash;</td>`;
-          return;
-        }
-
-        const markObj = studentMarks.find(m => m.exam_id === ex.id);
-        if (markObj && markObj.marks_obtained !== null && markObj.marks_obtained !== undefined) {
-          hasExams = true;
-          const marksObtained = markObj.marks_obtained;
-          const maxMarks = ex.total_marks;
-          const perc = (marksObtained / maxMarks) * 100;
-          html += `
-            <td style="padding: 0.75rem 0.5rem; text-align: center;">
-              <div style="font-weight: 700; font-size: 0.95rem; color: var(--text);">${marksObtained}/${maxMarks}</div>
-              <div style="font-size: 0.78rem; font-weight: 600; color: var(--primary); margin-top: 2px;">${perc.toFixed(1)}%</div>
-            </td>
-          `;
-        } else {
-          html += `<td style="padding: 0.75rem 0.5rem; text-align: center; color: var(--text-muted); font-size: 0.85rem;">&mdash;</td>`;
-        }
-      });
-
-      html += `</tr>`;
-    });
-
-    // Only display Average row when there are MULTIPLE subjects (e.g. Nerd Tutors with Accountancy, Business Studies, Economics)
-    // For single-subject report cards (e.g. Social Science), the Average row is redundant and is omitted
-    if (isNerdStudent && displaySubjects.length > 1) {
-      let avgCells = `<td style="padding: 0.75rem 0.5rem; font-weight: 700; font-size: 0.9rem; color: var(--primary);">Average</td>`;
-      distinctTerms.forEach(term => {
-        let termObt = 0;
-        let termMax = 0;
-        let hasTermMarks = false;
-
-        displaySubjects.forEach(subj => {
-          const ex = applicableExams.find(e => e.name === term && (e.subject === subj || (!e.subject && displaySubjects.length === 1)));
-          if (ex) {
-            const markObj = studentMarks.find(m => m.exam_id === ex.id);
-            if (markObj && markObj.marks_obtained !== null && markObj.marks_obtained !== undefined) {
-              termObt += markObj.marks_obtained;
-              termMax += ex.total_marks;
-              hasTermMarks = true;
-            }
-          }
-        });
-
-        if (hasTermMarks && termMax > 0) {
-          const termPerc = (termObt / termMax) * 100;
-          avgCells += `
-            <td style="padding: 0.75rem 0.5rem; text-align: center; background: rgba(59, 130, 246, 0.06);">
-              <div style="font-weight: 700; font-size: 0.95rem; color: var(--primary);">${termObt}/${termMax}</div>
-              <div style="font-size: 0.8rem; font-weight: 700; color: var(--primary); margin-top: 2px;">${termPerc.toFixed(1)}%</div>
-            </td>
-          `;
-        } else {
-          avgCells += `<td style="padding: 0.75rem 0.5rem; text-align: center; color: var(--text-muted); font-size: 0.85rem;">&mdash;</td>`;
-        }
-      });
-
-      html += `<tr style="border-top: 2px solid var(--border); background: rgba(59, 130, 246, 0.04);">${avgCells}</tr>`;
-    }
-  } else {
-    // Single-subject / general fallback
-    html += `<tr style="border-bottom: 1px solid var(--border);">
-      <td style="padding: 0.75rem 0.5rem; font-weight: 600; font-size: 0.9rem; color: var(--text);">Score</td>`;
-    distinctTerms.forEach(term => {
-      const ex = applicableExams.find(e => e.name === term);
-      const markObj = ex ? studentMarks.find(m => m.exam_id === ex.id) : null;
-      if (markObj && markObj.marks_obtained !== null && markObj.marks_obtained !== undefined) {
-        hasExams = true;
-        const marksObtained = markObj.marks_obtained;
-        const maxMarks = ex.total_marks;
-        const perc = (marksObtained / maxMarks) * 100;
-        html += `
-          <td style="padding: 0.75rem 0.5rem; text-align: center;">
-            <div style="font-weight: 700; font-size: 0.95rem; color: var(--text);">${marksObtained}/${maxMarks}</div>
-            <div style="font-size: 0.78rem; font-weight: 600; color: var(--primary); margin-top: 2px;">${perc.toFixed(1)}%</div>
-          </td>
-        `;
-      } else {
-        html += `<td style="padding: 0.75rem 0.5rem; text-align: center; color: var(--text-muted);">&mdash;</td>`;
-      }
-    });
-    html += `</tr>`;
-  }
-
-  if (!hasExams) {
-    html = `<div class="submit-card" style="padding: 1.5rem; text-align: center; color: var(--text-muted);">No exam records found yet.</div>`;
-  } else {
-    html += `</tbody></table></div>`;
-  }
-
-  if (hasExams && applicableExams.length > 0) {
-    const stats = [];
-    applicableExams.forEach(ex => {
-      const markObj = studentMarks.find(m => m.exam_id === ex.id);
-      if (markObj && markObj.marks_obtained !== null && markObj.marks_obtained !== undefined) {
-        stats.push({ name: ex.name, subject: ex.subject || (!isNerdStudent ? "Social Science" : ""), perc: (markObj.marks_obtained / ex.total_marks) * 100 });
-      }
-    });
-
-    if (stats.length > 0) {
-      const averagePerc = stats.reduce((acc, curr) => acc + curr.perc, 0) / stats.length;
-      const highestExam = stats.reduce((prev, curr) => (prev.perc > curr.perc) ? prev : curr);
-      const lowestExam = stats.reduce((prev, curr) => (prev.perc < curr.perc) ? prev : curr);
-
-      // Calculate term-by-term trend across terms (e.g. Pre Mid vs Post Mid average)
-      const termAverages = [];
-      distinctTerms.forEach(term => {
-        const termStats = stats.filter(st => st.name === term);
-        if (termStats.length > 0) {
-          const avg = termStats.reduce((sum, s) => sum + s.perc, 0) / termStats.length;
-          termAverages.push({ term, avg });
-        }
-      });
-
-      let trendHtml = '';
-      if (termAverages.length >= 2) {
-        const firstTerm = termAverages[0];
-        const lastTerm = termAverages[termAverages.length - 1];
-        const overallChange = lastTerm.avg - firstTerm.avg;
-        if (overallChange > 0) trendHtml = `<span style="color: #059669; font-weight: bold;">Improving (&#8593; ${overallChange.toFixed(1)}%)</span>`;
-        else if (overallChange < 0) trendHtml = `<span style="color: #dc2626; font-weight: bold;">Declining (&#8595; ${Math.abs(overallChange).toFixed(1)}%)</span>`;
-        else trendHtml = `<span style="color: var(--text-muted); font-weight: bold;">Stable</span>`;
-      } else {
-        trendHtml = `<span style="color: var(--text-muted);">Need more exams</span>`;
-      }
-
-      let subjectCardsHtml = '';
-      if (displaySubjects && displaySubjects.length > 0) {
-        displaySubjects.forEach(sb => {
-          const sbStats = stats.filter(st => st.subject === sb);
-          if (sbStats.length > 0) {
-            const sbAvg = sbStats.reduce((acc, curr) => acc + curr.perc, 0) / sbStats.length;
-            subjectCardsHtml += `
-              <div style="background: var(--surface-card); padding: 0.75rem 1rem; border-radius: 8px; border: 1px solid var(--border);">
-                <p style="margin: 0; color: var(--text-muted); font-size: 0.85rem;">${escapeHtml(sb)}</p>
-                <p style="margin: 0.25rem 0 0 0; font-size: 1.15rem; font-weight: bold; color: var(--primary);">${sbAvg.toFixed(1)}%</p>
-              </div>
-            `;
-          }
-        });
-      }
-
-      html += `
-      <div style="border-top: 1px solid var(--border); padding: 1.5rem; background: var(--bg); border-radius: 12px; margin-top: 1.5rem;">
-        <h3 style="margin-top: 0; color: var(--text); border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; font-size: 1.1rem;">Insights & Analysis</h3>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem; margin-top: 1rem;">
-            <div>
-                <p style="margin: 0.5rem 0; color: var(--text-muted); font-size: 0.9rem;">Overall Average</p>
-                <p style="margin: 0; font-size: 1.25rem; font-weight: bold; color: var(--primary);">${averagePerc.toFixed(1)}%</p>
-            </div>
-            <div>
-                <p style="margin: 0.5rem 0; color: var(--text-muted); font-size: 0.9rem;">Overall Trend</p>
-                <p style="margin: 0; font-size: 1.1rem;">${trendHtml}</p>
-            </div>
-            <div>
-                <p style="margin: 0.5rem 0; color: var(--text-muted); font-size: 0.9rem;">Highest Score</p>
-                <p style="margin: 0; font-size: 1.1rem; font-weight: 500;">${highestExam.perc.toFixed(1)}%</p>
-                <p style="margin: 0.2rem 0 0 0; font-size: 0.8rem; color: var(--text-muted);">${escapeHtml(highestExam.name)}${highestExam.subject ? ` (${escapeHtml(highestExam.subject)})` : ''}</p>
-            </div>
-            <div>
-                <p style="margin: 0.5rem 0; color: var(--text-muted); font-size: 0.9rem;">Lowest Score</p>
-                <p style="margin: 0; font-size: 1.1rem; font-weight: 500;">${lowestExam.perc.toFixed(1)}%</p>
-                <p style="margin: 0.2rem 0 0 0; font-size: 0.8rem; color: var(--text-muted);">${escapeHtml(lowestExam.name)}${lowestExam.subject ? ` (${escapeHtml(lowestExam.subject)})` : ''}</p>
-            </div>
-        </div>
-        ${(subjectCardsHtml && displaySubjects.length > 1) ? `
-        <div style="margin-top: 1.25rem; border-top: 1px solid var(--border); padding-top: 1rem;">
-          <p style="margin: 0 0 0.75rem 0; font-weight: 600; font-size: 0.95rem; color: var(--text);">Subject-wise Average</p>
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.75rem;">
-            ${subjectCardsHtml}
-          </div>
-        </div>
-        ` : ''}
-
-        <!-- PERFORMANCE / PROGRESS GRAPH -->
-        <div style="margin-top: 1.5rem; border-top: 1px solid var(--border); padding-top: 1.25rem;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
-            <p style="margin: 0; font-weight: 700; font-size: 1rem; color: var(--text); display: flex; align-items: center; gap: 0.5rem;">
-              <span>📊</span>
-              <span>${isNerdStudent ? '3-Subject Performance Bar Graph' : 'Progress & Performance Graph'}</span>
-            </p>
-            <span style="font-size: 0.8rem; font-weight: 600; color: var(--primary); background: rgba(59, 130, 246, 0.1); padding: 0.25rem 0.65rem; border-radius: 99px; border: 1px solid rgba(59, 130, 246, 0.25);">
-              ${isNerdStudent ? 'All 3 Subjects in 1 Bar (100% Scale)' : '0% - 100% Progress Scale'}
-            </span>
-          </div>
-          <div style="position: relative; height: 280px; width: 100%;">
-            <canvas id="student-report-chart"></canvas>
-          </div>
-        </div>
-      </div>
-      `;
-    }
-  }
-
-  html += `</div>`;
-  html += `<div id="hw-report-container"></div>`;
-  container.innerHTML = html;
-
-  if (hasExams && applicableExams.length > 0) {
-    renderStudentReportChart({ isNerdStudent, distinctTerms, applicableExams, studentMarks, displaySubjects });
-  }
-
-  // Fetch and render homework status
-  fetch(`/api/homework?student_id=${studentId}`)
-    .then(res => res.json())
-    .then(data => {
-      if (data.statuses && data.statuses.length > 0) {
-        let hwHtml = `
-        <details class="hw-collapsible-card" style="background: var(--surface-card); border: 1px solid var(--border); border-radius: 12px; margin-top: 1.5rem; box-shadow: var(--shadow);">
-          <summary style="padding: 1.1rem 1.25rem; cursor: pointer; list-style: none; display: flex; align-items: center; justify-content: space-between; outline: none; user-select: none;">
-            <div style="display: flex; align-items: center; gap: 0.6rem;">
-              <span style="font-size: 1.2rem;">📋</span>
-              <h3 style="margin: 0; font-size: 1.05rem; color: var(--text);">Homework Records (${data.statuses.length} entries)</h3>
-            </div>
-            <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 500;">Click to view / collapse &#9660;</span>
-          </summary>
-          <div style="padding: 0 1.25rem 1.25rem 1.25rem; border-top: 1px solid var(--border);">
-            <div class="submit-card" style="padding: 0; overflow-x: auto; margin-top: 1rem; border: none; box-shadow: none;">
-              <table style="width: 100%; border-collapse: collapse; text-align: left; background: var(--surface);">
-                <thead>
-                  <tr style="border-bottom: 2px solid var(--border);">
-                    <th style="padding: 0.85rem 1rem; color: var(--text-muted); font-weight: 600; font-size: 0.85rem;">Date</th>
-                    <th style="padding: 0.85rem 1rem; color: var(--text-muted); font-weight: 600; font-size: 0.85rem;">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-        `;
-        
-        data.statuses.forEach(st => {
-          let badgeColor = "#059669";
-          let badgeBg = "#dcfce7";
-          let badgeIcon = "✓";
-
-          if (st.status === 'Completed but late') {
-            badgeColor = "#7c3aed";
-            badgeBg = "#ede9fe";
-            badgeIcon = "⏰";
-          } else if (st.status === 'Partial') {
-            badgeColor = "#d97706";
-            badgeBg = "#fef3c7";
-            badgeIcon = "⚠️";
-          } else if (st.status === 'Incomplete') {
-            badgeColor = "#dc2626";
-            badgeBg = "#fee2e2";
-            badgeIcon = "✗";
-          } else if (st.status === 'Absent') {
-            badgeColor = "#475569";
-            badgeBg = "#f1f5f9";
-            badgeIcon = "🚫";
-          }
-          
-          hwHtml += `
-            <tr style="border-bottom: 1px solid var(--border);">
-              <td style="padding: 0.85rem 1rem; font-weight: 500; font-size: 0.9rem;">${st.homework_date}</td>
-              <td style="padding: 0.85rem 1rem;">
-                <span style="background: ${badgeBg}; color: ${badgeColor}; padding: 0.25rem 0.75rem; border-radius: 9999px; font-weight: 600; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 0.35rem;">
-                  <span>${badgeIcon}</span> <span>${escapeHtml(st.status)}</span>
-                </span>
-              </td>
-            </tr>
-          `;
-        });
-        
-        hwHtml += `</tbody></table></div></div></details>`;
-        const hwContainer = document.getElementById("hw-report-container");
-        if (hwContainer) hwContainer.innerHTML = hwHtml;
-      }
-    })
-    .catch(err => console.error("Failed to load homework tracking:", err));
-}
-
-// Initialize when DOM is ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initStudentReport);
-} else {
-  initStudentReport();
-}
-
-// Map Work New Badge Logic
-document.addEventListener("DOMContentLoaded", () => {
-  const mapBadge = document.getElementById("map-work-new-badge");
-  const mapLink = document.getElementById("map-work-link");
-  if (mapBadge && mapLink) {
-    if (!localStorage.getItem("padhrahi_clicked_map_work")) {
-      mapBadge.style.display = "inline-block";
-    }
-    mapLink.addEventListener("click", () => {
-      localStorage.setItem("padhrahi_clicked_map_work", "true");
-      mapBadge.style.display = "none";
-    });
-  }
-});
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// --- Milestone Celebration Banner ---
-document.addEventListener("DOMContentLoaded", () => {
-  if (localStorage.getItem('milestone_banner_dismissed')) return;
-
-  const banner = document.createElement("div");
-  banner.id = "milestone-banner";
-  banner.innerHTML = `
-    <button id="milestone-close">&times;</button>
-    <h3 style="margin: 0; font-size: 1.15rem; color: var(--text); font-weight: 700; padding-right: 20px;">🎉 A quick note of gratitude!</h3>
-    <p style="margin: 0; font-size: 0.95rem; color: var(--text-muted); line-height: 1.5;">We just crossed 1,000 visitors, and we couldn't have reached this milestone without you. If you enjoy our content and want regular updates, connect with us on Instagram!</p>
-    <a id="milestone-btn" href="https://www.instagram.com/nerd_tutors/" target="_blank">Follow Us on Instagram</a>
-  `;
-  document.body.appendChild(banner);
-
-  const closeBtn = document.getElementById("milestone-close");
-  const instaBtn = document.getElementById("milestone-btn");
-
-  const dismissBanner = () => {
-    localStorage.setItem('milestone_banner_dismissed', 'true');
-    banner.style.opacity = '0';
-    banner.style.transform = 'translateY(20px)';
-    setTimeout(() => {
-      if (banner.parentNode) banner.parentNode.removeChild(banner);
-    }, 300);
-  };
-
-  closeBtn.addEventListener("click", dismissBanner);
-  instaBtn.addEventListener("click", dismissBanner);
-
-  // Slide in smoothly 2 seconds after page load
-  setTimeout(() => {
-    banner.classList.add("show");
-  }, 2000);
-});
-
-// --- AI CHECKING & NERD TUTORS SMART ACCESS ROUTING ---
-function initNerdTutorsAccess() {
-  const evalBtn = document.getElementById("nerd-tutors-eval-btn");
-  if (!evalBtn) return;
-
-  const modal = document.getElementById("nerd-access-modal");
-  const closeBtn = document.getElementById("nerd-access-close-btn");
-  const form = document.getElementById("nerd-access-form");
-  const idInput = document.getElementById("nerd-access-id");
-  const passInput = document.getElementById("nerd-access-pass");
-  const submitBtn = document.getElementById("nerd-access-submit-btn");
-  const errorEl = document.getElementById("nerd-access-error");
-  const statusTag = document.getElementById("ai-checking-status-tag");
-  const gateLink = document.getElementById("nerd-access-gate-link");
-
-  const GATE_PASS_URL = "https://nerd-tutors-two.vercel.app/?gate_pass=nt_pass_alpha2026";
-  const GATE_LOGIN_URL = "https://nerd-tutors-two.vercel.app/login-gate.html";
-
-  const getStudentInfo = () => {
-    try {
-      const str = localStorage.getItem("student_info");
-      return str ? JSON.parse(str) : null;
-    } catch (e) {
-      return null;
-    }
-  };
-
-  const isNerdStudent = (info) => {
-    return Boolean(info && info.group_name && info.group_name.startsWith("Nerd Tutors"));
-  };
-
-  const updateCardState = () => {
-    const student = getStudentInfo();
-    if (student && isNerdStudent(student)) {
-      evalBtn.href = GATE_PASS_URL;
-      if (statusTag) {
-        statusTag.textContent = `✓ Logged in as ${student.name} (Nerd Tutors) — Direct Access Active`;
-        statusTag.style.display = "block";
-      }
-    } else {
-      evalBtn.href = "#";
-      if (statusTag) statusTag.style.display = "none";
-    }
-  };
-
-  updateCardState();
-
-  evalBtn.addEventListener("click", (e) => {
-    const student = getStudentInfo();
-    if (student && isNerdStudent(student)) {
-      // Direct access allowed
-      return;
-    }
-    // Block standard click and open access modal
-    e.preventDefault();
-    if (modal) {
-      modal.classList.remove("hidden");
-      modal.style.display = "flex";
-      if (errorEl) errorEl.style.display = "none";
-      if (idInput) idInput.focus();
-    }
-  });
-
-  if (closeBtn && modal) {
-    closeBtn.addEventListener("click", () => {
-      modal.classList.add("hidden");
-      modal.style.display = "none";
-    });
-  }
-
-  if (gateLink && modal) {
-    gateLink.addEventListener("click", () => {
-      modal.classList.add("hidden");
-      modal.style.display = "none";
-    });
-  }
-
-  if (form) {
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const idVal = idInput ? idInput.value.trim() : "";
-      const passVal = passInput ? passInput.value.trim() : "";
-
-      if (!idVal || !passVal) {
-        if (errorEl) {
-          errorEl.textContent = "Please enter both Student ID and Password.";
-          errorEl.style.display = "block";
-        }
-        return;
-      }
-
-      submitBtn.disabled = true;
-      submitBtn.textContent = "Verifying...";
-      if (errorEl) errorEl.style.display = "none";
-
-      try {
-        const res = await fetch("/api/auth", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ student_id_alias: idVal, password: passVal })
-        });
-        const data = await res.json();
-        if (!res.ok) {
-          throw new Error(data.error || "Login failed");
-        }
-
-        const student = data.student;
-        if (student && isNerdStudent(student)) {
-          localStorage.setItem("student_token", data.token);
-          localStorage.setItem("student_info", JSON.stringify(student));
-          updateCardState();
-          modal.classList.add("hidden");
-          modal.style.display = "none";
-          window.open(GATE_PASS_URL, "_blank");
-        } else {
-          // Valid student in another group
-          if (errorEl) {
-            errorEl.innerHTML = `Your account (${escapeHtml(student.name)}) is in <strong>${escapeHtml(student.group_name || "Unassigned")}</strong>, not Nerd Tutors.<br><a href="${GATE_LOGIN_URL}" target="_blank" style="color:var(--primary); font-weight:600; display:inline-block; margin-top:0.35rem;">Click here to go to the NerdTutors login gate ↗</a>`;
-            errorEl.style.display = "block";
-          }
-        }
-      } catch (err) {
-        if (errorEl) {
-          errorEl.textContent = err.message || "Invalid Student ID or Password.";
-          errorEl.style.display = "block";
-        }
-      } finally {
-        submitBtn.disabled = false;
-        submitBtn.textContent = "Verify & Enter Directly →";
-      }
-    });
-  }
-}
-
-document.addEventListener("DOMContentLoaded", () => {
-  initNerdTutorsAccess();
-});
-
-// Theater Curtain & Happy Diwali Entrance Reveal Controller
-document.addEventListener("DOMContentLoaded", () => {
-  const stage = document.getElementById("countdown-stage");
-  const diwaliOverlay = document.getElementById("diwali-overlay");
-  const closeBtn = document.getElementById("btn-replay-curtain");
-
-  if (stage) {
-    // 1. Initial page load state: Curtains stationed open at left and right sides
-    stage.classList.add("curtains-open");
-    stage.classList.remove("greeting-visible");
-
-    // 2. Majestic Entrance: Curtains glide in from left & right, close in center, then Happy Diwali illuminates!
-    setTimeout(() => {
-      stage.classList.remove("curtains-open");
-
-      // As curtains meet in the center (after ~2.5s), gracefully illuminate "Happy Diwali"
-      setTimeout(() => {
-        stage.classList.add("greeting-visible");
-      }, 2500);
-    }, 400);
-
-    // 3. User interaction: Clicking anywhere on the closed stage/overlay automatically parts open the curtains
-    const openCurtains = (e) => {
-      if (e) e.stopPropagation();
-      stage.classList.remove("greeting-visible");
-      stage.classList.add("curtains-open");
-    };
-
-    // 4. User interaction: Close curtains back over countdown and re-illuminate Happy Diwali
-    const closeCurtains = (e) => {
-      if (e) e.stopPropagation();
-      stage.classList.remove("curtains-open");
-      setTimeout(() => {
-        stage.classList.add("greeting-visible");
-      }, 2500);
-    };
-
-    if (diwaliOverlay) diwaliOverlay.addEventListener("click", openCurtains);
-    stage.addEventListener("click", (e) => {
-      if (!stage.classList.contains("curtains-open")) {
-        openCurtains(e);
-      }
-    });
-    if (closeBtn) closeBtn.addEventListener("click", closeCurtains);
-  }
-});
+const offlineNotice = document.getElementById("offline-notice");
+
+function isOfflineFileMode() {
+  return window.location.protocol === "file:";
+}
+
+// Parses "[Ch X]" or "[Sl X]" Chapter Title format
+function parseResourceTitle(rawTitle) {
+  const match = (rawTitle || "").match(/^\[(Ch|Sl)\s*([^\]]+)\]\s*(.*)$/i);
+  if (match) {
+    return {
+      prefix: match[1].trim(),
+      chapter: match[2].trim(),
+      cleanTitle: match[3].trim()
+    };
+  }
+  return {
+    prefix: null,
+    chapter: null,
+    cleanTitle: rawTitle
+  };
+}
+
+// Converts chapter to sortable float value
+function getChapterSortValue(resource) {
+  const parsed = parseResourceTitle(resource.title || "");
+  if (parsed.chapter) {
+    const num = parseFloat(parsed.chapter);
+    if (!isNaN(num)) {
+      if (parsed.prefix && parsed.prefix.toLowerCase() === 'sl') {
+        return 10000 + num;
+      }
+      return num;
+    }
+  }
+  return 999999;
+}
+
+async function loadPDFNotes() {
+  const notesXContainer = document.getElementById("notes-x-container");
+  const noNotesX = document.getElementById("no-notes-x");
+  const notesXIIContainer = document.getElementById("notes-xii-container");
+  const noNotesXII = document.getElementById("no-notes-xii");
+  const loadingIndicator = document.getElementById("loading-indicator");
+
+  function renderNotesToDOM(notesList) {
+    const classTestBtn = document.getElementById("class-test-results-btn");
+    if (classTestBtn) {
+      const resultsNote = (notesList || []).find(n => n.grade === "XII-Results" || (n.title && n.title.toLowerCase().includes("class test results")));
+      if (resultsNote && resultsNote.link) {
+        classTestBtn.href = resultsNote.link;
+        classTestBtn.removeAttribute("data-empty");
+      } else {
+        classTestBtn.href = "#";
+        classTestBtn.setAttribute("data-empty", "true");
+      }
+      if (!classTestBtn._hasListener) {
+        classTestBtn._hasListener = true;
+        classTestBtn.addEventListener("click", (e) => {
+          if (classTestBtn.getAttribute("data-empty") === "true" || classTestBtn.getAttribute("href") === "#") {
+            e.preventDefault();
+            alert("Class test results link will be updated soon by the coach.");
+          }
+        });
+      }
+    }
+    if (notesXContainer) {
+      const notesXHistory = document.getElementById("notes-x-history");
+      const notesXGeography = document.getElementById("notes-x-geography");
+      const notesXCivics = document.getElementById("notes-x-civics");
+      const notesXEconomics = document.getElementById("notes-x-economics");
+      const worksheetsXHistory = document.getElementById("worksheets-x-history");
+      const worksheetsXGeography = document.getElementById("worksheets-x-geography");
+      const worksheetsXCivics = document.getElementById("worksheets-x-civics");
+      const worksheetsXEconomics = document.getElementById("worksheets-x-economics");
+      const otherXHistory = document.getElementById("other-x-history");
+      const otherXGeography = document.getElementById("other-x-geography");
+
+      notesXHistory.innerHTML = "";
+      notesXGeography.innerHTML = "";
+      notesXCivics.innerHTML = "";
+      notesXEconomics.innerHTML = "";
+      worksheetsXHistory.innerHTML = "";
+      worksheetsXGeography.innerHTML = "";
+      worksheetsXCivics.innerHTML = "";
+      worksheetsXEconomics.innerHTML = "";
+      if (otherXHistory) otherXHistory.innerHTML = "";
+      if (otherXGeography) otherXGeography.innerHTML = "";
+
+      const groups = {
+        History: { card: document.getElementById("group-x-history"), notesList: notesXHistory, notesSection: document.getElementById("section-x-history-notes"), worksheetsList: worksheetsXHistory, worksheetsSection: document.getElementById("section-x-history-worksheets"), otherList: otherXHistory, otherSection: document.getElementById("section-x-history-other") },
+        Geography: { card: document.getElementById("group-x-geography"), notesList: notesXGeography, notesSection: document.getElementById("section-x-geography-notes"), worksheetsList: worksheetsXGeography, worksheetsSection: document.getElementById("section-x-geography-worksheets"), otherList: otherXGeography, otherSection: document.getElementById("section-x-geography-other") },
+        Civics: { card: document.getElementById("group-x-civics"), notesList: notesXCivics, notesSection: document.getElementById("section-x-civics-notes"), worksheetsList: worksheetsXCivics, worksheetsSection: document.getElementById("section-x-civics-worksheets") },
+        Economics: { card: document.getElementById("group-x-economics"), notesList: notesXEconomics, notesSection: document.getElementById("section-x-economics-notes"), worksheetsList: worksheetsXEconomics, worksheetsSection: document.getElementById("section-x-economics-worksheets") },
+      };
+
+      Object.values(groups).forEach(g => {
+        if (g.card) g.card.style.display = "none";
+        if (g.notesSection) g.notesSection.style.display = "none";
+        if (g.worksheetsSection) g.worksheetsSection.style.display = "none";
+        if (g.otherSection) g.otherSection.style.display = "none";
+      });
+
+      const gradeXResources = (notesList || []).filter((n) => n.grade === "X" || n.grade === "X-Worksheet" || n.grade === "X-Other");
+      gradeXResources.sort((a, b) => {
+        const sortA = getChapterSortValue(a);
+        const sortB = getChapterSortValue(b);
+        if (sortA !== sortB) return sortA - sortB;
+        const titleA = parseResourceTitle(a.title).cleanTitle;
+        const titleB = parseResourceTitle(b.title).cleanTitle;
+        return titleA.localeCompare(titleB, undefined, { numeric: true, sensitivity: 'base' });
+      });
+
+      if (!gradeXResources.length) {
+        if (noNotesX) noNotesX.style.display = "block";
+      } else {
+        if (noNotesX) noNotesX.style.display = "none";
+        let renderedCount = 0;
+        gradeXResources.forEach((resource) => {
+          let subj = resource.subject;
+          if (subj === "Macro Economics" || subj === "Indian Economics Development") subj = "Economics";
+          const target = groups[subj];
+          if (target) {
+            const li = document.createElement("li");
+            const parsed = parseResourceTitle(resource.title);
+            let badgeText = ""; if (parsed.chapter) { const prefix = parsed.prefix && parsed.prefix.toLowerCase() === "sl" ? "Sl No." : "Ch"; badgeText = `${prefix} ${escapeHtml(parsed.chapter)}`; } const chapterBadge = badgeText ? `<span class="note-chapter-tag">${badgeText}</span> ` : "";
+            if (resource.grade === "X-Other") {
+              if (target.otherList) {
+                li.innerHTML = `<a href="${escapeHtml(resource.link)}" target="_blank" rel="noopener noreferrer" class="note-link">📚📁 ${chapterBadge}${escapeHtml(parsed.cleanTitle)}</a>`;
+                target.otherList.appendChild(li);
+                if (target.otherSection) target.otherSection.style.display = "block";
+              }
+            } else if (resource.grade === "X-Worksheet") {
+              li.innerHTML = `<a href="${escapeHtml(resource.link)}" target="_blank" rel="noopener noreferrer" class="note-link">📚📝 ${chapterBadge}${escapeHtml(parsed.cleanTitle)}</a>`;
+              target.worksheetsList.appendChild(li);
+              if (target.worksheetsSection) target.worksheetsSection.style.display = "block";
+            } else {
+              let prefix = "";
+              if (resource.subject === "Macro Economics") prefix = `<span class="note-sub-tag">Macro</span> `;
+              if (resource.subject === "Indian Economics Development") prefix = `<span class="note-sub-tag">IED</span> `;
+              li.innerHTML = `<a href="${escapeHtml(resource.link)}" target="_blank" rel="noopener noreferrer" class="note-link">📚📝 ${prefix}${chapterBadge}${escapeHtml(parsed.cleanTitle)}</a>`;
+              target.notesList.appendChild(li);
+              if (target.notesSection) target.notesSection.style.display = "block";
+            }
+            if (target.card) target.card.style.display = "flex";
+            renderedCount++;
+          }
+        });
+        if (renderedCount === 0 && noNotesX) noNotesX.style.display = "block";
+      }
+      
+      document.querySelectorAll('#notes-x-container .subject-card').forEach(card => {
+        const header = card.querySelector('.card-header');
+        if (header && !header.hasAttribute('data-accordion-init')) {
+          header.setAttribute('data-accordion-init', 'true');
+          header.style.cursor = 'pointer';
+          header.innerHTML += `<span class="accordion-icon" style="margin-left: auto; transition: transform 0.2s;">▼</span>`;
+          const sections = card.querySelectorAll('.notes-section');
+          sections.forEach(s => s.classList.add('collapsed'));
+          header.addEventListener('click', () => {
+            const icon = header.querySelector('.accordion-icon');
+            const isExpanded = icon.style.transform === 'rotate(180deg)';
+            if (isExpanded) {
+              icon.style.transform = 'rotate(0deg)';
+              sections.forEach(s => s.classList.add('collapsed'));
+            } else {
+              icon.style.transform = 'rotate(180deg)';
+              sections.forEach(s => s.classList.remove('collapsed'));
+            }
+          });
+        }
+      });
+      
+      const cbseGrid = document.getElementById("cbse-dynamic-container");
+      if (cbseGrid) {
+        const cbseResources = (notesList || []).filter(n => n.grade === "CBSE");
+        cbseResources.sort((a, b) => a.title.localeCompare(b.title));
+        if (cbseResources.length === 0) {
+          cbseGrid.innerHTML = `<p class="muted-text text-center">No CBSE resources added yet.</p>`;
+        } else {
+          cbseGrid.innerHTML = "";
+          const subjectsGrid = document.createElement("div");
+          subjectsGrid.className = "notes-grid-subjects";
+          const subjectCard = document.createElement("div");
+          subjectCard.className = "subject-card";
+          const docIcon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`;
+          subjectCard.innerHTML = `
+            <div class="card-header" style="cursor: pointer; display: flex; align-items: center;">
+              <span class="subject-icon">📚</span>
+              <h4>General Resources</h4>
+              <span class="accordion-icon" style="margin-left: auto; transition: transform 0.2s;">▼</span>
+            </div>
+            <div class="notes-section collapsed">
+              <ul class="notes-list">
+                ${cbseResources.map(res => `
+                  <li>
+                    <a href="${escapeHtml(res.link)}" target="_blank" rel="noopener noreferrer" class="note-link">📚${docIcon} <span>${escapeHtml(res.title)}</span></a>
+                  </li>
+                `).join('')}
+              </ul>
+            </div>
+          `;
+          const header = subjectCard.querySelector('.card-header');
+          const section = subjectCard.querySelector('.notes-section');
+          const accIcon = subjectCard.querySelector('.accordion-icon');
+          header.addEventListener('click', () => {
+            const isExpanded = accIcon.style.transform === 'rotate(180deg)';
+            if (isExpanded) {
+              accIcon.style.transform = 'rotate(0deg)';
+              section.classList.add('collapsed');
+            } else {
+              accIcon.style.transform = 'rotate(180deg)';
+              section.classList.remove('collapsed');
+            }
+          });
+          subjectsGrid.appendChild(subjectCard);
+          cbseGrid.appendChild(subjectsGrid);
+        }
+      }
+    }
+
+    if (notesXIIContainer) {
+      const notesXIIAcc = document.getElementById("notes-xii-accountancy");
+      const notesXIIBus = document.getElementById("notes-xii-business");
+      const notesXIIEco = document.getElementById("notes-xii-economics");
+      const worksheetsXIIAcc = document.getElementById("worksheets-xii-accountancy");
+      const worksheetsXIIBus = document.getElementById("worksheets-xii-business");
+      const worksheetsXIIEco = document.getElementById("worksheets-xii-economics");
+      const otherXIIAcc = document.getElementById("other-xii-accountancy");
+      const otherXIIBus = document.getElementById("other-xii-business");
+      const otherXIIEco = document.getElementById("other-xii-economics");
+
+      if (notesXIIAcc) notesXIIAcc.innerHTML = "";
+      if (notesXIIBus) notesXIIBus.innerHTML = "";
+      if (notesXIIEco) notesXIIEco.innerHTML = "";
+      if (worksheetsXIIAcc) worksheetsXIIAcc.innerHTML = "";
+      if (worksheetsXIIBus) worksheetsXIIBus.innerHTML = "";
+      if (worksheetsXIIEco) worksheetsXIIEco.innerHTML = "";
+      if (otherXIIAcc) otherXIIAcc.innerHTML = "";
+      if (otherXIIBus) otherXIIBus.innerHTML = "";
+      if (otherXIIEco) otherXIIEco.innerHTML = "";
+
+      const groups = {
+        Accountancy: { card: document.getElementById("group-xii-accountancy"), notesList: notesXIIAcc, notesSection: document.getElementById("section-xii-accountancy-notes"), worksheetsList: worksheetsXIIAcc, worksheetsSection: document.getElementById("section-xii-accountancy-worksheets"), otherList: otherXIIAcc, otherSection: document.getElementById("section-xii-accountancy-other") },
+        "Business Studies": { card: document.getElementById("group-xii-business"), notesList: notesXIIBus, notesSection: document.getElementById("section-xii-business-notes"), worksheetsList: worksheetsXIIBus, worksheetsSection: document.getElementById("section-xii-business-worksheets"), otherList: otherXIIBus, otherSection: document.getElementById("section-xii-business-other") },
+        Economics: { card: document.getElementById("group-xii-economics"), notesList: notesXIIEco, notesSection: document.getElementById("section-xii-economics-notes"), worksheetsList: worksheetsXIIEco, worksheetsSection: document.getElementById("section-xii-economics-worksheets"), otherList: otherXIIEco, otherSection: document.getElementById("section-xii-economics-other") },
+      };
+
+      Object.values(groups).forEach(g => {
+        if (g.card) g.card.style.display = "none";
+        if (g.notesSection) g.notesSection.style.display = "none";
+        if (g.worksheetsSection) g.worksheetsSection.style.display = "none";
+        if (g.otherSection) g.otherSection.style.display = "none";
+      });
+
+      const gradeXIIResources = (notesList || []).filter((n) => n.grade === "XII" || n.grade === "XII-Worksheet" || n.grade === "XII-Other");
+      gradeXIIResources.sort((a, b) => {
+        const sortA = getChapterSortValue(a);
+        const sortB = getChapterSortValue(b);
+        if (sortA !== sortB) return sortA - sortB;
+        const titleA = parseResourceTitle(a.title).cleanTitle;
+        const titleB = parseResourceTitle(b.title).cleanTitle;
+        return titleA.localeCompare(titleB, undefined, { numeric: true, sensitivity: 'base' });
+      });
+
+      if (!gradeXIIResources.length) {
+        if (noNotesXII) noNotesXII.style.display = "block";
+      } else {
+        if (noNotesXII) noNotesXII.style.display = "none";
+        let renderedCount = 0;
+        gradeXIIResources.forEach((resource) => {
+          const target = groups[resource.subject];
+          if (target) {
+            const li = document.createElement("li");
+            const parsed = parseResourceTitle(resource.title);
+            let badgeText = ""; if (parsed.chapter) { const prefix = parsed.prefix && parsed.prefix.toLowerCase() === "sl" ? "Sl No." : "Ch"; badgeText = `${prefix} ${escapeHtml(parsed.chapter)}`; } const chapterBadge = badgeText ? `<span class="note-chapter-tag">${badgeText}</span> ` : "";
+            if (resource.grade === "XII-Other") {
+              if (target.otherList) {
+                li.innerHTML = `<a href="${escapeHtml(resource.link)}" target="_blank" rel="noopener noreferrer" class="note-link">📚📁 ${chapterBadge}${escapeHtml(parsed.cleanTitle)}</a>`;
+                target.otherList.appendChild(li);
+                if (target.otherSection) target.otherSection.style.display = "block";
+              }
+            } else if (resource.grade === "XII-Worksheet") {
+              li.innerHTML = `<a href="${escapeHtml(resource.link)}" target="_blank" rel="noopener noreferrer" class="note-link">📚📝 ${chapterBadge}${escapeHtml(parsed.cleanTitle)}</a>`;
+              target.worksheetsList.appendChild(li);
+              if (target.worksheetsSection) target.worksheetsSection.style.display = "block";
+            } else {
+              li.innerHTML = `<a href="${escapeHtml(resource.link)}" target="_blank" rel="noopener noreferrer" class="note-link">📚📝 ${chapterBadge}${escapeHtml(parsed.cleanTitle)}</a>`;
+              target.notesList.appendChild(li);
+              if (target.notesSection) target.notesSection.style.display = "block";
+            }
+            if (target.card) target.card.style.display = "flex";
+            renderedCount++;
+          }
+        });
+        if (renderedCount === 0 && noNotesXII) noNotesXII.style.display = "block";
+      }
+
+      document.querySelectorAll('#notes-xii-container .subject-card').forEach(card => {
+        const header = card.querySelector('.card-header');
+        if (header && !header.hasAttribute('data-accordion-init')) {
+          header.setAttribute('data-accordion-init', 'true');
+          header.style.cursor = 'pointer';
+          header.innerHTML += `<span class="accordion-icon" style="margin-left: auto; transition: transform 0.2s;">▼</span>`;
+          const sections = card.querySelectorAll('.notes-section');
+          sections.forEach(s => s.classList.add('collapsed'));
+          header.addEventListener('click', () => {
+            const icon = header.querySelector('.accordion-icon');
+            const isExpanded = icon.style.transform === 'rotate(180deg)';
+            if (isExpanded) {
+              icon.style.transform = 'rotate(0deg)';
+              sections.forEach(s => s.classList.add('collapsed'));
+            } else {
+              icon.style.transform = 'rotate(180deg)';
+              sections.forEach(s => s.classList.remove('collapsed'));
+            }
+          });
+        }
+      });
+
+      const cbseGridXII = document.getElementById("cbse-dynamic-container-xii");
+      if (cbseGridXII) {
+        const cbseResourcesXII = (notesList || []).filter(n => n.grade === "CBSE-XII");
+        cbseResourcesXII.sort((a, b) => a.title.localeCompare(b.title));
+        
+        if (cbseResourcesXII.length === 0) {
+          cbseGridXII.innerHTML = `<p class="muted-text text-center">No CBSE resources added yet.</p>`;
+        } else {
+          cbseGridXII.innerHTML = "";
+          
+          const subjectsGrid = document.createElement("div");
+          subjectsGrid.className = "notes-grid-subjects";
+          
+          const subjectCard = document.createElement("div");
+          subjectCard.className = "subject-card";
+          
+          const docIcon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`;
+          
+          subjectCard.innerHTML = `
+            <div class="card-header" style="cursor: pointer; display: flex; align-items: center;">
+              <span class="subject-icon">📚</span>
+              <h4>General Resources</h4>
+              <span class="accordion-icon" style="margin-left: auto; transition: transform 0.2s;">▼</span>
+            </div>
+            <div class="notes-section collapsed">
+              <ul class="notes-list">
+                ${cbseResourcesXII.map(res => `
+                  <li>
+                    <a href="${escapeHtml(res.link)}" target="_blank" rel="noopener noreferrer" class="note-link">📚${docIcon} <span>${escapeHtml(res.title)}</span></a>
+                  </li>
+                `).join('')}
+              </ul>
+            </div>
+          `;
+          
+          const header = subjectCard.querySelector('.card-header');
+          const section = subjectCard.querySelector('.notes-section');
+          const accIcon = subjectCard.querySelector('.accordion-icon');
+          
+          header.addEventListener('click', () => {
+            const isExpanded = accIcon.style.transform === 'rotate(180deg)';
+            if (isExpanded) {
+              accIcon.style.transform = 'rotate(0deg)';
+              section.classList.add('collapsed');
+            } else {
+              accIcon.style.transform = 'rotate(180deg)';
+              section.classList.remove('collapsed');
+            }
+          });
+          
+          subjectsGrid.appendChild(subjectCard);
+          cbseGridXII.appendChild(subjectsGrid);
+        }
+      }
+    }
+
+    const searchInput = document.getElementById("search-input");
+    if (searchInput && searchInput.value) {
+      searchInput.dispatchEvent(new Event("input"));
+    }
+  }
+
+  try {
+    let hasCache = false;
+    let cachedNotesStr = localStorage.getItem("padhrahi_notes_cache");
+    if (cachedNotesStr) {
+      try {
+        const cachedNotes = JSON.parse(cachedNotesStr);
+        renderNotesToDOM(cachedNotes);
+        renderNotifications(cachedNotes);
+        hasCache = true;
+      } catch (e) {}
+    }
+
+    if (!hasCache && loadingIndicator) {
+      loadingIndicator.style.display = "block";
+    }
+
+    const { notes } = await fetchNotes();
+    
+    if (loadingIndicator) {
+      loadingIndicator.style.display = "none";
+    }
+    
+    if (JSON.stringify(notes) !== cachedNotesStr) {
+      localStorage.setItem("padhrahi_notes_cache", JSON.stringify(notes));
+      renderNotesToDOM(notes);
+      renderNotifications(notes);
+    } else {
+      renderNotifications(notes);
+    }
+  } catch (err) {
+    if (loadingIndicator) {
+      loadingIndicator.style.display = "none";
+    }
+    const noNotesEl = noNotesX || noNotesXII;
+    if (noNotesEl && !localStorage.getItem("padhrahi_notes_cache")) {
+      const textEl = document.getElementById("no-notes-text");
+      const iconEl = document.getElementById("no-notes-icon");
+      if (textEl) textEl.textContent = "Failed to load resources.";
+      if (iconEl) iconEl.textContent = "❌";
+      noNotesEl.style.display = "block";
+    }
+  }
+}
+
+if (isOfflineFileMode() && offlineNotice) {
+  offlineNotice.classList.remove("hidden");
+}
+
+loadPDFNotes();
+
+const searchInput = document.getElementById("search-input");
+const typeFilter = document.getElementById("type-filter");
+
+function filterResources() {
+  if (!searchInput) return;
+  const term = searchInput.value.toLowerCase();
+  const filterValue = typeFilter ? typeFilter.value : "all";
+  
+  const subjectCards = document.querySelectorAll(".subject-card");
+  let totalVisible = 0;
+  
+  subjectCards.forEach(card => {
+    let hasVisibleItems = false;
+    const sections = card.querySelectorAll(".notes-section");
+    
+    sections.forEach(section => {
+      const isWorksheets = section.id.includes("-worksheets");
+      const isNotes = section.id.includes("-notes");
+      const isOther = section.id.includes("-other");
+      
+      let hasVisibleInSection = false;
+      const listItems = section.querySelectorAll("li");
+      
+      listItems.forEach(li => {
+        const text = li.textContent.toLowerCase();
+        const matchesSearch = text.includes(term);
+        
+        let matchesType = true;
+        if (filterValue === "notes" && !isNotes) matchesType = false;
+        if (filterValue === "worksheets" && !isWorksheets) matchesType = false;
+        if (filterValue === "other" && !isOther) matchesType = false;
+        
+        if (matchesSearch && matchesType) {
+          li.style.display = "";
+          hasVisibleInSection = true;
+          totalVisible++;
+        } else {
+          li.style.display = "none";
+        }
+      });
+      
+      if (hasVisibleInSection) {
+        section.style.display = "block";
+        hasVisibleItems = true;
+      } else {
+        section.style.display = "none";
+      }
+    });
+    
+    if (hasVisibleItems) {
+      card.style.display = "flex";
+    } else {
+      card.style.display = "none";
+    }
+  });
+  
+  const noNotesEl = document.getElementById("no-notes-x") || document.getElementById("no-notes-xii");
+  const allItems = document.querySelectorAll(".notes-list li");
+  if (noNotesEl && allItems.length > 0) {
+    if (totalVisible === 0) {
+      noNotesEl.style.display = "block";
+      const textEl = document.getElementById("no-notes-text");
+      const iconEl = document.getElementById("no-notes-icon");
+      if (textEl) textEl.textContent = "No matching chapters found.";
+      if (iconEl) iconEl.textContent = "🔍";
+    } else {
+      noNotesEl.style.display = "none";
+    }
+  }
+}
+
+let debounceTimer;
+function debouncedFilterResources() {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(filterResources, 150);
+}
+
+if (searchInput) {
+  searchInput.addEventListener("input", debouncedFilterResources);
+}
+if (typeFilter) {
+  typeFilter.addEventListener("change", filterResources);
+}
+
+// Notifications Logic
+let allNotifications = [];
+
+function getStudentTargetClass() {
+  try {
+    const raw = localStorage.getItem("student_info");
+    if (!raw) return "";
+    const info = JSON.parse(raw);
+    if (info.class_name && info.class_name.trim()) return info.class_name.trim();
+    const g = (info.group_name || "").trim().toLowerCase();
+    if (["lakshya", "prayas", "sankalp"].includes(g)) return "Velocity";
+    if (g === "nalanda") return "IGNITE coaching class";
+    if (g.startsWith("nerd tutors")) return info.group_name.trim();
+    return "";
+  } catch (_) {
+    return "";
+  }
+}
+
+function isNoticeForStudent(notice, studentClass) {
+  if (!notice) return false;
+  const subj = (notice.subject || "").trim().toLowerCase();
+  if (!subj || subj.includes("all institutes") || subj === "all" || subj === "general") {
+    return true;
+  }
+  if (!studentClass) return true;
+
+  const sc = studentClass.toLowerCase();
+  if (sc.includes("velocity") && subj.includes("velocity")) return true;
+  if ((sc.includes("ignite") || sc.includes("nalanda")) && (subj.includes("ignite") || subj.includes("nalanda"))) return true;
+  if (sc.includes("epsilon") && subj.includes("epsilon")) return true;
+  if (sc.includes("nerd tutors nalanda") && subj.includes("nerd tutors nalanda")) return true;
+  if (sc.includes("nerd tutors") && subj.includes("nerd tutors")) return true;
+
+  return subj.includes(sc);
+}
+
+function requestPushNotificationPermission() {
+  if ("Notification" in window && Notification.permission === "default") {
+    if (localStorage.getItem("student_token")) {
+      try {
+        Notification.requestPermission().then(() => {});
+      } catch (_) {}
+    }
+  }
+}
+
+function triggerPushNotification(latestNotice, targetClass) {
+  if (!latestNotice) return;
+  const lastPushedId = localStorage.getItem("padhrahi_last_pushed_notif_id");
+  if (lastPushedId === latestNotice.id) return;
+
+  localStorage.setItem("padhrahi_last_pushed_notif_id", latestNotice.id);
+
+  // 1. Browser Native Push Notification
+  if ("Notification" in window && Notification.permission === "granted") {
+    try {
+      new Notification(`📢 New Notice (${targetClass || 'Announcement'})`, {
+        body: latestNotice.title,
+        icon: "logo.jpg",
+        badge: "logo.jpg",
+        tag: latestNotice.id
+      });
+    } catch (_) {}
+  }
+
+  // 2. In-App Slide-Down Toast Banner
+  showInAppToastBanner(latestNotice, targetClass);
+}
+
+function showInAppToastBanner(notice, targetClass) {
+  let toast = document.getElementById("push-toast-banner");
+  if (!toast) {
+    toast = document.createElement("div");
+    toast.id = "push-toast-banner";
+    toast.className = "push-toast-banner";
+    toast.innerHTML = `
+      <div class="toast-icon">🔔</div>
+      <div class="toast-content">
+        <div class="toast-title" id="toast-banner-title">New Announcement</div>
+        <div class="toast-message" id="toast-banner-msg"></div>
+      </div>
+      <button class="toast-action-btn" id="toast-banner-view-btn">View</button>
+      <button class="toast-close-btn" id="toast-banner-close-btn">&times;</button>
+    `;
+    document.body.appendChild(toast);
+
+    document.getElementById("toast-banner-close-btn")?.addEventListener("click", () => {
+      toast.classList.remove("show");
+    });
+    document.getElementById("toast-banner-view-btn")?.addEventListener("click", () => {
+      toast.classList.remove("show");
+      const notifBell = document.getElementById("notif-bell-btn");
+      if (notifBell) notifBell.click();
+    });
+  }
+
+  const titleEl = document.getElementById("toast-banner-title");
+  const msgEl = document.getElementById("toast-banner-msg");
+  if (titleEl) titleEl.textContent = `📢 Notice for ${targetClass || "You"}`;
+  if (msgEl) msgEl.textContent = notice.title;
+
+  toast.classList.add("show");
+  setTimeout(() => {
+    toast.classList.remove("show");
+  }, 9000);
+}
+
+function renderNotifications(notesList) {
+  allNotifications = (notesList || []).filter(n => n.grade === "NOTIFICATION");
+  const studentClass = getStudentTargetClass();
+  const relevantNotifs = allNotifications.filter(n => isNoticeForStudent(n, studentClass));
+
+  const badge = document.getElementById("notif-badge");
+  if (badge) {
+    let unreadCount = 0;
+    const lastSeenStr = localStorage.getItem("padhrahi_last_notif_seen");
+    const lastSeenTime = lastSeenStr ? new Date(lastSeenStr).getTime() : 0;
+    
+    relevantNotifs.forEach(n => {
+      const notifTime = new Date(n.created_at).getTime();
+      if (notifTime > lastSeenTime) {
+        unreadCount++;
+      }
+    });
+
+    if (unreadCount > 0) {
+      badge.textContent = unreadCount;
+      badge.style.display = "inline-block";
+    } else {
+      badge.style.display = "none";
+    }
+  }
+
+  // Request browser push permission on notification render
+  requestPushNotificationPermission();
+
+  // If student has a specific class, pre-filter notification view to their class or all
+  updateNotificationList(studentClass ? studentClass : "all");
+}
+
+function updateNotificationList(filterInst) {
+  const notifList = document.getElementById("notif-list");
+  if (!notifList) return;
+  notifList.innerHTML = "";
+  
+  const studentClass = getStudentTargetClass();
+  const filtered = allNotifications.filter(n => {
+    if (filterInst === "all") {
+      // If student is logged in, show notices matching their class or All Institutes
+      return isNoticeForStudent(n, studentClass);
+    }
+    return (n.subject && n.subject.toLowerCase().includes(filterInst.toLowerCase())) || n.subject === "All Institutes";
+  });
+  
+  if (filtered.length === 0) {
+    notifList.innerHTML = `<p class="muted-text text-center" style="margin-top: 1rem;">No new notifications for your class.</p>`;
+    return;
+  }
+  
+  filtered.sort((a,b) => new Date(b.created_at) - new Date(a.created_at)).forEach(notif => {
+    const li = document.createElement("li");
+    li.className = "notif-item";
+    
+    let content = `
+      <div class="notif-item-inst">${escapeHtml(notif.subject)}</div>
+      <div class="notif-item-title">${escapeHtml(notif.title)}</div>
+      <div class="notif-item-date">${formatDate(notif.created_at)}</div>
+    `;
+    
+    if (notif.link && notif.link !== "#") {
+      li.innerHTML = `<a href="${escapeHtml(notif.link)}" target="_blank" rel="noopener noreferrer" style="text-decoration: none; color: inherit;">${content}</a>`;
+    } else {
+      li.innerHTML = content;
+    }
+    
+    notifList.appendChild(li);
+  });
+}
+
+// Background checking for push notifications (Calm interval to stay well within Vercel limits)
+let lastNotificationCheckTime = Date.now();
+async function checkNewNotifications(force = false) {
+  const studentToken = localStorage.getItem("student_token");
+  if (!studentToken) return;
+
+  const now = Date.now();
+  // 3-minute cooldown to prevent excess function calls
+  if (!force && (now - lastNotificationCheckTime < 180000)) {
+    return;
+  }
+  lastNotificationCheckTime = now;
+
+  try {
+    const res = await fetch("/api/notes", { cache: "no-store" });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.notes) {
+        renderNotifications(data.notes);
+        
+        const studentClass = getStudentTargetClass();
+        const relevant = data.notes.filter(n => n.grade === "NOTIFICATION" && isNoticeForStudent(n, studentClass));
+        if (relevant.length > 0) {
+          relevant.sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+          const latest = relevant[0];
+          const lastSeenStr = localStorage.getItem("padhrahi_last_notif_seen");
+          const lastSeenTime = lastSeenStr ? new Date(lastSeenStr).getTime() : 0;
+          if (new Date(latest.created_at).getTime() > lastSeenTime) {
+            triggerPushNotification(latest, studentClass);
+          }
+        }
+      }
+    }
+  } catch (_) {}
+}
+window.checkNewNotifications = checkNewNotifications;
+
+// Calm 5-minute background check while tab is open
+setInterval(() => checkNewNotifications(false), 300000);
+
+// Check when student returns to tab
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") {
+    checkNewNotifications(false);
+  }
+});
+
+const notifBellBtn = document.getElementById("notif-bell-btn");
+const notifModal = document.getElementById("notif-modal");
+const notifCloseBtn = document.getElementById("notif-close-btn");
+const notifTabs = document.querySelectorAll(".notif-tab");
+
+if (notifBellBtn && notifModal) {
+  notifBellBtn.addEventListener("click", () => {
+    notifModal.classList.remove("hidden");
+    const badge = document.getElementById("notif-badge");
+    if (badge) badge.style.display = "none";
+    
+    if (allNotifications.length > 0) {
+      const latestTime = Math.max(...allNotifications.map(n => new Date(n.created_at).getTime()));
+      localStorage.setItem("padhrahi_last_notif_seen", new Date(latestTime).toISOString());
+    }
+  });
+}
+if (notifCloseBtn && notifModal) {
+  notifCloseBtn.addEventListener("click", () => {
+    notifModal.classList.add("hidden");
+  });
+}
+notifTabs.forEach(tab => {
+  tab.addEventListener("click", (e) => {
+    notifTabs.forEach(t => t.classList.remove("active"));
+    e.target.classList.add("active");
+    updateNotificationList(e.target.dataset.inst);
+  });
+});
+
+
+// Marks Submission Logic
+const marksForm = document.getElementById("marks-form");
+
+
+
+
+// CBSE Boards Exam Countdown Logic
+document.addEventListener("DOMContentLoaded", () => {
+  function updateBoardsCountdown() {
+    const today = new Date();
+    // Normalize to midnight start of today in local browser timezone
+    const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+
+    // Dynamically update every element with a data-exam-date attribute
+    const examDateElements = document.querySelectorAll("[data-exam-date]");
+    examDateElements.forEach((el) => {
+      const dateStr = el.getAttribute("data-exam-date");
+      if (!dateStr) return;
+
+      const [year, month, day] = dateStr.split("-").map(Number);
+      const targetTime = new Date(year, month - 1, day).getTime();
+      const diffMs = targetTime - startOfToday;
+      const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+      // For hero header counters (e.g. #cd-g10-total, #cd-g12-total)
+      if (el.id === "cd-g10-total" || el.id === "cd-g12-total") {
+        if (diffDays > 1) {
+          el.textContent = `${diffDays} Days Left`;
+        } else if (diffDays === 1) {
+          el.textContent = "1 Day Left";
+        } else if (diffDays === 0) {
+          el.textContent = "Today!";
+        } else {
+          el.textContent = "In Progress";
+        }
+      } else {
+        // Individual exam row badges
+        if (diffDays > 1) {
+          el.textContent = `${diffDays} days left`;
+        } else if (diffDays === 1) {
+          el.textContent = "1 day left";
+        } else if (diffDays === 0) {
+          el.textContent = "Today!";
+        } else {
+          el.textContent = "Completed";
+        }
+      }
+    });
+
+    // Backwards compatibility if old elements exist
+    const totalEl = document.getElementById("cd-total");
+    const effectiveEl = document.getElementById("cd-effective");
+    if (totalEl && effectiveEl) {
+      const targetDate = new Date("2027-02-17T00:00:00");
+      const diffDays = Math.max(0, Math.ceil((targetDate - today) / (1000 * 60 * 60 * 24)));
+      totalEl.textContent = diffDays;
+      effectiveEl.textContent = diffDays;
+    }
+  }
+
+  updateBoardsCountdown();
+});
+
+// --- STUDENT REPORT FEATURE ---
+let publicStudents = [];
+let publicExams = [];
+let publicMarks = [];
+let studentReportChart = null;
+
+function renderStudentReportChart({ isNerdStudent, distinctTerms, applicableExams, studentMarks, displaySubjects }) {
+  const canvas = document.getElementById("student-report-chart");
+  if (!canvas || typeof Chart === "undefined") return;
+
+  if (studentReportChart) {
+    try {
+      studentReportChart.destroy();
+    } catch (_) {}
+    studentReportChart = null;
+  }
+
+  const ctx = canvas.getContext("2d");
+
+  if (isNerdStudent) {
+    // GRADE 12 NERD TUTORS: 3-IN-1 STACKED BAR GRAPH (100% SCALE)
+    // Accountancy, Business Studies, Economics data combined in one single bar per exam term
+    const nerdSubjects = ["Accountancy", "Business Studies", "Economics"];
+    const subjectColors = {
+      "Accountancy": { bg: "rgba(59, 130, 246, 0.85)", border: "#2563eb" },
+      "Business Studies": { bg: "rgba(16, 185, 129, 0.85)", border: "#059669" },
+      "Economics": { bg: "rgba(245, 158, 11, 0.85)", border: "#d97706" }
+    };
+
+    // Store raw percentages for tooltips
+    const rawSubjectData = {};
+    nerdSubjects.forEach(s => { rawSubjectData[s] = []; });
+
+    const datasets = nerdSubjects.map(subj => {
+      const data = distinctTerms.map(term => {
+        const ex = applicableExams.find(e => e.name === term && e.subject === subj);
+        if (!ex) {
+          rawSubjectData[subj].push(null);
+          return 0;
+        }
+        const markObj = studentMarks.find(m => m.exam_id === ex.id);
+        if (!markObj || markObj.marks_obtained === null || markObj.marks_obtained === undefined) {
+          rawSubjectData[subj].push(null);
+          return 0;
+        }
+
+        const perc = (markObj.marks_obtained / ex.total_marks) * 100;
+        rawSubjectData[subj].push({
+          obtained: markObj.marks_obtained,
+          total: ex.total_marks,
+          perc: perc
+        });
+        // Scale by 1/3 so that all 3 subjects combined stack to 100%
+        return Number((perc / 3).toFixed(2));
+      });
+
+      return {
+        label: subj,
+        data: data,
+        backgroundColor: subjectColors[subj].bg,
+        borderColor: subjectColors[subj].border,
+        borderWidth: 1.5,
+        borderRadius: 4,
+        stack: 'nerdStack'
+      };
+    });
+
+    studentReportChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: distinctTerms,
+        datasets: datasets
+      },
+      plugins: [{
+        id: 'topTotalsPlugin',
+        afterDatasetsDraw(chart) {
+          const { ctx, scales: { y } } = chart;
+          distinctTerms.forEach((term, index) => {
+            let totalVal = 0;
+            let hasData = false;
+            chart.data.datasets.forEach(ds => {
+              const val = ds.data[index];
+              if (val) {
+                totalVal += val;
+                hasData = true;
+              }
+            });
+            if (!hasData) return;
+
+            const meta = chart.getDatasetMeta(chart.data.datasets.length - 1);
+            const bar = meta.data[index];
+            if (!bar) return;
+
+            const xPos = bar.x;
+            const yPos = y.getPixelForValue(totalVal);
+
+            ctx.save();
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'bottom';
+            ctx.font = 'bold 12px Inter, system-ui, sans-serif';
+            ctx.fillStyle = '#1e293b';
+            ctx.fillText(`${totalVal.toFixed(1)}%`, xPos, Math.max(14, yPos - 5));
+            ctx.restore();
+          });
+        }
+      }],
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        layout: {
+          padding: { top: 22 }
+        },
+        scales: {
+          x: {
+            stacked: true,
+            grid: { display: false },
+            ticks: { color: 'var(--text-muted, #64748b)', font: { weight: '600' } }
+          },
+          y: {
+            stacked: true,
+            min: 0,
+            max: 105,
+            ticks: {
+              callback: (v) => v <= 100 ? v + '%' : '',
+              color: 'var(--text-muted, #64748b)',
+              stepSize: 20
+            },
+            grid: { color: 'rgba(148, 163, 184, 0.15)' }
+          }
+        },
+        plugins: {
+          legend: {
+            position: 'top',
+            labels: {
+              boxWidth: 12,
+              font: { weight: '600' },
+              color: 'var(--text, #1e293b)'
+            }
+          },
+          tooltip: {
+            backgroundColor: 'rgba(15, 23, 42, 0.95)',
+            padding: 10,
+            titleFont: { weight: 'bold', size: 13 },
+            callbacks: {
+              label: function(context) {
+                const subj = context.dataset.label;
+                const idx = context.dataIndex;
+                const rawObj = rawSubjectData[subj] && rawSubjectData[subj][idx];
+                const share = (context.raw || 0).toFixed(1);
+                if (rawObj) {
+                  return ` ${subj}: ${rawObj.obtained}/${rawObj.total} (${rawObj.perc.toFixed(1)}%) → Share: ${share}%`;
+                }
+                return ` ${subj}: Not Appeared (0%)`;
+              },
+              footer: function(tooltipItems) {
+                let totalHeight = 0;
+                tooltipItems.forEach(item => { totalHeight += (item.raw || 0); });
+                return `Total 3-Subject Combined Score: ${totalHeight.toFixed(1)}% / 100%`;
+              }
+            }
+          }
+        }
+      }
+    });
+  } else {
+    // GRADE 10: PROGRESS LINE GRAPH OVER EXAM TERMS
+    const progressData = [];
+    const rawScores = [];
+
+    distinctTerms.forEach(term => {
+      const ex = applicableExams.find(e => e.name === term);
+      const markObj = ex ? studentMarks.find(m => m.exam_id === ex.id) : null;
+      if (markObj && markObj.marks_obtained !== null && markObj.marks_obtained !== undefined) {
+        const perc = (markObj.marks_obtained / ex.total_marks) * 100;
+        progressData.push(Number(perc.toFixed(1)));
+        rawScores.push({ obtained: markObj.marks_obtained, total: ex.total_marks, perc: perc });
+      } else {
+        progressData.push(null);
+        rawScores.push(null);
+      }
+    });
+
+    studentReportChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: distinctTerms,
+        datasets: [{
+          label: 'Progress (%)',
+          data: progressData,
+          borderColor: '#3b82f6',
+          backgroundColor: 'rgba(59, 130, 246, 0.12)',
+          fill: true,
+          tension: 0.35,
+          borderWidth: 3,
+          pointBackgroundColor: '#3b82f6',
+          pointBorderColor: '#ffffff',
+          pointBorderWidth: 2,
+          pointRadius: 6,
+          pointHoverRadius: 9
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: {
+            grid: { display: false },
+            ticks: { color: 'var(--text-muted, #64748b)', font: { weight: '600' } }
+          },
+          y: {
+            min: 0,
+            max: 100,
+            ticks: {
+              callback: (v) => v + '%',
+              color: 'var(--text-muted, #64748b)',
+              stepSize: 20
+            },
+            grid: { color: 'rgba(148, 163, 184, 0.15)' }
+          }
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: 'rgba(15, 23, 42, 0.95)',
+            padding: 10,
+            callbacks: {
+              label: function(context) {
+                const idx = context.dataIndex;
+                const rawObj = rawScores[idx];
+                if (rawObj) {
+                  return ` Score: ${rawObj.obtained}/${rawObj.total} (${context.raw}%)`;
+                }
+                return ` Score: N/A`;
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+}
+
+function getExamTermRank(name = "") {
+  const n = (name || "").toLowerCase().trim();
+
+  // 1. Pre-Mid Term (Grade 12)
+  if (n.includes("pre mid") || n.includes("pre-mid") || n.startsWith("pre ") || n === "pre") return 10;
+
+  // 2. Post-Mid Term (Grade 12) - check before generic mid term
+  if (n.includes("post mid") || n.includes("post-mid") || n.startsWith("post ") || n === "post") {
+    return 30;
+  }
+
+  // 3. Unit Test 1 / UT1 (Grade 10)
+  if (
+    n.includes("ut 1") || n.includes("ut-1") || n.includes("ut1") ||
+    n.includes("unit test 1") || n.includes("unit test1") ||
+    n === "ut" || n === "unit test"
+  ) {
+    return 11;
+  }
+
+  // 4. Class Tests / Test 1 / Test 2 (Grade 10)
+  if (
+    n.includes("class test") || n.includes("class ttest") || n.includes("class-test") ||
+    n.includes("classtest") || n.startsWith("ct") || n.includes("weekly test") ||
+    /^test\s*\d+/i.test(n) || n === "test"
+  ) {
+    const match = n.match(/\d+/);
+    const num = match ? parseInt(match[0], 10) : 1;
+    return 14 + Math.min(num, 4); // Test 1 = 15, Test 2 = 16, Test 3 = 17, etc.
+  }
+
+  // 5. Half Yearly / Term 1 / Mid Term (Grade 10 / Grade 12)
+  if (
+    n.includes("half yearly") || n.includes("half-yearly") || n.includes("halfyearly") ||
+    n.includes("term 1") || n.includes("term-1") || n.includes("term1") ||
+    n.includes("mid term") || n.includes("mid-term") || n.includes("midterm") || n === "mid"
+  ) {
+    return 20;
+  }
+
+  // 6. Unit Test 2 / UT2
+  if (
+    n.includes("ut 2") || n.includes("ut-2") || n.includes("ut2") ||
+    n.includes("unit test 2") || n.includes("unit test2")
+  ) {
+    return 25;
+  }
+
+  // 7. Term 2 / Pre Board
+  if (n.includes("term 2") || n.includes("term-2") || n.includes("term2")) return 35;
+  if (n.includes("pre board") || n.includes("pre-board") || n.includes("preboard")) return 40;
+
+  // 8. Final / Annual / Board
+  if (n.includes("final") || n.includes("annual") || n.includes("board")) return 50;
+
+  return 100;
+}
+
+function getSubjectRank(subject = "") {
+  const s = (subject || "").toLowerCase().trim();
+  if (s.includes("account")) return 1;
+  if (s.includes("business") || s === "bst") return 2;
+  if (s.includes("econom")) return 3;
+  if (s.includes("social")) return 4;
+  return 10;
+}
+
+function sortExams(exams = []) {
+  return [...exams].sort((a, b) => {
+    const rankA = getExamTermRank(a.name);
+    const rankB = getExamTermRank(b.name);
+    if (rankA !== rankB) return rankA - rankB;
+
+    const subjA = getSubjectRank(a.subject);
+    const subjB = getSubjectRank(b.subject);
+    if (subjA !== subjB) return subjA - subjB;
+
+    const sCmp = (a.subject || "").localeCompare(b.subject || "");
+    if (sCmp !== 0) return sCmp;
+
+    const nCmp = (a.name || "").localeCompare(b.name || "");
+    if (nCmp !== 0) return nCmp;
+
+    return new Date(a.created_at || 0) - new Date(b.created_at || 0);
+  });
+}
+
+async function initStudentReport() {
+  const container = document.getElementById("student-report-content");
+  if (!container) return; // report section not on page
+  
+  const groupSelectEl = document.getElementById("student-report-group-select");
+  const studentSelectEl = document.getElementById("student-report-select");
+  const studentInfoStr = localStorage.getItem("student_info");
+  
+  try {
+    const [studentsRes, examsRes, marksRes] = await Promise.all([
+      fetchStudents(),
+      fetchExams(),
+      fetchMarks()
+    ]);
+    
+    publicStudents = studentsRes.students || [];
+    publicExams = sortExams(examsRes.exams || []);
+    publicMarks = marksRes.marks || [];
+
+    if (studentInfoStr) {
+      // Auto-load for logged in student
+      const studentInfo = JSON.parse(studentInfoStr);
+      if (groupSelectEl) groupSelectEl.parentElement.style.display = "none";
+      if (studentSelectEl) studentSelectEl.parentElement.style.display = "none";
+      
+      const p = container.parentElement.querySelector("p.muted-text");
+      if(p) p.style.display = "none";
+
+      renderStudentReportContent(studentInfo.id);
+      return;
+    }
+
+    const isCoach = Boolean(sessionStorage.getItem("coach_password") || localStorage.getItem("coach_password"));
+    if (!studentInfoStr && isCoach) {
+      // Coach is logged in without student credentials: show an interactive student picker
+      let coachPicker = document.getElementById("coach-report-picker");
+      if (!coachPicker && container.parentElement) {
+        coachPicker = document.createElement("div");
+        coachPicker.id = "coach-report-picker";
+        coachPicker.style.cssText = "width: 100%; max-width: 480px; margin-bottom: 1rem; display: flex; flex-direction: column; gap: 0.5rem; text-align: left;";
+        
+        const currentGrade = document.body.dataset.grade || (window.location.pathname.includes("grade10") ? "10" : "12");
+        let availableStudents = publicStudents;
+        if (currentGrade === "12") {
+          availableStudents = publicStudents.filter(s => s.group_name && s.group_name.startsWith("Nerd Tutors"));
+        } else {
+          availableStudents = publicStudents.filter(s => !s.group_name || !s.group_name.startsWith("Nerd Tutors"));
+        }
+        availableStudents.sort((a,b) => a.name.localeCompare(b.name));
+
+        coachPicker.innerHTML = `
+          <label style="font-size: 0.85rem; font-weight: 700; color: #059669;">👑 Coach Mode: Inspect Student Report</label>
+          <select id="coach-student-select" style="padding: 0.6rem 0.8rem; border-radius: 8px; border: 1.5px solid #10b981; background: var(--surface); color: var(--text); font-weight: 600; font-size: 0.9rem; cursor: pointer;">
+            <option value="">Select a student to view report...</option>
+            ${availableStudents.map(s => `<option value="${escapeHtml(s.id)}">${escapeHtml(s.name)} (${escapeHtml(s.group_name || 'No Group')})</option>`).join('')}
+          </select>
+        `;
+        container.parentElement.insertBefore(coachPicker, container);
+
+        const selectEl = document.getElementById("coach-student-select");
+        if (selectEl) {
+          selectEl.addEventListener("change", (e) => {
+            if (e.target.value) {
+              renderStudentReportContent(e.target.value);
+            } else {
+              container.style.display = "none";
+            }
+          });
+        }
+      }
+      return;
+    }
+
+    if (!studentSelectEl || !groupSelectEl) return;
+    
+    // Extract unique groups
+    let uniqueGroups = [...new Set(publicStudents.map(s => s.group_name || 'Unassigned'))].sort();
+    
+    // Filter out Nerd Tutors groups from the public dropdown
+    uniqueGroups = uniqueGroups.filter(g => !g.startsWith("Nerd Tutors"));
+    
+    // Populate group dropdown
+    let groupHtml = `<option value="">Select your group...</option>`;
+    uniqueGroups.forEach(g => {
+      groupHtml += `<option value="${escapeHtml(g)}">${escapeHtml(g)}</option>`;
+    });
+    groupSelectEl.innerHTML = groupHtml;
+    
+    // Group change listener
+    groupSelectEl.addEventListener("change", (e) => {
+      const selectedGroup = e.target.value;
+      
+      document.getElementById("student-report-content").style.display = "none";
+      
+      if (!selectedGroup) {
+        studentSelectEl.disabled = true;
+        studentSelectEl.innerHTML = `<option value="">Select your name...</option>`;
+        return;
+      }
+      
+      studentSelectEl.disabled = false;
+      let studentHtml = `<option value="">Select your name...</option>`;
+      
+      const filteredStudents = publicStudents.filter(s => (s.group_name || 'Unassigned') === selectedGroup && s.is_active !== false);
+      filteredStudents.sort((a,b) => a.name.localeCompare(b.name)).forEach(s => {
+        studentHtml += `<option value="${escapeHtml(s.id)}">${escapeHtml(s.name)}</option>`;
+      });
+      studentSelectEl.innerHTML = studentHtml;
+    });
+    
+    studentSelectEl.addEventListener("change", () => renderStudentReportContent());
+  } catch (err) {
+    console.error("Error loading student report data:", err);
+    if (groupSelectEl) groupSelectEl.innerHTML = `<option value="">Error loading data.</option>`;
+    if (studentSelectEl) studentSelectEl.innerHTML = `<option value="">Error loading data.</option>`;
+  }
+}
+
+function renderStudentReportContent(forcedStudentId = null) {
+  const container = document.getElementById("student-report-content");
+  if (!container) return;
+  
+  let studentId = forcedStudentId;
+  if (typeof forcedStudentId === 'object') {
+     studentId = null;
+  }
+
+  if (!studentId) {
+    const selectEl = document.getElementById("student-report-select");
+    if (!selectEl) return;
+    studentId = selectEl.value;
+  }
+  
+  if (!studentId) {
+    container.style.display = "none";
+    return;
+  }
+  
+  container.style.display = "block";
+  
+  const studentObj = publicStudents.find(s => s.id === studentId);
+  if (studentObj && studentObj.is_active === false) {
+    container.innerHTML = `<div class="notice-banner" style="background: rgba(239, 68, 68, 0.1); border: 1px solid #ef4444; color: #dc2626; padding: 1.5rem; border-radius: 8px; text-align: center; margin-top: 1rem;"><strong>Account Suspended:</strong> This student account is temporarily deactivated. Please contact your instructor.</div>`;
+    return;
+  }
+
+  const studentMarks = publicMarks.filter(m => m.student_id === studentId);
+  const isNerdStudent = studentObj && studentObj.group_name && studentObj.group_name.startsWith("Nerd Tutors");
+  const studentSubjs = (isNerdStudent && Array.isArray(studentObj.subjects) && studentObj.subjects.length > 0)
+    ? studentObj.subjects
+    : (isNerdStudent ? ["Accountancy", "Economics", "Business Studies"] : ["Social Science"]);
+
+  const applicableExams = publicExams.filter(ex => {
+    if (studentObj && studentObj.group_name && Array.isArray(ex.target_groups) && ex.target_groups.length > 0) {
+      if (!ex.target_groups.includes(studentObj.group_name)) return false;
+    }
+    if (isNerdStudent) {
+      if (!ex.subject) return false;
+      return studentSubjs.includes(ex.subject);
+    } else {
+      // Non-Nerd Tutors groups study ONLY Social Science
+      // Filter out any commerce exams (Accountancy, Business Studies, Economics)
+      const s = (ex.subject || "").toLowerCase().trim();
+      if (s.includes("account") || s.includes("business") || s === "bst" || s.includes("econom")) {
+        return false;
+      }
+      if (ex.subject && s !== "social science" && !s.includes("social")) {
+        return false;
+      }
+      return true;
+    }
+  });
+
+  // Extract distinct exam terms (e.g. UT1, Class Test, Half Yearly)
+  // Only include terms that have actual student marks, with fallback if no marks exist yet
+  const distinctTerms = [];
+  applicableExams.forEach(ex => {
+    if (!distinctTerms.includes(ex.name)) {
+      const hasMarkForTerm = studentMarks.some(m => m.marks_obtained !== null && m.marks_obtained !== undefined && applicableExams.some(e => e.id === m.exam_id && e.name === ex.name));
+      if (hasMarkForTerm) {
+        distinctTerms.push(ex.name);
+      }
+    }
+  });
+
+  // Fallback: if student has no marks yet, show distinct terms from applicableExams
+  if (distinctTerms.length === 0) {
+    applicableExams.forEach(ex => {
+      if (!distinctTerms.includes(ex.name)) distinctTerms.push(ex.name);
+    });
+  }
+  distinctTerms.sort((a, b) => getExamTermRank(a) - getExamTermRank(b));
+
+  // Extract distinct subjects to display as row headers
+  // For non-Nerd students, this is always strictly ["Social Science"]
+  let displaySubjects = isNerdStudent ? [...studentSubjs] : ["Social Science"];
+  displaySubjects.sort((a, b) => getSubjectRank(a) - getSubjectRank(b));
+
+  let hasExams = false;
+  let html = `<div class="submit-card" style="padding: 0; overflow-x: auto;"><table style="width: 100%; border-collapse: collapse; text-align: left; background: var(--surface);">
+    <thead>
+      <tr style="border-bottom: 2px solid var(--border);">
+        <th style="padding: 0.75rem 0.5rem; color: var(--text-muted); font-weight: 600; font-size: 0.85rem; width: 28%;">Subject</th>`;
+
+  distinctTerms.forEach(term => {
+    const matchingEx = applicableExams.find(e => e.name === term);
+    const maxMarks = matchingEx ? matchingEx.total_marks : '';
+    html += `
+      <th style="padding: 0.75rem 0.5rem; color: var(--text-muted); font-weight: 600; text-align: center; font-size: 0.85rem;">
+        ${escapeHtml(term)}
+        ${maxMarks ? `<br><small style="font-weight: normal; font-size: 0.72rem; color: var(--text-muted);">Max: ${maxMarks}</small>` : ''}
+      </th>
+    `;
+  });
+
+  html += `</tr></thead><tbody>`;
+
+  if (displaySubjects.length > 0) {
+    displaySubjects.forEach(subj => {
+      html += `<tr style="border-bottom: 1px solid var(--border);">
+        <td style="padding: 0.75rem 0.5rem; font-weight: 600; font-size: 0.9rem; color: var(--text);">
+          ${escapeHtml(subj)}
+        </td>`;
+
+      distinctTerms.forEach(term => {
+        const ex = applicableExams.find(e => e.name === term && (e.subject === subj || (!e.subject && displaySubjects.length === 1)));
+        if (!ex) {
+          html += `<td style="padding: 0.75rem 0.5rem; text-align: center; color: var(--text-muted); font-size: 0.85rem;">&mdash;</td>`;
+          return;
+        }
+
+        const markObj = studentMarks.find(m => m.exam_id === ex.id);
+        if (markObj && markObj.marks_obtained !== null && markObj.marks_obtained !== undefined) {
+          hasExams = true;
+          const marksObtained = markObj.marks_obtained;
+          const maxMarks = ex.total_marks;
+          const perc = (marksObtained / maxMarks) * 100;
+          html += `
+            <td style="padding: 0.75rem 0.5rem; text-align: center;">
+              <div style="font-weight: 700; font-size: 0.95rem; color: var(--text);">${marksObtained}/${maxMarks}</div>
+              <div style="font-size: 0.78rem; font-weight: 600; color: var(--primary); margin-top: 2px;">${perc.toFixed(1)}%</div>
+            </td>
+          `;
+        } else {
+          html += `<td style="padding: 0.75rem 0.5rem; text-align: center; color: var(--text-muted); font-size: 0.85rem;">&mdash;</td>`;
+        }
+      });
+
+      html += `</tr>`;
+    });
+
+    // Only display Average row when there are MULTIPLE subjects (e.g. Nerd Tutors with Accountancy, Business Studies, Economics)
+    // For single-subject report cards (e.g. Social Science), the Average row is redundant and is omitted
+    if (isNerdStudent && displaySubjects.length > 1) {
+      let avgCells = `<td style="padding: 0.75rem 0.5rem; font-weight: 700; font-size: 0.9rem; color: var(--primary);">Average</td>`;
+      distinctTerms.forEach(term => {
+        let termObt = 0;
+        let termMax = 0;
+        let hasTermMarks = false;
+
+        displaySubjects.forEach(subj => {
+          const ex = applicableExams.find(e => e.name === term && (e.subject === subj || (!e.subject && displaySubjects.length === 1)));
+          if (ex) {
+            const markObj = studentMarks.find(m => m.exam_id === ex.id);
+            if (markObj && markObj.marks_obtained !== null && markObj.marks_obtained !== undefined) {
+              termObt += markObj.marks_obtained;
+              termMax += ex.total_marks;
+              hasTermMarks = true;
+            }
+          }
+        });
+
+        if (hasTermMarks && termMax > 0) {
+          const termPerc = (termObt / termMax) * 100;
+          avgCells += `
+            <td style="padding: 0.75rem 0.5rem; text-align: center; background: rgba(59, 130, 246, 0.06);">
+              <div style="font-weight: 700; font-size: 0.95rem; color: var(--primary);">${termObt}/${termMax}</div>
+              <div style="font-size: 0.8rem; font-weight: 700; color: var(--primary); margin-top: 2px;">${termPerc.toFixed(1)}%</div>
+            </td>
+          `;
+        } else {
+          avgCells += `<td style="padding: 0.75rem 0.5rem; text-align: center; color: var(--text-muted); font-size: 0.85rem;">&mdash;</td>`;
+        }
+      });
+
+      html += `<tr style="border-top: 2px solid var(--border); background: rgba(59, 130, 246, 0.04);">${avgCells}</tr>`;
+    }
+  } else {
+    // Single-subject / general fallback
+    html += `<tr style="border-bottom: 1px solid var(--border);">
+      <td style="padding: 0.75rem 0.5rem; font-weight: 600; font-size: 0.9rem; color: var(--text);">Score</td>`;
+    distinctTerms.forEach(term => {
+      const ex = applicableExams.find(e => e.name === term);
+      const markObj = ex ? studentMarks.find(m => m.exam_id === ex.id) : null;
+      if (markObj && markObj.marks_obtained !== null && markObj.marks_obtained !== undefined) {
+        hasExams = true;
+        const marksObtained = markObj.marks_obtained;
+        const maxMarks = ex.total_marks;
+        const perc = (marksObtained / maxMarks) * 100;
+        html += `
+          <td style="padding: 0.75rem 0.5rem; text-align: center;">
+            <div style="font-weight: 700; font-size: 0.95rem; color: var(--text);">${marksObtained}/${maxMarks}</div>
+            <div style="font-size: 0.78rem; font-weight: 600; color: var(--primary); margin-top: 2px;">${perc.toFixed(1)}%</div>
+          </td>
+        `;
+      } else {
+        html += `<td style="padding: 0.75rem 0.5rem; text-align: center; color: var(--text-muted);">&mdash;</td>`;
+      }
+    });
+    html += `</tr>`;
+  }
+
+  if (!hasExams) {
+    html = `<div class="submit-card" style="padding: 1.5rem; text-align: center; color: var(--text-muted);">No exam records found yet.</div>`;
+  } else {
+    html += `</tbody></table></div>`;
+  }
+
+  if (hasExams && applicableExams.length > 0) {
+    const stats = [];
+    applicableExams.forEach(ex => {
+      const markObj = studentMarks.find(m => m.exam_id === ex.id);
+      if (markObj && markObj.marks_obtained !== null && markObj.marks_obtained !== undefined) {
+        stats.push({ name: ex.name, subject: ex.subject || (!isNerdStudent ? "Social Science" : ""), perc: (markObj.marks_obtained / ex.total_marks) * 100 });
+      }
+    });
+
+    if (stats.length > 0) {
+      const averagePerc = stats.reduce((acc, curr) => acc + curr.perc, 0) / stats.length;
+      const highestExam = stats.reduce((prev, curr) => (prev.perc > curr.perc) ? prev : curr);
+      const lowestExam = stats.reduce((prev, curr) => (prev.perc < curr.perc) ? prev : curr);
+
+      // Calculate term-by-term trend across terms (e.g. Pre Mid vs Post Mid average)
+      const termAverages = [];
+      distinctTerms.forEach(term => {
+        const termStats = stats.filter(st => st.name === term);
+        if (termStats.length > 0) {
+          const avg = termStats.reduce((sum, s) => sum + s.perc, 0) / termStats.length;
+          termAverages.push({ term, avg });
+        }
+      });
+
+      let trendHtml = '';
+      if (termAverages.length >= 2) {
+        const firstTerm = termAverages[0];
+        const lastTerm = termAverages[termAverages.length - 1];
+        const overallChange = lastTerm.avg - firstTerm.avg;
+        if (overallChange > 0) trendHtml = `<span style="color: #059669; font-weight: bold;">Improving (&#8593; ${overallChange.toFixed(1)}%)</span>`;
+        else if (overallChange < 0) trendHtml = `<span style="color: #dc2626; font-weight: bold;">Declining (&#8595; ${Math.abs(overallChange).toFixed(1)}%)</span>`;
+        else trendHtml = `<span style="color: var(--text-muted); font-weight: bold;">Stable</span>`;
+      } else {
+        trendHtml = `<span style="color: var(--text-muted);">Need more exams</span>`;
+      }
+
+      let subjectCardsHtml = '';
+      if (displaySubjects && displaySubjects.length > 0) {
+        displaySubjects.forEach(sb => {
+          const sbStats = stats.filter(st => st.subject === sb);
+          if (sbStats.length > 0) {
+            const sbAvg = sbStats.reduce((acc, curr) => acc + curr.perc, 0) / sbStats.length;
+            subjectCardsHtml += `
+              <div style="background: var(--surface-card); padding: 0.75rem 1rem; border-radius: 8px; border: 1px solid var(--border);">
+                <p style="margin: 0; color: var(--text-muted); font-size: 0.85rem;">${escapeHtml(sb)}</p>
+                <p style="margin: 0.25rem 0 0 0; font-size: 1.15rem; font-weight: bold; color: var(--primary);">${sbAvg.toFixed(1)}%</p>
+              </div>
+            `;
+          }
+        });
+      }
+
+      html += `
+      <div style="border-top: 1px solid var(--border); padding: 1.5rem; background: var(--bg); border-radius: 12px; margin-top: 1.5rem;">
+        <h3 style="margin-top: 0; color: var(--text); border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; font-size: 1.1rem;">Insights & Analysis</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem; margin-top: 1rem;">
+            <div>
+                <p style="margin: 0.5rem 0; color: var(--text-muted); font-size: 0.9rem;">Overall Average</p>
+                <p style="margin: 0; font-size: 1.25rem; font-weight: bold; color: var(--primary);">${averagePerc.toFixed(1)}%</p>
+            </div>
+            <div>
+                <p style="margin: 0.5rem 0; color: var(--text-muted); font-size: 0.9rem;">Overall Trend</p>
+                <p style="margin: 0; font-size: 1.1rem;">${trendHtml}</p>
+            </div>
+            <div>
+                <p style="margin: 0.5rem 0; color: var(--text-muted); font-size: 0.9rem;">Highest Score</p>
+                <p style="margin: 0; font-size: 1.1rem; font-weight: 500;">${highestExam.perc.toFixed(1)}%</p>
+                <p style="margin: 0.2rem 0 0 0; font-size: 0.8rem; color: var(--text-muted);">${escapeHtml(highestExam.name)}${highestExam.subject ? ` (${escapeHtml(highestExam.subject)})` : ''}</p>
+            </div>
+            <div>
+                <p style="margin: 0.5rem 0; color: var(--text-muted); font-size: 0.9rem;">Lowest Score</p>
+                <p style="margin: 0; font-size: 1.1rem; font-weight: 500;">${lowestExam.perc.toFixed(1)}%</p>
+                <p style="margin: 0.2rem 0 0 0; font-size: 0.8rem; color: var(--text-muted);">${escapeHtml(lowestExam.name)}${lowestExam.subject ? ` (${escapeHtml(lowestExam.subject)})` : ''}</p>
+            </div>
+        </div>
+        ${(subjectCardsHtml && displaySubjects.length > 1) ? `
+        <div style="margin-top: 1.25rem; border-top: 1px solid var(--border); padding-top: 1rem;">
+          <p style="margin: 0 0 0.75rem 0; font-weight: 600; font-size: 0.95rem; color: var(--text);">Subject-wise Average</p>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.75rem;">
+            ${subjectCardsHtml}
+          </div>
+        </div>
+        ` : ''}
+
+        <!-- PERFORMANCE / PROGRESS GRAPH -->
+        <div style="margin-top: 1.5rem; border-top: 1px solid var(--border); padding-top: 1.25rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+            <p style="margin: 0; font-weight: 700; font-size: 1rem; color: var(--text); display: flex; align-items: center; gap: 0.5rem;">
+              <span>📊</span>
+              <span>${isNerdStudent ? '3-Subject Performance Bar Graph' : 'Progress & Performance Graph'}</span>
+            </p>
+            <span style="font-size: 0.8rem; font-weight: 600; color: var(--primary); background: rgba(59, 130, 246, 0.1); padding: 0.25rem 0.65rem; border-radius: 99px; border: 1px solid rgba(59, 130, 246, 0.25);">
+              ${isNerdStudent ? 'All 3 Subjects in 1 Bar (100% Scale)' : '0% - 100% Progress Scale'}
+            </span>
+          </div>
+          <div style="position: relative; height: 280px; width: 100%;">
+            <canvas id="student-report-chart"></canvas>
+          </div>
+        </div>
+      </div>
+      `;
+    }
+  }
+
+  html += `</div>`;
+  html += `<div id="hw-report-container"></div>`;
+  container.innerHTML = html;
+
+  if (hasExams && applicableExams.length > 0) {
+    renderStudentReportChart({ isNerdStudent, distinctTerms, applicableExams, studentMarks, displaySubjects });
+  }
+
+  // Fetch and render homework status
+  fetch(`/api/homework?student_id=${studentId}`)
+    .then(res => res.json())
+    .then(data => {
+      if (data.statuses && data.statuses.length > 0) {
+        let hwHtml = `
+        <details class="hw-collapsible-card" style="background: var(--surface-card); border: 1px solid var(--border); border-radius: 12px; margin-top: 1.5rem; box-shadow: var(--shadow);">
+          <summary style="padding: 1.1rem 1.25rem; cursor: pointer; list-style: none; display: flex; align-items: center; justify-content: space-between; outline: none; user-select: none;">
+            <div style="display: flex; align-items: center; gap: 0.6rem;">
+              <span style="font-size: 1.2rem;">📋</span>
+              <h3 style="margin: 0; font-size: 1.05rem; color: var(--text);">Homework Records (${data.statuses.length} entries)</h3>
+            </div>
+            <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 500;">Click to view / collapse &#9660;</span>
+          </summary>
+          <div style="padding: 0 1.25rem 1.25rem 1.25rem; border-top: 1px solid var(--border);">
+            <div class="submit-card" style="padding: 0; overflow-x: auto; margin-top: 1rem; border: none; box-shadow: none;">
+              <table style="width: 100%; border-collapse: collapse; text-align: left; background: var(--surface);">
+                <thead>
+                  <tr style="border-bottom: 2px solid var(--border);">
+                    <th style="padding: 0.85rem 1rem; color: var(--text-muted); font-weight: 600; font-size: 0.85rem;">Date</th>
+                    <th style="padding: 0.85rem 1rem; color: var(--text-muted); font-weight: 600; font-size: 0.85rem;">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+        `;
+        
+        data.statuses.forEach(st => {
+          let badgeColor = "#059669";
+          let badgeBg = "#dcfce7";
+          let badgeIcon = "✓";
+
+          if (st.status === 'Completed but late') {
+            badgeColor = "#7c3aed";
+            badgeBg = "#ede9fe";
+            badgeIcon = "⏰";
+          } else if (st.status === 'Partial') {
+            badgeColor = "#d97706";
+            badgeBg = "#fef3c7";
+            badgeIcon = "⚠️";
+          } else if (st.status === 'Incomplete') {
+            badgeColor = "#dc2626";
+            badgeBg = "#fee2e2";
+            badgeIcon = "✗";
+          } else if (st.status === 'Absent') {
+            badgeColor = "#475569";
+            badgeBg = "#f1f5f9";
+            badgeIcon = "🚫";
+          }
+          
+          hwHtml += `
+            <tr style="border-bottom: 1px solid var(--border);">
+              <td style="padding: 0.85rem 1rem; font-weight: 500; font-size: 0.9rem;">${st.homework_date}</td>
+              <td style="padding: 0.85rem 1rem;">
+                <span style="background: ${badgeBg}; color: ${badgeColor}; padding: 0.25rem 0.75rem; border-radius: 9999px; font-weight: 600; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 0.35rem;">
+                  <span>${badgeIcon}</span> <span>${escapeHtml(st.status)}</span>
+                </span>
+              </td>
+            </tr>
+          `;
+        });
+        
+        hwHtml += `</tbody></table></div></div></details>`;
+        const hwContainer = document.getElementById("hw-report-container");
+        if (hwContainer) hwContainer.innerHTML = hwHtml;
+      }
+    })
+    .catch(err => console.error("Failed to load homework tracking:", err));
+}
+
+// Initialize when DOM is ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initStudentReport);
+} else {
+  initStudentReport();
+}
+
+// Map Work New Badge Logic
+document.addEventListener("DOMContentLoaded", () => {
+  const mapBadge = document.getElementById("map-work-new-badge");
+  const mapLink = document.getElementById("map-work-link");
+  if (mapBadge && mapLink) {
+    if (!localStorage.getItem("padhrahi_clicked_map_work")) {
+      mapBadge.style.display = "inline-block";
+    }
+    mapLink.addEventListener("click", () => {
+      localStorage.setItem("padhrahi_clicked_map_work", "true");
+      mapBadge.style.display = "none";
+    });
+  }
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// --- Milestone Celebration Banner ---
+document.addEventListener("DOMContentLoaded", () => {
+  if (localStorage.getItem('milestone_banner_dismissed')) return;
+
+  const banner = document.createElement("div");
+  banner.id = "milestone-banner";
+  banner.innerHTML = `
+    <button id="milestone-close">&times;</button>
+    <h3 style="margin: 0; font-size: 1.15rem; color: var(--text); font-weight: 700; padding-right: 20px;">🎉 A quick note of gratitude!</h3>
+    <p style="margin: 0; font-size: 0.95rem; color: var(--text-muted); line-height: 1.5;">We just crossed 1,000 visitors, and we couldn't have reached this milestone without you. If you enjoy our content and want regular updates, connect with us on Instagram!</p>
+    <a id="milestone-btn" href="https://www.instagram.com/nerd_tutors/" target="_blank">Follow Us on Instagram</a>
+  `;
+  document.body.appendChild(banner);
+
+  const closeBtn = document.getElementById("milestone-close");
+  const instaBtn = document.getElementById("milestone-btn");
+
+  const dismissBanner = () => {
+    localStorage.setItem('milestone_banner_dismissed', 'true');
+    banner.style.opacity = '0';
+    banner.style.transform = 'translateY(20px)';
+    setTimeout(() => {
+      if (banner.parentNode) banner.parentNode.removeChild(banner);
+    }, 300);
+  };
+
+  closeBtn.addEventListener("click", dismissBanner);
+  instaBtn.addEventListener("click", dismissBanner);
+
+  // Slide in smoothly 2 seconds after page load
+  setTimeout(() => {
+    banner.classList.add("show");
+  }, 2000);
+});
+
+// --- AI CHECKING & NERD TUTORS SMART ACCESS ROUTING ---
+function initNerdTutorsAccess() {
+  const evalBtn = document.getElementById("nerd-tutors-eval-btn");
+  if (!evalBtn) return;
+
+  const modal = document.getElementById("nerd-access-modal");
+  const closeBtn = document.getElementById("nerd-access-close-btn");
+  const form = document.getElementById("nerd-access-form");
+  const idInput = document.getElementById("nerd-access-id");
+  const passInput = document.getElementById("nerd-access-pass");
+  const submitBtn = document.getElementById("nerd-access-submit-btn");
+  const errorEl = document.getElementById("nerd-access-error");
+  const statusTag = document.getElementById("ai-checking-status-tag");
+  const gateLink = document.getElementById("nerd-access-gate-link");
+
+  const GATE_PASS_URL = "https://nerd-tutors-two.vercel.app/?gate_pass=nt_pass_alpha2026";
+  const GATE_LOGIN_URL = "https://nerd-tutors-two.vercel.app/login-gate.html";
+
+  const getStudentInfo = () => {
+    try {
+      const str = localStorage.getItem("student_info");
+      return str ? JSON.parse(str) : null;
+    } catch (e) {
+      return null;
+    }
+  };
+
+  const isNerdStudent = (info) => {
+    return Boolean(info && info.group_name && info.group_name.startsWith("Nerd Tutors"));
+  };
+
+  const updateCardState = () => {
+    const student = getStudentInfo();
+    if (student && isNerdStudent(student)) {
+      evalBtn.href = GATE_PASS_URL;
+      if (statusTag) {
+        statusTag.textContent = `✓ Logged in as ${student.name} (Nerd Tutors) — Direct Access Active`;
+        statusTag.style.display = "block";
+      }
+    } else {
+      evalBtn.href = "#";
+      if (statusTag) statusTag.style.display = "none";
+    }
+  };
+
+  updateCardState();
+
+  evalBtn.addEventListener("click", (e) => {
+    const student = getStudentInfo();
+    if (student && isNerdStudent(student)) {
+      // Direct access allowed
+      return;
+    }
+    // Block standard click and open access modal
+    e.preventDefault();
+    if (modal) {
+      modal.classList.remove("hidden");
+      modal.style.display = "flex";
+      if (errorEl) errorEl.style.display = "none";
+      if (idInput) idInput.focus();
+    }
+  });
+
+  if (closeBtn && modal) {
+    closeBtn.addEventListener("click", () => {
+      modal.classList.add("hidden");
+      modal.style.display = "none";
+    });
+  }
+
+  if (gateLink && modal) {
+    gateLink.addEventListener("click", () => {
+      modal.classList.add("hidden");
+      modal.style.display = "none";
+    });
+  }
+
+  if (form) {
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const idVal = idInput ? idInput.value.trim() : "";
+      const passVal = passInput ? passInput.value.trim() : "";
+
+      if (!idVal || !passVal) {
+        if (errorEl) {
+          errorEl.textContent = "Please enter both Student ID and Password.";
+          errorEl.style.display = "block";
+        }
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Verifying...";
+      if (errorEl) errorEl.style.display = "none";
+
+      try {
+        const res = await fetch("/api/auth", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ student_id_alias: idVal, password: passVal })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || "Login failed");
+        }
+
+        const student = data.student;
+        if (student && isNerdStudent(student)) {
+          localStorage.setItem("student_token", data.token);
+          localStorage.setItem("student_info", JSON.stringify(student));
+          updateCardState();
+          modal.classList.add("hidden");
+          modal.style.display = "none";
+          window.open(GATE_PASS_URL, "_blank");
+        } else {
+          // Valid student in another group
+          if (errorEl) {
+            errorEl.innerHTML = `Your account (${escapeHtml(student.name)}) is in <strong>${escapeHtml(student.group_name || "Unassigned")}</strong>, not Nerd Tutors.<br><a href="${GATE_LOGIN_URL}" target="_blank" style="color:var(--primary); font-weight:600; display:inline-block; margin-top:0.35rem;">Click here to go to the NerdTutors login gate ↗</a>`;
+            errorEl.style.display = "block";
+          }
+        }
+      } catch (err) {
+        if (errorEl) {
+          errorEl.textContent = err.message || "Invalid Student ID or Password.";
+          errorEl.style.display = "block";
+        }
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Verify & Enter Directly →";
+      }
+    });
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  initNerdTutorsAccess();
+});
+
+// Theater Curtain & Happy Diwali Entrance Reveal Controller
+document.addEventListener("DOMContentLoaded", () => {
+  const stage = document.getElementById("countdown-stage");
+  const diwaliOverlay = document.getElementById("diwali-overlay");
+  const closeBtn = document.getElementById("btn-replay-curtain");
+
+  if (stage) {
+    // 1. Initial page load state: Curtains stationed open at left and right sides
+    stage.classList.add("curtains-open");
+    stage.classList.remove("greeting-visible");
+
+    // 2. Majestic Entrance: Curtains glide in from left & right, close in center, then Happy Diwali illuminates!
+    setTimeout(() => {
+      stage.classList.remove("curtains-open");
+
+      // As curtains meet in the center (after ~2.5s), gracefully illuminate "Happy Diwali"
+      setTimeout(() => {
+        stage.classList.add("greeting-visible");
+      }, 2500);
+    }, 400);
+
+    // 3. User interaction: Clicking anywhere on the closed stage/overlay automatically parts open the curtains
+    const openCurtains = (e) => {
+      if (e) e.stopPropagation();
+      stage.classList.remove("greeting-visible");
+      stage.classList.add("curtains-open");
+    };
+
+    // 4. User interaction: Close curtains back over countdown and re-illuminate Happy Diwali
+    const closeCurtains = (e) => {
+      if (e) e.stopPropagation();
+      stage.classList.remove("curtains-open");
+      setTimeout(() => {
+        stage.classList.add("greeting-visible");
+      }, 2500);
+    };
+
+    if (diwaliOverlay) diwaliOverlay.addEventListener("click", openCurtains);
+    stage.addEventListener("click", (e) => {
+      if (!stage.classList.contains("curtains-open")) {
+        openCurtains(e);
+      }
+    });
+    if (closeBtn) closeBtn.addEventListener("click", closeCurtains);
+  }
+});

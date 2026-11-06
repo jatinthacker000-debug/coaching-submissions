@@ -66,23 +66,242 @@
       <!-- The Revealed Countdown Content -->
       <div id="exam-countdown" class="countdown-card-inner">
         <div class="countdown-header-row">
-          <h2 style="margin: 0; font-size: clamp(1.05rem, 3.5vw, 1.25rem); color: var(--text);">⏳ Prelims Exam Countdown</h2>
+          <div style="display: flex; align-items: center; gap: 0.6rem;">
+            <span style="font-size: 1.35rem;">🎯</span>
+            <div>
+              <h2 style="margin: 0; font-size: clamp(1.05rem, 3.5vw, 1.25rem); color: var(--text); font-weight: 800;">Boards Exam Countdown</h2>
+              <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 500;">CBSE Core Examination Schedule (2027) • 10:30 AM – 01:30 PM IST</span>
+            </div>
+          </div>
           <button type="button" class="curtain-replay-btn" id="btn-replay-curtain" title="Close curtains and return to Happy Diwali greeting">
             🪔 Close Curtains (Happy Diwali)
           </button>
         </div>
-        <div style="display: flex; justify-content: center; gap: clamp(1rem, 5vw, 2.5rem); margin-top: 0.5rem; flex-wrap: wrap;">
-          <div style="display: flex; flex-direction: column; align-items: center;">
-            <span id="cd-total" style="font-size: clamp(1.8rem, 6.5vw, 2.5rem); font-weight: 700; color: var(--danger);">--</span>
-            <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Total Days Left</span>
+
+        <!-- 2 Schedule Columns: Left = Grade 10, Right = Grade 12 -->
+        <div class="boards-schedules-grid">
+          
+          <!-- LEFT COLUMN: GRADE 10 -->
+          <div class="schedule-column grade10-col">
+            <div class="schedule-col-header">
+              <div class="col-title-wrap">
+                <span class="grade-badge g10-badge">Grade 10</span>
+                <span class="sub-heading-text">Secondary School Exam</span>
+              </div>
+              <div class="hero-days-left">
+                <span class="days-label">Starts 17 Feb 2027</span>
+                <span class="days-count-red" id="cd-g10-total" data-exam-date="2027-02-17">-- Days Left</span>
+              </div>
+            </div>
+
+            <div class="exams-timeline">
+              <!-- Exam 1 -->
+              <div class="exam-item-card">
+                <div class="exam-item-left">
+                  <div class="exam-date-pill">Wed, 17 Feb 2027</div>
+                  <div class="exam-subject-name">Mathematics Standard <span class="subject-code">(041)</span> / Basic <span class="subject-code">(241)</span></div>
+                </div>
+                <div class="exam-item-right">
+                  <span class="days-left-red" data-exam-date="2027-02-17">-- days left</span>
+                </div>
+              </div>
+
+              <!-- Gap 1 -->
+              <div class="exam-gap-divider">
+                <span class="gap-icon">⏱️</span>
+                <span class="gap-text"><strong>4 Full Prep Days Gap</strong> (18–21 Feb) • 5-day difference</span>
+              </div>
+
+              <!-- Exam 2 -->
+              <div class="exam-item-card">
+                <div class="exam-item-left">
+                  <div class="exam-date-pill">Mon, 22 Feb 2027</div>
+                  <div class="exam-subject-name">Science <span class="subject-code">(086)</span></div>
+                </div>
+                <div class="exam-item-right">
+                  <span class="days-left-red" data-exam-date="2027-02-22">-- days left</span>
+                </div>
+              </div>
+
+              <!-- Gap 2 -->
+              <div class="exam-gap-divider">
+                <span class="gap-icon">⏱️</span>
+                <span class="gap-text"><strong>3 Full Prep Days Gap</strong> (23–25 Feb) • 4-day difference</span>
+              </div>
+
+              <!-- Exam 3 -->
+              <div class="exam-item-card">
+                <div class="exam-item-left">
+                  <div class="exam-date-pill">Fri, 26 Feb 2027</div>
+                  <div class="exam-subject-name">English Comm. <span class="subject-code">(101)</span> / Lang. & Lit. <span class="subject-code">(184)</span></div>
+                </div>
+                <div class="exam-item-right">
+                  <span class="days-left-red" data-exam-date="2027-02-26">-- days left</span>
+                </div>
+              </div>
+
+              <!-- Gap 3 -->
+              <div class="exam-gap-divider">
+                <span class="gap-icon">⏱️</span>
+                <span class="gap-text"><strong>4 Full Prep Days Gap</strong> (27 Feb–02 Mar) • 5-day difference</span>
+              </div>
+
+              <!-- Exam 4 -->
+              <div class="exam-item-card">
+                <div class="exam-item-left">
+                  <div class="exam-date-pill">Wed, 03 Mar 2027</div>
+                  <div class="exam-subject-name">Hindi Course-A <span class="subject-code">(002)</span> / Course-B <span class="subject-code">(085)</span></div>
+                </div>
+                <div class="exam-item-right">
+                  <span class="days-left-red" data-exam-date="2027-03-03">-- days left</span>
+                </div>
+              </div>
+
+              <!-- Gap 4 -->
+              <div class="exam-gap-divider">
+                <span class="gap-icon">⏱️</span>
+                <span class="gap-text"><strong>4 Full Prep Days Gap</strong> (04–07 Mar) • 5-day difference</span>
+              </div>
+
+              <!-- Exam 5 -->
+              <div class="exam-item-card">
+                <div class="exam-item-left">
+                  <div class="exam-date-pill">Mon, 08 Mar 2027</div>
+                  <div class="exam-subject-name">Social Science <span class="subject-code">(087)</span></div>
+                </div>
+                <div class="exam-item-right">
+                  <span class="days-left-red" data-exam-date="2027-03-08">-- days left</span>
+                </div>
+              </div>
+
+              <!-- Additional Skills Note -->
+              <div class="schedule-optional-note">
+                <span class="opt-label">📌 Additional Class X Subject Dates:</span>
+                <span>• <strong>Wed, 24 Feb:</strong> Comp. Applications (165) / IT (402) / AI (417) <span class="days-left-red opt-pill" data-exam-date="2027-02-24">-- days</span></span>
+                <span>• <strong>Mon, 01 Mar:</strong> Sanskrit (119/122) <span class="days-left-red opt-pill" data-exam-date="2027-03-01">-- days</span></span>
+              </div>
+            </div>
           </div>
-          <div style="width: 1px; background: var(--border);"></div>
-          <div style="display: flex; flex-direction: column; align-items: center;">
-            <span id="cd-effective" style="font-size: clamp(1.8rem, 6.5vw, 2.5rem); font-weight: 700; color: var(--danger);">--</span>
-            <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Pure Study Days*</span>
+
+          <!-- RIGHT COLUMN: GRADE 12 -->
+          <div class="schedule-column grade12-col">
+            <div class="schedule-col-header">
+              <div class="col-title-wrap">
+                <span class="grade-badge g12-badge">Grade 12</span>
+                <span class="sub-heading-text">Commerce Core & Applied Math</span>
+              </div>
+              <div class="hero-days-left">
+                <span class="days-label">Starts 18 Feb 2027</span>
+                <span class="days-count-red" id="cd-g12-total" data-exam-date="2027-02-18">-- Days Left</span>
+              </div>
+            </div>
+
+            <div class="exams-timeline">
+              <!-- Exam 1 -->
+              <div class="exam-item-card">
+                <div class="exam-item-left">
+                  <div class="exam-date-pill">Thu, 18 Feb 2027</div>
+                  <div class="exam-subject-name">Physical Education <span class="subject-code">(048)</span> <span class="opt-tag">Optional 5th</span></div>
+                </div>
+                <div class="exam-item-right">
+                  <span class="days-left-red" data-exam-date="2027-02-18">-- days left</span>
+                </div>
+              </div>
+
+              <!-- Gap 1 -->
+              <div class="exam-gap-divider">
+                <span class="gap-icon">⏱️</span>
+                <span class="gap-text"><strong>4 Full Prep Days Gap</strong> (19–22 Feb) after Phys. Ed.</span>
+              </div>
+
+              <!-- Exam 2 -->
+              <div class="exam-item-card">
+                <div class="exam-item-left">
+                  <div class="exam-date-pill">Tue, 23 Feb 2027</div>
+                  <div class="exam-subject-name">Accountancy <span class="subject-code">(055)</span> <span class="core-tag">First Core Commerce</span></div>
+                </div>
+                <div class="exam-item-right">
+                  <span class="days-left-red" data-exam-date="2027-02-23">-- days left</span>
+                </div>
+              </div>
+
+              <!-- Gap 2 -->
+              <div class="exam-gap-divider">
+                <span class="gap-icon">⏱️</span>
+                <span class="gap-text"><strong>9 Full Prep Days Gap</strong> (24 Feb–04 Mar) • 10-day difference</span>
+              </div>
+
+              <!-- Exam 3 -->
+              <div class="exam-item-card">
+                <div class="exam-item-left">
+                  <div class="exam-date-pill">Fri, 05 Mar 2027</div>
+                  <div class="exam-subject-name">English Core <span class="subject-code">(301)</span> / Elective <span class="subject-code">(001)</span></div>
+                </div>
+                <div class="exam-item-right">
+                  <span class="days-left-red" data-exam-date="2027-03-05">-- days left</span>
+                </div>
+              </div>
+
+              <!-- Gap 3 -->
+              <div class="exam-gap-divider">
+                <span class="gap-icon">⏱️</span>
+                <span class="gap-text"><strong>3 Full Prep Days Gap</strong> (06–08 Mar) • 4-day difference</span>
+              </div>
+
+              <!-- Exam 4 -->
+              <div class="exam-item-card">
+                <div class="exam-item-left">
+                  <div class="exam-date-pill">Tue, 09 Mar 2027</div>
+                  <div class="exam-subject-name">Applied Mathematics <span class="subject-code">(241)</span> / Mathematics <span class="subject-code">(041)</span></div>
+                </div>
+                <div class="exam-item-right">
+                  <span class="days-left-red" data-exam-date="2027-03-09">-- days left</span>
+                </div>
+              </div>
+
+              <!-- Gap 4 -->
+              <div class="exam-gap-divider">
+                <span class="gap-icon">⏱️</span>
+                <span class="gap-text"><strong>6 Full Prep Days Gap</strong> (10–15 Mar) • 10 days if no Math</span>
+              </div>
+
+              <!-- Exam 5 -->
+              <div class="exam-item-card">
+                <div class="exam-item-left">
+                  <div class="exam-date-pill">Tue, 16 Mar 2027</div>
+                  <div class="exam-subject-name">Economics <span class="subject-code">(030)</span></div>
+                </div>
+                <div class="exam-item-right">
+                  <span class="days-left-red" data-exam-date="2027-03-16">-- days left</span>
+                </div>
+              </div>
+
+              <!-- Gap 5 -->
+              <div class="exam-gap-divider">
+                <span class="gap-icon">⏱️</span>
+                <span class="gap-text"><strong>15 Full Prep Days Gap</strong> (17–31 Mar) • 16-day difference</span>
+              </div>
+
+              <!-- Exam 6 -->
+              <div class="exam-item-card">
+                <div class="exam-item-left">
+                  <div class="exam-date-pill">Thu, 01 Apr 2027</div>
+                  <div class="exam-subject-name">Business Studies <span class="subject-code">(054)</span></div>
+                </div>
+                <div class="exam-item-right">
+                  <span class="days-left-red" data-exam-date="2027-04-01">-- days left</span>
+                </div>
+              </div>
+            </div>
           </div>
+
         </div>
-        <p style="margin: 0; font-size: 0.8rem; color: var(--text-muted); opacity: 0.8; margin-top: 0.5rem;">*Subtracting 20 days for Diwali & festivals.</p>
+
+        <div class="schedule-footer-bar">
+          <span>🕒 All core examinations: <strong>10:30 AM – 01:30 PM (IST)</strong></span>
+          <span>•</span>
+          <span>Gap calculation based strictly on non-exam intervening calendar study days</span>
+        </div>
       </div>
     </div>
 
