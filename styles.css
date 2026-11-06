@@ -1633,17 +1633,18 @@ table td {
 
 
 /* =========================================================================
-   THEATER CURTAIN STAGE ANIMATION & HAPPY DIWALI REVEAL
+   THEATER CURTAIN STAGE ANIMATION & HAPPY DIWALI REVEAL (FESTIVE DIWALI ART)
    ========================================================================= */
 .theater-stage {
   position: relative;
   overflow: hidden;
-  border-radius: 14px;
-  margin-bottom: 2rem;
+  border-radius: 16px;
+  max-width: 660px;
+  margin: 0 auto 2.5rem auto;
   background: var(--surface-card);
-  border: 2px solid rgba(212, 175, 55, 0.5);
-  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.16), 0 0 20px rgba(212, 175, 55, 0.15);
-  min-height: 200px;
+  border: 2px solid rgba(251, 191, 36, 0.6);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.25), 0 0 24px rgba(245, 158, 11, 0.2);
+  min-height: 220px;
 }
 
 /* Top Decorative Valance / Pelmet */
@@ -1653,8 +1654,8 @@ table td {
   left: 0;
   right: 0;
   height: 24px;
-  background: linear-gradient(180deg, #400000 0%, #770000 70%, #d4af37 100%);
-  border-bottom: 2.5px solid #d4af37;
+  background: linear-gradient(180deg, #1b092b 0%, #3a104e 70%, #d4af37 100%);
+  border-bottom: 2px solid #fbbf24;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
   z-index: 25;
   display: flex;
@@ -1671,7 +1672,7 @@ table td {
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
 }
 
-/* Velvet Curtain Panels - SLOW 3.8s LUXURIOUS MOVEMENT */
+/* Velvet Curtain Panels - SLOW 3.2s LUXURIOUS MOVEMENT */
 .theater-curtain {
   position: absolute;
   top: 0;
@@ -1720,26 +1721,6 @@ table td {
   border-left: 2px solid #d4af37;
 }
 
-/* Gold Tassel Tiebacks on curtains */
-.curtain-tassel {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 1.15rem;
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));
-}
-
-.curtain-left .curtain-tassel {
-  right: 10px;
-}
-
-.curtain-right .curtain-tassel {
-  left: 10px;
-}
-
 /* OPENED STATE: Curtains compress into gathered side folds */
 .theater-stage.curtains-open .curtain-left {
   transform: scaleX(0.08) translateX(-20%);
@@ -1751,7 +1732,7 @@ table td {
   box-shadow: -10px 0 25px rgba(0, 0, 0, 0.7);
 }
 
-/* FRONT CURTAIN DIWALI GREETING OVERLAY */
+/* FRONT CURTAIN DIWALI GREETING OVERLAY (IMAGE ART STYLE) */
 .diwali-curtain-overlay {
   position: absolute;
   top: 0;
@@ -1762,16 +1743,19 @@ table td {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 2rem 1.25rem 1.5rem 1.25rem;
+  justify-content: flex-end;
+  padding: 1.5rem 1rem 1.1rem 1rem;
   text-align: center;
-  background: radial-gradient(ellipse at center, rgba(120, 0, 0, 0.45) 0%, rgba(0, 0, 0, 0.72) 100%);
+  background: 
+    linear-gradient(180deg, rgba(15, 7, 28, 0.08) 0%, rgba(15, 7, 28, 0.18) 40%, rgba(15, 7, 28, 0.88) 100%), 
+    url('diwali-banner.jpg') center center / cover no-repeat;
   cursor: pointer;
   opacity: 0;
-  transform: scale(0.92);
+  transform: scale(0.96);
   pointer-events: none;
-  transition: opacity 1.4s ease, transform 1.4s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity 1.2s ease, transform 1.2s cubic-bezier(0.16, 1, 0.3, 1);
   user-select: none;
+  overflow: hidden;
 }
 
 /* Greeting fades in gracefully after curtains close */
@@ -1783,75 +1767,103 @@ table td {
 
 .theater-stage.curtains-open .diwali-curtain-overlay {
   opacity: 0;
-  transform: scale(0.94);
+  transform: scale(0.96);
   pointer-events: none;
 }
 
-.diwali-sparkle-row {
-  font-size: 1.3rem;
+/* Living Diya Flame Radiant Glow Aura */
+.diwali-diya-glow {
+  position: absolute;
+  left: 50%;
+  top: 55%;
+  transform: translate(-50%, -50%);
+  width: 280px;
+  height: 120px;
+  background: radial-gradient(ellipse at center, rgba(251, 191, 36, 0.4) 0%, rgba(245, 158, 11, 0.2) 45%, transparent 75%);
+  pointer-events: none;
+  animation: diyaGlowPulse 3s infinite ease-in-out alternate;
+  z-index: 1;
+}
+
+@keyframes diyaGlowPulse {
+  0% { transform: translate(-50%, -50%) scale(0.92); opacity: 0.6; filter: drop-shadow(0 0 10px rgba(251, 191, 36, 0.4)); }
+  50% { transform: translate(-50%, -50%) scale(1.1); opacity: 0.95; filter: drop-shadow(0 0 25px rgba(251, 191, 36, 0.8)); }
+  100% { transform: translate(-50%, -50%) scale(0.96); opacity: 0.7; filter: drop-shadow(0 0 14px rgba(251, 191, 36, 0.5)); }
+}
+
+/* Floating Sparkle / Bokeh Particles */
+.diwali-sparkles-container {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 2;
+}
+
+.diwali-spark {
+  position: absolute;
   color: #fef08a;
-  filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.7));
-  margin-bottom: 0.2rem;
-  animation: diyaPulse 2.5s infinite ease-in-out;
+  font-size: 0.85rem;
+  filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.95));
+  animation: sparkFloat 4s infinite ease-in-out;
+  opacity: 0.75;
 }
 
-@keyframes diyaPulse {
-  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.6)); }
-  50% { transform: scale(1.1); filter: drop-shadow(0 0 16px rgba(255, 220, 100, 0.95)); }
+.diwali-spark.s1 { left: 16%; top: 28%; animation-delay: 0s; font-size: 1rem; }
+.diwali-spark.s2 { left: 30%; top: 40%; animation-delay: 1.4s; font-size: 0.75rem; }
+.diwali-spark.s3 { left: 70%; top: 32%; animation-delay: 0.8s; font-size: 0.85rem; }
+.diwali-spark.s4 { left: 84%; top: 22%; animation-delay: 2.2s; font-size: 1.1rem; }
+.diwali-spark.s5 { left: 48%; top: 16%; animation-delay: 1.9s; font-size: 0.95rem; }
+.diwali-spark.s6 { left: 78%; top: 52%; animation-delay: 2.7s; font-size: 0.7rem; }
+
+@keyframes sparkFloat {
+  0%, 100% { transform: translateY(0) scale(0.85); opacity: 0.45; }
+  50% { transform: translateY(-14px) scale(1.15); opacity: 0.95; }
 }
 
-.diwali-title {
-  font-family: 'Cinzel', 'Playfair Display', Georgia, serif;
-  font-size: clamp(2.2rem, 5.5vw, 3rem);
-  font-weight: 900;
-  letter-spacing: 3px;
-  line-height: 1.15;
-  margin: 0.15rem 0 0.35rem 0;
-  background: linear-gradient(135deg, #ffffff 0%, #fff3b0 20%, #ffd700 50%, #f59e0b 75%, #ffffff 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.9)) drop-shadow(0 0 18px rgba(255, 215, 0, 0.6));
-  animation: diwaliShimmer 4s ease-in-out infinite alternate;
-}
-
-@keyframes diwaliShimmer {
-  0% { filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.9)) drop-shadow(0 0 14px rgba(255, 215, 0, 0.45)); }
-  100% { filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.9)) drop-shadow(0 0 26px rgba(255, 230, 120, 0.85)); }
-}
-
-.diwali-subtitle {
-  color: #fef08a;
-  font-size: clamp(0.82rem, 2vw, 0.92rem);
-  font-weight: 500;
-  margin: 0 0 1rem 0;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9), 0 0 10px rgba(0,0,0,0.5);
-  letter-spacing: 0.5px;
+/* Greeting Subtitle & Minimal Tap Pill */
+.diwali-content-wrap {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
   max-width: 520px;
 }
 
-.diwali-open-btn {
-  background: linear-gradient(135deg, rgba(212, 175, 55, 0.28) 0%, rgba(245, 158, 11, 0.4) 100%);
-  border: 1.5px solid rgba(254, 240, 138, 0.85);
-  color: #ffffff;
-  font-size: 0.85rem;
-  font-weight: 700;
-  padding: 0.45rem 1.25rem;
-  border-radius: 99px;
-  cursor: pointer;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5), 0 0 15px rgba(212, 175, 55, 0.35);
-  transition: all 0.3s ease;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+.diwali-subtitle {
+  color: #fffbeb;
+  font-size: clamp(0.78rem, 2.3vw, 0.92rem);
+  font-weight: 500;
+  margin: 0;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.95), 0 0 14px rgba(0, 0, 0, 0.8);
+  letter-spacing: 0.3px;
+  line-height: 1.35;
 }
 
-.diwali-open-btn:hover {
-  background: linear-gradient(135deg, #d4af37 0%, #f59e0b 100%);
-  color: #1e1b4b;
-  text-shadow: none;
-  box-shadow: 0 4px 20px rgba(245, 158, 11, 0.7);
-  transform: translateY(-1px);
+.diwali-tap-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: rgba(15, 7, 28, 0.65);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(251, 191, 36, 0.55);
+  color: #fef08a;
+  padding: 0.28rem 0.85rem;
+  border-radius: 99px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4), 0 0 10px rgba(251, 191, 36, 0.25);
+  animation: pillPulse 2.5s infinite ease-in-out;
+}
+
+@keyframes pillPulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4), 0 0 8px rgba(251, 191, 36, 0.25); }
+  50% { transform: scale(1.04); box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), 0 0 16px rgba(251, 191, 36, 0.55); }
 }
 
 /* Revealed Countdown Card Inner */
@@ -1867,17 +1879,15 @@ table td {
 
 .countdown-header-row {
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
   position: relative;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.5rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 .curtain-replay-btn {
-  position: absolute;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
   background: rgba(212, 175, 55, 0.12);
   border: 1px solid rgba(212, 175, 55, 0.45);
   color: #b45309;
@@ -1890,6 +1900,7 @@ table td {
   align-items: center;
   gap: 0.35rem;
   transition: all 0.25s ease;
+  margin-left: auto;
 }
 
 .curtain-replay-btn:hover {

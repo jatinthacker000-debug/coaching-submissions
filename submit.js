@@ -1844,7 +1844,6 @@ document.addEventListener("DOMContentLoaded", () => {
 document.addEventListener("DOMContentLoaded", () => {
   const stage = document.getElementById("countdown-stage");
   const diwaliOverlay = document.getElementById("diwali-overlay");
-  const openBtn = document.getElementById("btn-open-curtains");
   const closeBtn = document.getElementById("btn-replay-curtain");
 
   if (stage) {
@@ -1862,7 +1861,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }, 2500);
     }, 400);
 
-    // 3. User interaction: Open curtains to reveal the Prelims countdown
+    // 3. User interaction: Clicking anywhere on the closed stage/overlay automatically parts open the curtains
     const openCurtains = (e) => {
       if (e) e.stopPropagation();
       stage.classList.remove("greeting-visible");
@@ -1878,8 +1877,12 @@ document.addEventListener("DOMContentLoaded", () => {
       }, 2500);
     };
 
-    if (openBtn) openBtn.addEventListener("click", openCurtains);
     if (diwaliOverlay) diwaliOverlay.addEventListener("click", openCurtains);
+    stage.addEventListener("click", (e) => {
+      if (!stage.classList.contains("curtains-open")) {
+        openCurtains(e);
+      }
+    });
     if (closeBtn) closeBtn.addEventListener("click", closeCurtains);
   }
 });
