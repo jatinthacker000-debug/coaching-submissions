@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=2027d">
+  <link rel="stylesheet" href="styles.css?v=2027e">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <!-- Vercel Web Analytics -->
   <script>
@@ -267,6 +267,67 @@
       text-align: left !important;
       box-sizing: border-box !important;
     }
+  
+    /* Diwali Curtain Overlay Fitted Art */
+    .diwali-curtain-overlay {
+      position: absolute !important;
+      inset: 0 !important;
+      z-index: 22 !important;
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: center !important;
+      justify-content: flex-end !important;
+      padding: 1rem 1rem clamp(0.75rem, 2.5vw, 1.35rem) 1rem !important;
+      text-align: center !important;
+      background: 
+        linear-gradient(180deg, rgba(7, 11, 25, 0.08) 0%, rgba(7, 11, 25, 0) 30%, rgba(7, 11, 25, 0.4) 68%, rgba(7, 11, 25, 0.92) 100%), 
+        url('diwali-banner.jpg') center top / cover no-repeat, #070b19 !important;
+      cursor: pointer !important;
+      opacity: 0;
+      transition: opacity 1.2s ease, transform 1.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+      user-select: none !important;
+      overflow: hidden !important;
+      border-radius: 18px !important;
+    }
+    @media (max-width: 768px) {
+      .diwali-curtain-overlay {
+        background: 
+          linear-gradient(180deg, rgba(7, 11, 25, 0.06) 0%, rgba(7, 11, 25, 0) 25%, rgba(7, 11, 25, 0.35) 65%, rgba(7, 11, 25, 0.92) 100%), 
+          url('diwali-banner.jpg') center top / cover no-repeat, #070b19 !important;
+        border-radius: 14px !important;
+        padding: 0.85rem 0.75rem !important;
+      }
+    }
+    .diwali-subtitle {
+      color: #fffbeb !important;
+      font-size: clamp(0.75rem, 2.4vw, 0.95rem) !important;
+      font-weight: 600 !important;
+      margin: 0 0 0.4rem 0 !important;
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.95), 0 0 16px rgba(0, 0, 0, 0.9) !important;
+      letter-spacing: 0.3px !important;
+      line-height: 1.35 !important;
+    }
+    .diwali-tap-hint {
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 0.35rem !important;
+      font-size: 0.74rem !important;
+      font-weight: 700 !important;
+      color: #fde047 !important;
+      background: rgba(0, 0, 0, 0.6) !important;
+      border: 1px solid rgba(253, 224, 71, 0.45) !important;
+      padding: 0.25rem 0.75rem !important;
+      border-radius: 99px !important;
+      backdrop-filter: blur(6px) !important;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.6) !important;
+      letter-spacing: 0.3px !important;
+      animation: pulseHint 2.4s infinite ease-in-out !important;
+    }
+    @keyframes pulseHint {
+      0%, 100% { transform: scale(1); opacity: 0.92; }
+      50% { transform: scale(1.04); opacity: 1; filter: drop-shadow(0 0 10px rgba(253, 224, 71, 0.7)); }
+    }
+
   </style>
 
 </head>
@@ -315,6 +376,7 @@
         <div class="diwali-diya-glow"></div>
         <div class="diwali-content-wrap">
           <p class="diwali-subtitle">May this festival of lights illuminate your path to success & prosperity</p>
+          <span class="diwali-tap-hint">✨ Tap to open & view Board Exam Countdown ✨</span>
         </div>
       </div>
 
