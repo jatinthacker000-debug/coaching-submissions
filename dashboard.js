@@ -3837,6 +3837,12 @@ document.addEventListener("DOMContentLoaded", () => {
         cache: "no-store",
         headers: { "Authorization": `Bearer ${getCoachPassword()}` }
       });
+      if (res.status === 401) {
+        credTableBody.innerHTML = `<tr><td colspan="8" style="color: #b45309; background: #fef3c7; text-align: center; padding: 1.5rem; font-weight: 500; border-radius: 8px;">
+          Coach session expired. Please <button onclick="clearCoachPassword(); location.reload();" style="padding: 0.35rem 0.9rem; margin-left: 0.5rem; background: var(--primary, #059669); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Log In Again</button> to view student credentials.
+        </td></tr>`;
+        return;
+      }
       const data = await res.json();
       if (data.students) {
         window.credentialsStudentsData = data.students.map(st => ({
